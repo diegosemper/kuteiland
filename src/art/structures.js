@@ -6,12 +6,12 @@ import { woodFace, band, rivet } from './props.js';
 const { tileW: TW, tileH: TH } = CONFIG.iso;
 
 // Isometrisch punt binnen een texture: u, v in tegels, h in pixels omhoog
-function iso(ox, oy) {
+export function iso(ox, oy) {
   return (u, v, h = 0) => ({ x: ox + (u - v) * TW / 2, y: oy + (u + v) * TH / 2 - h });
 }
 
 // Een blok (kist-vorm) met drie zichtbare vlakken
-function box(ctx, P, u0, u1, v0, v1, h0, h1, cols, texture) {
+export function box(ctx, P, u0, u1, v0, v1, h0, h1, cols, texture) {
   const left = [P(u0, v1, h0), P(u1, v1, h0), P(u1, v1, h1), P(u0, v1, h1)];
   const right = [P(u1, v1, h0), P(u1, v0, h0), P(u1, v0, h1), P(u1, v1, h1)];
   const top = [P(u0, v0, h1), P(u1, v0, h1), P(u1, v1, h1), P(u0, v1, h1)];

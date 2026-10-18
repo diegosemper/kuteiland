@@ -53,8 +53,9 @@ export class Generator {
     scene.tweens.add({ targets: stone, x: { from: stone.x + 2, to: stone.x }, duration: 140, ease: 'Bounce.easeOut' });
     this.chips.explode(5, stone.x, this.stoneY - 14);
 
-    this.hits++;
-    if (this.hits < CONFIG.generator.hitsPerYield[tier]) return null;
+    this.hits += game.skills.power('delven');
+    const need = CONFIG.generator.hitsPerYield[tier];
+    if (this.hits < need) return { skill: 'delven' };
 
     // steen breekt, nieuwe groeit
     this.hits = 0;
@@ -68,7 +69,8 @@ export class Generator {
         onComplete: () => { this.ready = true; },
       });
     });
-    return { item: 'puin', amount: CONFIG.generator.puinPerYield[tier] };
+    const double = Math.random() < game.skills.doubleChance('delven');
+    return { skill: 'delven', item: 'puin', amount: CONFIG.generator.puinPerYield[tier] * (double ? 2 : 1), double };
   }
 
   serialize() {

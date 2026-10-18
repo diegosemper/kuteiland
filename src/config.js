@@ -22,16 +22,16 @@ export const CONFIG = {
     actionCooldownMs: 380,   // tijd tussen twee slagen als je de actieknop vasthoudt
   },
 
-  // Lijsten per gereedschapsniveau: [zonder, hout, steen]
+  // Lijsten per gereedschapsniveau: [zonder, hout, steen, roest]
   tree: {
-    hitsPerYield: [4, 3, 2],   // slagen per opbrengst
-    woodPerYield: [1, 1, 2],   // wrakhout per opbrengst
+    hitsPerYield: [4, 3, 2, 2],   // slagen per opbrengst (skill Hakken maakt elke slag sterker)
+    woodPerYield: [1, 1, 2, 3],   // wrakhout per opbrengst
     radius: 0.3,
   },
 
   generator: {
-    hitsPerYield: [0, 4, 3],   // 0 = kan niet zonder houweel
-    puinPerYield: [0, 1, 2],
+    hitsPerYield: [0, 4, 3, 2],   // 0 = kan niet zonder houweel
+    puinPerYield: [0, 1, 2, 2],
     regrowMs: 1500,            // hoe snel er een nieuwe steen groeit
     radius: 0.34,
   },
@@ -40,8 +40,30 @@ export const CONFIG = {
   workbench: { radius: 0.34 },
 
   tools: {
-    axe:     ['Handen', 'Houten bijl', 'Stenen bijl'],
-    pickaxe: ['Geen houweel', 'Houten houweel', 'Stenen houweel'],
+    axe:     ['Handen', 'Houten bijl', 'Stenen bijl', 'Roestige bijl'],
+    pickaxe: ['Geen houweel', 'Houten houweel', 'Stenen houweel', 'Roestig houweel'],
+  },
+
+  // Skills: XP per actie, bonus per level. Nodig voor level L+1: base * growth^L
+  skillCurve: { base: 10, growth: 1.45, max: 20 },
+  skills: {
+    hakken: { name: 'Hakken', xp: 1, power: 0.08, double: 0.03 },       // xp per slag
+    delven: { name: 'Delven', xp: 2, power: 0.08, double: 0.04 },       // xp per slag
+    bouwen: { name: 'Bouwen', xpTile: 6, xpObject: 10, xpCraft: 1, free: 0.04 },
+    vechten: { name: 'Vechten', xp: 3, damage: 0.05, heartEvery: 2 },  // vanaf fase 4
+  },
+
+  // Drijvend wrak dat langs het eiland zweeft
+  drift: {
+    intervalMs: [6000, 12000],   // tijd tussen twee drijvers
+    speed: [32, 55],             // wereldpixels per seconde
+    grabRange: 2.3,              // tegels: zo dichtbij moet je staan om iets te vangen
+    // kans, en wat het oplevert [min, max]
+    kinds: {
+      branch: { chance: 0.68, loot: { wrakhout: [1, 2] } },
+      scrap:  { chance: 0.27, loot: { roest: [1, 2] } },
+      crate:  { chance: 0.05, loot: { wrakhout: [2, 3], roest: [1, 2], puin: [1, 2] } },
+    },
   },
 
   save: {
@@ -96,5 +118,7 @@ export const CONFIG = {
     { id: 'puinblok',       at: 'werkbank', cost: { puin: 3 },               gives: { item: 'puinblok', amount: 1 } },
     { id: 'houweel2',       at: 'werkbank', cost: { wrakhout: 2, puin: 5 },  gives: { tool: 'pickaxe', tier: 2 } },
     { id: 'bijl2',          at: 'werkbank', cost: { wrakhout: 2, puin: 5 },  gives: { tool: 'axe', tier: 2 } },
+    { id: 'houweel3',       at: 'werkbank', cost: { wrakhout: 3, puin: 4, roest: 6 }, gives: { tool: 'pickaxe', tier: 3 } },
+    { id: 'bijl3',          at: 'werkbank', cost: { wrakhout: 3, puin: 4, roest: 6 }, gives: { tool: 'axe', tier: 3 } },
   ],
 };

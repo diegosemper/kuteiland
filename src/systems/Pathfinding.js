@@ -1,26 +1,23 @@
-// Route over de tegels naar een object, om andere objecten heen (breadth-first search).
+// Route over de tegels, om objecten heen (breadth-first search).
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
 
-export function findPath(game, target) {
-  const { island, objects, player } = game;
-  const blocked = new Set(objects.map((o) => `${o.gx},${o.gy}`));
-  const free = (gx, gy) => island.get(gx, gy) && !blocked.has(`${gx},${gy}`);
+function walkable(game) {
+  const blocked = new Set(game.objects.map((o) => `${o.gx},${o.gy}`));
+  return (gx, gy) => !!game.island.get(gx, gy) && !blocked.has(`${gx},${gy}`);
+}
 
-  // doel: een vrije tegel recht naast het object
-  const goals = new Set([[1, 0], [-1, 0], [0, 1], [0, -1]]
-    .map(([dx, dy]) => [target.gx + dx, target.gy + dy])
-    .filter(([gx, gy]) => free(gx, gy))
-    .map(([gx, gy]) => `${gx},${gy}`));
+// Route naar één van de doeltegels. Geeft een lijst tegels terug (zonder de start), of null.
+export function findPathTo(game, goalTiles) {
+  const free = walkable(game);
+  const goals = new Set(goalTiles.filter(([gx, gy]) => free(gx, gy)).map(([gx, gy]) => `${gx},${gy}`));
   if (!goals.size) return null;
 
-  const start = { gx: Math.round(player.gx), gy: Math.round(player.gy) };
-  const startKey = `${start.gx},${start.gy}`;
-  const prev = new Map([[startKey, null]]);
+  const start = { gx: Math.round(game.player.gx), gy: Math.round(game.player.gy) };
+  const prev = new Map([[`${start.gx},${start.gy}`, null]]);
   const queue = [start];
   while (queue.length) {
     const cur = queue.shift();
-    const k = `${cur.gx},${cur.gy}`;
-    if (goals.has(k)) {
+    if (goals.has(`${cur.gx},${cur.gy}`)) {
       const path = [];
       for (let n = cur; n; n = prev.get(`${n.gx},${n.gy}`)) path.unshift(n);
       path.shift();   // starttegel: daar sta je al
@@ -37,4 +34,17 @@ export function findPath(game, target) {
     }
   }
   return null;
+}
+
+// Route naar een vrije tegel recht naast een object
+export function findPath(game, target) {
+  return findPathTo(game, [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [target.gx + dx, target.gy + dy]));
+}
+
+// Route naar de vrije tegel die het dichtst bij een punt (in tegels) ligt
+export function findPathNear(game, gx, gy) {
+  const free = walkable(game);
+  const tiles = [...game.island.tiles.values()].filter((t) => free(t.gx, t.gy));
+  tiles.sort((a, b) => Math.hypot(a.gx - gx, a.gy - gy) - Math.hypot(b.gx - gx, b.gy - gy));
+  return findPathTo(game, tiles.slice(0, 1).map((t) => [t.gx, t.gy]));
 }

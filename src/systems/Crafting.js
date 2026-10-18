@@ -24,7 +24,7 @@ export function recipeState(game, r) {
 
 export function craft(game, id) {
   const r = CONFIG.recipes.find((x) => x.id === id);
-  if (!r || !recipeState(game, r).canCraft) return false;
+  if (!r || !recipeState(game, r).canCraft) return null;
   for (const [k, n] of Object.entries(r.cost)) game.inventory.remove(k, n);
   if (r.gives.tool) {
     game.tools[r.gives.tool] = r.gives.tier;
@@ -33,5 +33,5 @@ export function craft(game, id) {
   }
   game.stats.crafted[r.id] = (game.stats.crafted[r.id] || 0) + 1;
   bus.emit('crafted', r);
-  return true;
+  return r;
 }

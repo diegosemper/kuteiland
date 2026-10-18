@@ -11,7 +11,9 @@ import { Inventory } from '../systems/Inventory.js';
 import { BuildMode } from '../systems/Building.js';
 import { Objectives } from '../systems/Objectives.js';
 import { craft } from '../systems/Crafting.js';
-import { findPath } from '../systems/Pathfinding.js';
+import { findPath, findPathNear } from '../systems/Pathfinding.js';
+import { Skills } from '../systems/Skills.js';
+import { Drift } from '../systems/Drift.js';
 import { loadGame, saveGame, clearSave } from '../systems/save.js';
 
 const AUTO_WALK_MS = 4000;
@@ -27,6 +29,7 @@ export class GameScene extends Phaser.Scene {
     this.stats = { chops: 0, wood: 0, puin: 0, tilesPlaced: 0, ...save?.stats };
     this.stats.crafted = { ...save?.stats?.crafted };
     this.tools = { axe: 0, pickaxe: 0, ...save?.tools };
+    this.skills = new Skills(save?.skills);
     this.inventory = new Inventory(save?.inventory);
     this.chestStore = new Inventory(save?.chest);
 
@@ -54,7 +57,9 @@ export class GameScene extends Phaser.Scene {
     this.nextObjectiveCheck = 0;
 
     this.build = new BuildMode(this);
-    this.objectives = new Objectives(this, this.flags.objective || 0);
+    this.drift = new Drift(this);
+    this.autoGrab = null;
+    this.objectives = new Objectives(this, this.flags.objectiveId ?? this.flags.objective ?? 0);
 
     const cam = this.cameras.main;
     cam.startFollow(this.player.sprite, false, 0.1, 0.1);
@@ -71,7 +76,8 @@ export class GameScene extends Phaser.Scene {
       'build-open': () => this.build.open(),
       'build-close': () => this.build.close(),
       'build-select': (key) => this.build.select(key),
-      'placed': () => this.onPlaced(),
+      'placed': (info) => this.onPlaced(info),
+      'tap-drift': (it) => this.onTapDrift(it),
     };
     for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
     this.events.once('shutdown', () => {
@@ -182,7 +188,30 @@ export class GameScene extends Phaser.Scene {
     return hit;
   }
 
+  driftAt(wx, wy) {
+    return this.drift.itemAt(wx, wy);
+  }
+
+  // Drijver aangetikt: vangen als hij dichtbij is, anders naar de rand lopen en dan vangen
+  onTapDrift(it) {
+    if (this.drift.inRange(it)) {
+      this.drift.collect(it);
+      return;
+    }
+    const g = this.drift.gridPos(it);
+    const path = findPathNear(this, Math.round(g.gx), Math.round(g.gy));
+    if (!path) {
+      bus.emit('message', TEXT.driftFar, true);
+      return;
+    }
+    this.autoTarget = null;
+    this.autoGrab = it;
+    this.autoPath = path;
+    this.autoUntil = this.time.now + AUTO_WALK_MS + path.length * 500;
+  }
+
   onTapObject(obj) {
+    this.autoGrab = null;
     if (this.distanceTo(obj) <= CONFIG.player.reach) {
       this.target = obj;
       controls.actionQueued = true;
@@ -203,9 +232,40 @@ export class GameScene extends Phaser.Scene {
   update(time, delta) {
     const dt = Math.min(delta, 50);
 
+    this.drift.update(time, dt);
+    if (!this.flags.driftSeen && this.drift.items.length && time > 8000) {
+      this.flags.driftSeen = true;
+      bus.emit('message', TEXT.driftFirst);
+    }
+
     let move = controls.move;
-    if (Math.hypot(move.x, move.y) > 0.15 || time > this.autoUntil) this.autoTarget = null;
-    if (this.autoTarget) {
+    if (Math.hypot(move.x, move.y) > 0.15 || time > this.autoUntil) {
+      this.autoTarget = null;
+      this.autoGrab = null;
+    }
+    if (this.autoGrab) {
+      const it = this.autoGrab;
+      if (!this.drift.alive(it)) {
+        this.autoGrab = null;
+        bus.emit('message', TEXT.driftGone, true);
+      } else if (this.drift.inRange(it)) {
+        this.autoGrab = null;
+        this.drift.collect(it);
+      } else {
+        const wp = this.autoPath[0];
+        if (wp && Math.hypot(wp.gx - this.player.gx, wp.gy - this.player.gy) < 0.12) this.autoPath.shift();
+        const g = this.drift.gridPos(it);
+        const aim = this.autoPath[0];
+        if (aim) {
+          const v = gridToScreen(aim.gx - this.player.gx, aim.gy - this.player.gy);
+          const len = Math.hypot(v.x, v.y) || 1;
+          move = { x: v.x / len, y: v.y / len };
+        } else {
+          // aan de rand, maar nog te ver: wachten tot hij dichterbij drijft
+          this.player.faceTowards(gridToScreen(g.gx, g.gy).x);
+        }
+      }
+    } else if (this.autoTarget) {
       if (this.distanceTo(this.autoTarget) <= CONFIG.player.reach * 0.8) {
         this.target = this.autoTarget;
         this.autoTarget = null;
@@ -263,14 +323,15 @@ export class GameScene extends Phaser.Scene {
     const result = target.act(this);
     if (!result) return;
 
+    if (result.skill) this.skills.gain(result.skill, CONFIG.skills[result.skill].xp);
     if (result.item) {
       this.inventory.add(result.item, result.amount);
       const def = CONFIG.items[result.item];
       bus.emit('float', {
         wx: target.sprite.x,
         wy: target.hitY,
-        text: `+${result.amount} ${def.name.toLowerCase()}`,
-        color: '#e8d6b8',
+        text: `+${result.amount} ${def.name.toLowerCase()}${result.double ? ` ${TEXT.doubleDrop}` : ''}`,
+        color: result.double ? '#ffd98a' : '#e8d6b8',
       });
       if (result.item === 'wrakhout') this.onWood(result.amount);
       if (result.item === 'puin') this.stats.puin += result.amount;
@@ -293,12 +354,24 @@ export class GameScene extends Phaser.Scene {
   }
 
   onCraft(id) {
-    if (!craft(this, id)) return;
+    const r = craft(this, id);
+    if (!r) return;
+    const B = CONFIG.skills.bouwen;
+    this.skills.gain('bouwen', B.xpCraft);
+    // skill Bouwen: kans op een gratis extra blok
+    const item = r.gives.item && CONFIG.items[r.gives.item];
+    if (item?.place === 'tile' && Math.random() < this.skills.freeBlockChance()) {
+      this.inventory.add(r.gives.item, 1);
+      const p = this.player.sprite;
+      this.time.delayedCall(250, () => bus.emit('float', { wx: p.x, wy: p.y - 140, text: TEXT.freeBlock, color: '#ffd98a' }));
+    }
     this.objectives.check();
     this.saveNow();
   }
 
-  onPlaced() {
+  onPlaced(info) {
+    const B = CONFIG.skills.bouwen;
+    this.skills.gain('bouwen', CONFIG.items[info.item].place === 'tile' ? B.xpTile : B.xpObject);
     this.objectives.check();
     this.saveNow();
   }
@@ -321,12 +394,14 @@ export class GameScene extends Phaser.Scene {
 
   saveNow() {
     if (this.resetting) return;
-    this.flags.objective = this.objectives?.index ?? 0;
+    this.flags.objectiveId = this.objectives?.id;
+    delete this.flags.objective;
     saveGame({
       player: { gx: this.player.gx, gy: this.player.gy },
       inventory: this.inventory.toJSON(),
       chest: this.chestStore.toJSON(),
       tools: this.tools,
+      skills: this.skills.toJSON(),
       stats: this.stats,
       flags: this.flags,
       world: {

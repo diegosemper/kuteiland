@@ -69,12 +69,16 @@ export class Tree {
         this.baseX + Phaser.Math.Between(-90, 10), this.topY + Phaser.Math.Between(30, 110));
     }
 
-    this.hits++;
-    if (this.hits >= CONFIG.tree.hitsPerYield[tier]) {
-      this.hits = 0;
-      return { item: 'wrakhout', amount: CONFIG.tree.woodPerYield[tier] };
+    // skill Hakken maakt elke slag sterker; overschot telt mee voor de volgende
+    this.hits += game.skills.power('hakken');
+    const need = CONFIG.tree.hitsPerYield[tier];
+    const result = { skill: 'hakken' };
+    if (this.hits >= need) {
+      this.hits -= need;
+      const double = Math.random() < game.skills.doubleChance('hakken');
+      Object.assign(result, { item: 'wrakhout', amount: CONFIG.tree.woodPerYield[tier] * (double ? 2 : 1), double });
     }
-    return null;
+    return result;
   }
 
   serialize() {

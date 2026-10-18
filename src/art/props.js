@@ -11,7 +11,7 @@ export const TREE = { w: 440, h: 480, baseX: 220, baseY: 458 };
 const BARK = { base: '#3b2d22', light: '#7d6752', dark: '#150f0b' };
 
 // Een getaperde tak langs een kwadratische curve, met licht- en schaduwkant.
-function limb(ctx, p0, c, p1, w0, w1) {
+export function limb(ctx, p0, c, p1, w0, w1) {
   const pts = [];
   const N = 12;
   for (let i = 0; i <= N; i++) {

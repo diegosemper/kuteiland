@@ -2,7 +2,7 @@
 
 Mobiel isometrisch overlevingsspel op een zwevend eiland boven de leegte. Zie [PLAN.md](PLAN.md) voor het volledige plan.
 
-**Status:** fase 1 (basis) en fase 2 (bouwen en craften) klaar.
+**Status:** fase 1 t/m 3 klaar (basis, bouwen en craften, skills en roest).
 
 ## Lokaal spelen
 
@@ -47,7 +47,7 @@ src/
   iso.js                isometrische omrekening
   scenes/               Boot, Background (leegte), Game (wereld), UI (knoppen)
   world/                Island, Player, Tree, Chest, Workbench, Generator
-  systems/              Inventory, Crafting, Building, Objectives, save
+  systems/              Inventory, Crafting, Building, Skills, Drift, Objectives, Pathfinding, save
   ui/                   Joystick, knoppen, panelen (rugzak, kist, werkbank), bouwbalk, doelen
 tools/                  lokale server en icoongenerator
 ```

@@ -194,7 +194,7 @@ function toolIcon(ctx, kind, tier) {
   ctx.strokeStyle = '#7a5434';
   ctx.lineWidth = 3.5;
   ctx.beginPath(); ctx.moveTo(18, 54); ctx.lineTo(42, 16); ctx.stroke();
-  const head = tier === 2 ? ['#8f8780', '#5c5650'] : ['#8a6a46', '#5a4029'];
+  const head = [null, ['#8a6a46', '#5a4029'], ['#8f8780', '#5c5650'], ['#b06a3e', '#5a2a14']][tier];
   ctx.fillStyle = head[0];
   ctx.strokeStyle = 'rgba(0,0,0,0.7)';
   ctx.lineWidth = 1.2;
@@ -220,7 +220,7 @@ export function generateIcons(scene) {
   canvasTexture(scene, 'icon_werkbank', S, S, benchIcon);
   canvasTexture(scene, 'icon_steengenerator', S, S, generatorIcon);
   for (const kind of ['axe', 'pickaxe']) {
-    for (const tier of [1, 2]) canvasTexture(scene, `icon_${kind}${tier}`, S, S, (ctx) => toolIcon(ctx, kind, tier));
+    for (const tier of [1, 2, 3]) canvasTexture(scene, `icon_${kind}${tier}`, S, S, (ctx) => toolIcon(ctx, kind, tier));
   }
   canvasTexture(scene, 'icon_wrakhout', S, S, wood);
   canvasTexture(scene, 'icon_puin', S, S, rubble);

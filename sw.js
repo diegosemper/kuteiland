@@ -1,7 +1,7 @@
 // Service worker: zorgt dat het spel installeerbaar is en offline blijft werken.
 // Strategie: eerst het netwerk (zodat updates meteen binnenkomen), bij geen verbinding de cache.
 // Verhoog CACHE bij grote wijzigingen om oude bestanden op te ruimen.
-const CACHE = 'kuteiland-v3';
+const CACHE = 'kuteiland-v4';
 
 const CORE = [
   './',
@@ -20,6 +20,7 @@ const CORE = [
   './src/rng.js',
   './src/texts.js',
   './src/art/character.js',
+  './src/art/drift.js',
   './src/art/fx.js',
   './src/art/icons.js',
   './src/art/index.js',
@@ -33,9 +34,11 @@ const CORE = [
   './src/scenes/UIScene.js',
   './src/systems/Building.js',
   './src/systems/Crafting.js',
+  './src/systems/Drift.js',
   './src/systems/Inventory.js',
   './src/systems/Objectives.js',
   './src/systems/Pathfinding.js',
+  './src/systems/Skills.js',
   './src/systems/save.js',
   './src/ui/ActionButton.js',
   './src/ui/BuildBar.js',
@@ -45,6 +48,8 @@ const CORE = [
   './src/ui/Joystick.js',
   './src/ui/ObjectiveHud.js',
   './src/ui/Panel.js',
+  './src/ui/SkillXpBar.js',
+  './src/ui/SkillsPanel.js',
   './src/ui/Toast.js',
   './src/ui/style.js',
   './src/world/Chest.js',

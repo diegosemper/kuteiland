@@ -12,8 +12,11 @@ import { ChestPanel } from '../ui/ChestPanel.js';
 import { CraftPanel } from '../ui/CraftPanel.js';
 import { BuildBar } from '../ui/BuildBar.js';
 import { ObjectiveHud } from '../ui/ObjectiveHud.js';
+import { SkillsPanel } from '../ui/SkillsPanel.js';
+import { SkillXpBar } from '../ui/SkillXpBar.js';
 import { recipeName } from '../systems/Crafting.js';
 import { COLORS, textStyle, makeButton, roundedBox, shade } from '../ui/style.js';
+import { pick } from '../texts.js';
 
 export class UIScene extends Phaser.Scene {
   constructor() {
@@ -40,8 +43,11 @@ export class UIScene extends Phaser.Scene {
     this.chestPanel = new ChestPanel(this, this.inventory, game.chestStore);
     this.craftPanel = new CraftPanel(this, game);
     this.buildBar = new BuildBar(this);
+    this.skillsPanel = new SkillsPanel(this, game);
+    this.xpBar = new SkillXpBar(this);
 
     this.bagButton = makeButton(this, 0, 0, 104 * this.S, 40 * this.S, 'RUGZAK', () => this.togglePanel(), 12);
+    this.skillsButton = makeButton(this, 0, 0, 104 * this.S, 36 * this.S, TEXT.skillsButton, () => this.openPanel(this.skillsPanel), 11);
     this.resBar = null;
     this.buildResources();
 
@@ -50,7 +56,7 @@ export class UIScene extends Phaser.Scene {
       if (over.length || this.anyPanelOpen()) return;
       if (this.buildBar.active) {
         if (this.tryPlace(pointer)) return;
-      } else if (this.tryWorldTap(pointer)) {
+      } else if (this.tryDriftTap(pointer) || this.tryWorldTap(pointer)) {
         return;
       }
       if (this.joystick.inZone(pointer)) this.joystick.start(pointer);
@@ -70,6 +76,8 @@ export class UIScene extends Phaser.Scene {
       'objective': (o) => this.objective.set(o),
       'build-changed': (state) => this.onBuildChanged(state),
       'crafted': (r) => this.onCrafted(r),
+      'skill-xp': (x) => this.xpBar.show(x),
+      'skill-up': (u) => this.onSkillUp(u),
     };
     for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
     const onChange = (key) => this.buildResources(key);
@@ -105,13 +113,14 @@ export class UIScene extends Phaser.Scene {
   }
 
   anyPanelOpen() {
-    return this.panel.isOpen || this.chestPanel.isOpen || this.craftPanel.isOpen;
+    return this.panel.isOpen || this.chestPanel.isOpen || this.craftPanel.isOpen || this.skillsPanel.isOpen;
   }
 
   closeAll() {
     this.panel.close();
     this.chestPanel.close();
     this.craftPanel.close();
+    this.skillsPanel.close();
   }
 
   openPanel(p) {
@@ -131,17 +140,19 @@ export class UIScene extends Phaser.Scene {
     this.action.layout(w, h, this.safe);
     this.toast.layout(w, h, this.safe);
     this.objective.layout(w, h, this.safe);
+    this.xpBar.layout(w, h, this.safe);
     // bouwknop schuin boven de actieknop
     const ax = this.action.circle.x, ay = this.action.circle.y;
     this.buildButton.setPosition(ax - this.action.R * 1.05, ay - this.action.R * 1.75);
     this.bagButton.setPosition(w - this.safe.right - 16 * S - 52 * S, this.safe.top + 16 * S + 20 * S);
+    this.skillsButton.setPosition(w - this.safe.right - 16 * S - 52 * S, this.safe.top + 16 * S + 20 * S + 48 * S);
     this.resBar?.setPosition(this.safe.left + 16 * S, this.safe.top + 36 * S);
     this.closeAll();
     this.buildBar.render();
   }
 
   togglePanel() {
-    if (this.chestPanel.isOpen || this.craftPanel.isOpen) return;
+    if (this.chestPanel.isOpen || this.craftPanel.isOpen || this.skillsPanel.isOpen) return;
     if (this.buildBar.active) bus.emit('build-close');
     this.panel.toggle();
     this.joystick.release();
@@ -165,6 +176,22 @@ export class UIScene extends Phaser.Scene {
     const p = this.gameScene.player.sprite;
     this.floatText({ wx: p.x, wy: p.y - 110, text: `+ ${recipeName(r)}`, color: '#efe3c8' });
     this.panel.rebuild();
+  }
+
+  onSkillUp({ id, level }) {
+    const p = this.gameScene.player.sprite;
+    const name = CONFIG.skills[id].name.toUpperCase();
+    this.floatText({ wx: p.x, wy: p.y - 150, text: `${name} ${level}`, color: '#ffd98a' });
+    this.toast.show(`${CONFIG.skills[id].name} ${level}. ${pick(TEXT.skillUp[id])}`, true);
+  }
+
+  // Tik op drijvend wrak
+  tryDriftTap(pointer) {
+    const p = this.worldPoint(pointer);
+    const it = this.gameScene.driftAt(p.x, p.y);
+    if (!it) return false;
+    bus.emit('tap-drift', it);
+    return true;
   }
 
   worldPoint(pointer) {
