@@ -21,7 +21,7 @@ export class KokenScene extends MinigameScene {
 
   build() {
     const { S, W, H, cfg } = this;
-    this.makeHud({ lives: cfg.lives });
+    this.makeHud({ lives: this.maxLives });
     this.drawTime(1);
     this.comboText.setColor('#fff0a0');
 
@@ -70,7 +70,7 @@ export class KokenScene extends MinigameScene {
     this.brew = 0;
     this.brews = 0;
     this.inZoneMs = 0;
-    this.lives = cfg.lives;
+    this.lives = this.maxLives;
     this.timeLeft = cfg.timeMs;
     this.nextClumpAt = 0;
     this.overheat = 0;

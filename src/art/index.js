@@ -13,6 +13,7 @@ import { generateAnchor } from './anchor.js';
 import { generateRemote } from './remote.js';
 import { generateEndgame } from './endgame.js';
 import { generateMinigameArt } from './minigames.js';
+import { generateResidents } from './residents.js';
 
 let noise = null;
 export function getNoise() {
@@ -31,6 +32,7 @@ export function generateTextures(scene) {
   generateRemote(scene);
   generateEndgame(scene);
   generateCharacter(scene);
+  generateResidents(scene);
   generateIcons(scene);
   generateMinigameArt(scene);
 }

@@ -1,6 +1,7 @@
 // Maakt een object in de wereld op basis van opgeslagen gegevens ({ type, gx, gy, ... }).
 import { Tree } from './Tree.js';
 import { Source } from './Source.js';
+import { Bed, Castaway } from './Residents.js';
 import { Chest } from './Chest.js';
 import { Workbench } from './Workbench.js';
 import { Generator } from './Generator.js';
@@ -22,6 +23,7 @@ export const ITEM_TO_OBJECT = {
   aambeeld: { type: 'anvil' },
   roestmagneet: { type: 'source', kind: 'magneet' },
   spijkerval: { type: 'trap', kind: 'spikes' },
+  bed: { type: 'bed' },
   zwavelmijn: { type: 'trap', kind: 'mine' },
   kristalboor: { type: 'source', kind: 'boor' },
   zwavelketel: { type: 'source', kind: 'ketel' },
@@ -71,6 +73,8 @@ export function createObject(scene, data) {
     case 'anvil': return new Anvil(scene, data.gx, data.gy);
     case 'machine': return new Machine(scene, data.gx, data.gy, data);
     case 'source': return new Source(scene, data.gx, data.gy, data);
+    case 'bed': return new Bed(scene, data.gx, data.gy);
+    case 'castaway': return new Castaway(scene, data.gx, data.gy, data);
     default: return null;
   }
 }

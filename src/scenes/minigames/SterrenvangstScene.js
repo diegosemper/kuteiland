@@ -21,7 +21,7 @@ export class SterrenvangstScene extends MinigameScene {
 
   build() {
     const { S, W, H, cfg } = this;
-    this.makeHud({ lives: cfg.lives });
+    this.makeHud({ lives: this.maxLives });
     this.drawTime(1);
     this.comboText.setColor('#fff0b0');
 
@@ -63,7 +63,7 @@ export class SterrenvangstScene extends MinigameScene {
     this.caught = 0;
     this.combo = 0;
     this.bestCombo = 0;
-    this.lives = cfg.lives;
+    this.lives = this.maxLives;
     this.timeLeft = cfg.timeMs;
     this.nextSpawnAt = 0;
     this.spawnR = Math.hypot(W, H) * 0.55;

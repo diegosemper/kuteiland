@@ -5,6 +5,12 @@ import { TEXT, pick } from '../../texts.js';
 import { COLORS, textStyle, shade } from '../../ui/style.js';
 import { MinigameScene } from './MinigameScene.js';
 
+// een drenkeling op een plank: niet om te verkopen, wel om te redden
+const RESCUE = {
+  tex: 'mg_castaway', scale: 1.2, speed: [0.12, 0.17], loot: {}, points: 5,
+  get weight() { return CONFIG.castaways.rescueWeight; }, castaway: true,
+};
+
 export class GrijphaakScene extends MinigameScene {
   constructor() {
     super('mg-grijphaak');
@@ -39,7 +45,7 @@ export class GrijphaakScene extends MinigameScene {
     plat.fillStyle(0x5a5a66, 1).fillCircle(this.base.x, this.base.y, 6 * S);
 
     // schoten als haakjes onder de lier
-    this.shots = perks.shots || 7;
+    this.shots = (perks.shots || 7) + (this.spec.pet?.shots || 0);
     this.shotIcons = [];
     for (let i = 0; i < this.shots; i++) {
       const x = W / 2 + (i - (this.shots - 1) / 2) * 22 * S;
@@ -76,9 +82,12 @@ export class GrijphaakScene extends MinigameScene {
     const { S, W, H, cfg } = this;
     // lokkristal: kristalscherven komen vaker langs
     const weight = (k) => k.weight * (k.glow ? (this.spec.effects?.shardMult || 1) : 1);
-    const total = cfg.kinds.reduce((s, k) => s + weight(k), 0);
+    const kinds = [...cfg.kinds];
+    if (this.spec.canRescue && !this.rescueSeen) kinds.push(RESCUE);
+    const total = kinds.reduce((s, k) => s + weight(k), 0);
     let roll = Math.random() * total;
-    const kind = cfg.kinds.find((k) => (roll -= weight(k)) < 0) || cfg.kinds[0];
+    const kind = kinds.find((k) => (roll -= weight(k)) < 0) || kinds[0];
+    if (kind === RESCUE) this.rescueSeen = true;
     const size = 70 * S * kind.scale;
     const y = Phaser.Math.Between(H * 0.2, H * 0.6);
     const img = this.add.image(x ?? -size, y, kind.tex).setDepth(4);
@@ -227,6 +236,11 @@ export class GrijphaakScene extends MinigameScene {
     this.setScore(this.points);
     if (this.streak > 1) this.comboText.setText(`${TEXT.mgStreak} x${this.streak}`);
     const parts = [];
+    if (w.kind.castaway) {
+      this.rescued = true;
+      this.shout(TEXT.rescuedLine, '#ffd98a', this.H * 0.35);
+      this.sfx('levelUp');
+    }
     const loot = { ...w.kind.loot };
     // zware magneet: elke vangst een roestje extra
     if (this.spec.effects?.lootBonus) loot.roest = (loot.roest || 0) + this.spec.effects.lootBonus;
@@ -252,6 +266,7 @@ export class GrijphaakScene extends MinigameScene {
     return {
       score: this.points,
       items,
+      castaway: !!this.rescued,
       xp: this.catches * this.cfg.xpPerCatch,
       line: `${this.catches} ${TEXT.mgCatches} · ${TEXT.mgBestStreak} ${this.bestStreak}`,
     };

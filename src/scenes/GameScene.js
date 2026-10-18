@@ -28,6 +28,7 @@ import { Crumble } from '../systems/Crumble.js';
 import { toolPerks } from '../systems/Perks.js';
 import { Siege } from '../systems/Siege.js';
 import { Voice } from '../systems/Voice.js';
+import { Pet, petPerks, petLevel } from '../world/Pet.js';
 import { loadGame, saveGame, clearSave } from '../systems/save.js';
 
 const AUTO_WALK_MS = 4000;
@@ -122,6 +123,8 @@ export class GameScene extends Phaser.Scene {
     this.night = new Night(this);
     this.siege = new Siege(this);
     this.voice = new Voice(this);
+    this.pet = this.flags.pet ? new Pet(this, this.flags.pet) : null;
+    this.nextResidentCheck = 0;
     // halverwege de nacht geladen: meteen weer vechten
     if (this.dayNight.isNight) this.time.delayedCall(800, () => this.siege.resume(this.dayNight.night));
     this.crumble = new Crumble(this, save?.crumble);
@@ -154,6 +157,8 @@ export class GameScene extends Phaser.Scene {
       'machine-collect': (m) => this.collectMachine(m),
       'machine-upgrade': (m) => this.upgradeMachine(m),
       'gear-upgrade': (slot) => this.upgradeGear(slot),
+      'castaway-job': (r) => this.changeJob(r),
+      'pet-feed': (item) => this.feedPet(item),
     };
     for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
     this.events.once('shutdown', () => {
@@ -280,7 +285,7 @@ export class GameScene extends Phaser.Scene {
   objectAt(wx, wy) {
     let hit = null;
     let best = Infinity;
-    for (const o of [...this.objects, ...this.crumble.targets(), ...this.night.enemies.filter((e) => e.alive)]) {
+    for (const o of [...this.objects, ...this.crumble.targets(), ...this.night.enemies.filter((e) => e.alive), ...(this.pet ? [this.pet] : [])]) {
       const b = Phaser.Geom.Rectangle.Clone(o.hitArea || o.sprite.getBounds());
       Phaser.Geom.Rectangle.Inflate(b, 10, 10);
       if (!b.contains(wx, wy)) continue;
@@ -353,6 +358,14 @@ export class GameScene extends Phaser.Scene {
     this.dayNight.update(this.siege.clockStep(dt));
     this.siege.update(time, dt);
     this.voice.update(time);
+    for (const o of this.objects) if (o.type === 'castaway') o.update(time, dt, this);
+    this.pet?.update(time, dt);
+    if (time >= this.nextResidentCheck) {
+      this.nextResidentCheck = time + 2000;
+      this.checkResidents();
+      this.checkPetArrival();
+    }
+    if (this.night.enemies.length) this.residentsFight(time);
     if (Math.hypot(controls.move.x, controls.move.y) > 0.15) this.voice.poke();
     this.night.update(time, dt);
     this.audio.update(this.dayNight.darkness);
@@ -498,6 +511,8 @@ export class GameScene extends Phaser.Scene {
     if (result.reclaim) this.reclaimGrave(target);
     if (result.repair) this.crumble.repair(result.repair);
     if (result.repairDefense) this.repairDefense(result.repairDefense);
+    if (result.openCastaway) bus.emit('open-castaway', result.openCastaway);
+    if (result.openPet) bus.emit('open-pet');
     if (result.readNote) this.readNote(result.readNote);
     if (result.kern) this.onKern();
     if (result.summon) this.summonGuardian(result.summon);
@@ -559,6 +574,8 @@ export class GameScene extends Phaser.Scene {
     return {
       id, item, rate, per, tool, tier, perks: toolPerks(tool, tier), toolMult: this.upgradeMult(tool),
       skill, art, name: name || M.name[id], effects, discoveries: found, fresh,
+      pet: this.pet ? petPerks(this.pet.level) : {},
+      canRescue: this.countObjects('castaway') + (this.stats.castawaysWaiting || 0) < CONFIG.castaways.max,
     };
   }
 
@@ -601,7 +618,7 @@ export class GameScene extends Phaser.Scene {
     if (this.boss || this.depth.active) { bus.emit('message', TEXT.mgNoFight, true); return; }
     const key = CONFIG.minigames.built.includes(spec.id) ? spec.id : 'proef';
     this.markDiscoveries(spec.fresh);
-    this.minigame = { spec, key, gained: {} };
+    this.minigame = { spec, key, gained: {}, residents: {} };
     this.autoTarget = null;
     this.autoGrab = null;
     if (this.build.active) this.build.close();
@@ -637,6 +654,18 @@ export class GameScene extends Phaser.Scene {
       if (this.minigame) this.minigame.gained[item] = (this.minigame.gained[item] || 0) + n;
     }
     if (res.xp) this.skills.gain(spec.skill, res.xp * CONFIG.skills[spec.skill].xp);
+    // bewoners werken mee
+    for (const o of this.objects) {
+      if (o.type !== 'castaway') continue;
+      const w = o.work();
+      if (!w) continue;
+      this.gainItem(w.item, w.n);
+      if (this.minigame) this.minigame.residents[w.item] = (this.minigame.residents[w.item] || 0) + w.n;
+    }
+    if (res.castaway) {
+      this.stats.castawaysWaiting = (this.stats.castawaysWaiting || 0) + 1;
+      if (this.minigame) this.minigame.rescued = true;
+    }
     // soms zit er een briefje tussen
     const next = CONFIG.noteFindOrder.find((n) => !this.flags.notes[n]);
     if (next && this.minigame && !this.minigame.note && Math.random() < CONFIG.noteFindChance) {
@@ -670,6 +699,14 @@ export class GameScene extends Phaser.Scene {
       }));
     });
     if (!this.dayNight.isNight && this.dayNight.phaseLeftMs < 1500) bus.emit('message', TEXT.mgNightWaits, true);
+    const work = Object.entries(mg?.residents || {});
+    if (work.length) {
+      bus.emit('message', `${TEXT.residentsWorked} ${work.map(([k, n]) => `+${n} ${CONFIG.items[k].name.toLowerCase()}`).join(', ')}.`);
+    }
+    if (mg?.rescued) {
+      bus.emit('message', TEXT.rescued, true);
+      this.checkResidents();
+    }
     if (mg?.note) {
       this.time.delayedCall(700, () => {
         bus.emit('sfx', 'note');
@@ -964,6 +1001,108 @@ export class GameScene extends Phaser.Scene {
     this.siege.startNight(n);
   }
 
+  // ---------- bewoners en het beest ----------
+
+  // wachtende drenkelingen krijgen een vrij bed
+  checkResidents() {
+    let waiting = this.stats.castawaysWaiting || 0;
+    if (!waiting) return;
+    const C = CONFIG.castaways;
+    const residents = this.objects.filter((o) => o.type === 'castaway');
+    const beds = this.objects.filter((o) => o.type === 'bed' && !residents.some((r) => r.bed[0] === o.gx && r.bed[1] === o.gy));
+    if (!beds.length) {
+      if (!this.flags.needBedSaid) { this.flags.needBedSaid = true; bus.emit('message', TEXT.needBed, true); }
+      return;
+    }
+    for (const bed of beds) {
+      if (!waiting) break;
+      const spot = this.freeTileNear(bed.gx, bed.gy);
+      if (!spot) break;
+      const used = residents.map((r) => r.name);
+      const name = C.names.find((n) => !used.includes(n) && Math.random() < 0.5) || C.names.find((n) => !used.includes(n)) || 'Naamloos';
+      const jobs = Object.keys(C.jobs);
+      const job = jobs[Math.floor(Math.random() * jobs.length)];
+      const tint = C.tints[residents.length % C.tints.length];
+      const r = this.addObject({ type: 'castaway', gx: spot.gx, gy: spot.gy, name, job, tint, bed: [bed.gx, bed.gy] }, true);
+      residents.push(r);
+      waiting--;
+      bus.emit('message', `${name} ${TEXT.newResident} ${C.jobs[job].name.toLowerCase()}.`, true);
+      bus.emit('sfx', 'levelUp');
+    }
+    this.stats.castawaysWaiting = waiting;
+    this.flags.needBedSaid = false;
+    this.objectives.check();
+    this.saveNow();
+  }
+
+  changeJob(r) {
+    const jobs = Object.keys(CONFIG.castaways.jobs);
+    r.job = jobs[(jobs.indexOf(r.job) + 1) % jobs.length];
+    r.store = 0;
+    bus.emit('message', `${r.name} ${TEXT.castawayNewJob} ${r.def.name.toLowerCase()}.`);
+    this.saveNow();
+  }
+
+  // na de eerste gewonnen nacht blijft er iets achter
+  checkPetArrival() {
+    if (this.flags.pet || this.dayNight.isNight || (this.stats.nightsWon || 0) < CONFIG.pet.arriveAfterNights) return;
+    const P = CONFIG.pet;
+    const foods = Object.keys(P.foodXp).slice(0, 5);
+    this.flags.pet = { name: P.names[Math.floor(Math.random() * P.names.length)], xp: 0, fav: foods[Math.floor(Math.random() * foods.length)] };
+    this.pet = new Pet(this, this.flags.pet);
+    this.island.puff.explode(16, this.pet.sprite.x, this.pet.sprite.y - 20);
+    bus.emit('message', `${TEXT.petArrive} ${this.flags.pet.name}.`, true);
+    bus.emit('sfx', 'note');
+    this.saveNow();
+  }
+
+  feedPet(item) {
+    const P = CONFIG.pet;
+    const data = this.flags.pet;
+    if (!data || !this.inventory.remove(item, P.feedAmount)) {
+      bus.emit('message', TEXT.petNoFood, true);
+      return;
+    }
+    const before = petLevel(data.xp);
+    data.xp += P.foodXp[item] * P.feedAmount * (item === data.fav ? P.favMult : 1);
+    const after = petLevel(data.xp);
+    bus.emit('sfx', 'pickup');
+    const s = this.pet.sprite;
+    this.tweens.add({ targets: s, scaleY: s.scaleY * 1.2, duration: 120, yoyo: true });
+    if (after > before) {
+      this.pet.applyLook();
+      bus.emit('sfx', 'levelUp');
+      bus.emit('message', `${data.name} ${TEXT.petUp} ${after}. ${P.perks[after]?.short || ''}`, true);
+      this.objectives.check();
+    }
+    this.saveNow();
+  }
+
+  // 's nachts: wachters en het beest vechten mee
+  residentsFight(time) {
+    const enemies = this.night.enemies.filter((e) => e.alive && e.kind !== 'boss');
+    if (!enemies.length) return;
+    const near = (o, range) => enemies.find((e) => Math.hypot(e.gx - o.gx, e.gy - o.gy) <= range);
+    for (const o of this.objects) {
+      if (o.type !== 'castaway' || !o.def.fight || time < o.nextHitAt) continue;
+      const e = near(o, o.def.fight.range);
+      if (!e) continue;
+      o.nextHitAt = time + o.def.fight.everyMs;
+      o.sprite.setFlipX(e.sprite.x < o.sprite.x);
+      this.tweens.add({ targets: o.sprite, angle: { from: o.sprite.flipX ? -14 : 14, to: 0 }, duration: 180 });
+      this.night.damageEnemy(e, o.def.fight.damage * (1 + (o.level - 1) * CONFIG.castaways.perLevel), false);
+    }
+    const bite = this.pet && petPerks(this.pet.level).bite;
+    if (bite && time >= this.pet.nextBiteAt) {
+      const e = near(this.pet, CONFIG.pet.biteRange);
+      if (e) {
+        this.pet.nextBiteAt = time + CONFIG.pet.biteEveryMs;
+        bus.emit('float', { wx: e.sprite.x, wy: e.topY, text: TEXT.petBite, color: '#c9a6ff' });
+        this.night.damageEnemy(e, bite, false);
+      }
+    }
+  }
+
   // Overdag een kapot gebouw of val herstellen. Hoe kapotter, hoe duurder.
   repairDefense(o) {
     const base = CONFIG.siege.repair[o.type];
@@ -987,6 +1126,16 @@ export class GameScene extends Phaser.Scene {
 
   onDayStart(d) {
     this.night.end();
+    const smiths = this.objects.filter((o) => o.type === 'castaway' && o.def.repair);
+    if (smiths.length) {
+      let fixed = false;
+      for (const o of this.objects) {
+        if (!o.defense || o.hp >= o.maxHp) continue;
+        for (const s of smiths) o.setHp?.(o.hp + o.maxHp * s.def.repair * (1 + (s.level - 1) * CONFIG.castaways.perLevel));
+        fixed = true;
+      }
+      if (fixed) this.time.delayedCall(2500, () => bus.emit('message', `${smiths[0].name} ${TEXT.smithRepaired}`));
+    }
     this.stats.nights = Math.max(this.stats.nights || 0, d - 1);
     bus.emit('message', pick(TEXT.dawn), true);
     this.objectives.check();
@@ -1032,6 +1181,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   onPlaced(info) {
+    if (info.item === 'bed') this.time.delayedCall(400, () => this.checkResidents());
     bus.emit('sfx', 'place');
     const B = CONFIG.skills.bouwen;
     this.skills.gain('bouwen', CONFIG.items[info.item].place === 'tile' ? B.xpTile : B.xpObject);

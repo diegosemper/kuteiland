@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 18,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 19,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
@@ -299,6 +299,53 @@ export const CONFIG = {
     tower:  { hp: 30, radius: 0.36, range: 3.6, damage: 2, cooldownMs: 1500, light: 1.2 },
     spikes: { charges: 12, range: 0.5, damage: 3, everyMs: 700 },    // spijkerval: prikt wat erop staat
     mine:   { trigger: 0.45, blast: 1.6, damage: 30 },               // zwavelmijn: ontploft één keer
+  },
+
+  // ---------- bewoners ----------
+  // Schipbreukelingen vis je op met de grijphaak. Met een bed komen ze op je eiland wonen.
+  // Ze werken per minigame die jij speelt (geen wachttijd) en worden er langzaam beter in.
+  castaways: {
+    max: 6,                   // meer passen er niet op een eiland
+    rescueWeight: 0.35,       // hoe vaak er een drenkeling voorbij drijft (gewicht tussen de wrakken)
+    roundsPerLevel: 8,        // zoveel minigames gewerkt = een niveau beter
+    maxLevel: 5,
+    perLevel: 0.25,           // +25% opbrengst per niveau
+    jobs: {
+      houthakker:    { name: 'Houthakker',    item: 'wrakhout',    per: 2 },
+      steenhouwer:   { name: 'Steenhouwer',   item: 'puin',        per: 2 },
+      roestvisser:   { name: 'Roestvisser',   item: 'roest',       per: 1 },
+      kok:           { name: 'Kok',           item: 'zwavel',      per: 0.6 },
+      sterrenkijker: { name: 'Sterrenkijker', item: 'sterrenstof', per: 0.4 },
+      wachter:       { name: 'Wachter',       fight: { damage: 2, range: 1.8, everyMs: 1100 } },
+      smid:          { name: 'Smid',          repair: 0.35 },    // herstelt elke ochtend dit deel van alle schade
+    },
+    names: ['Henk', 'Ineke', 'Gerrit', 'Joke', 'Kees', 'Truus', 'Bram', 'Fenna', 'Wim', 'Saskia', 'Ruud', 'Marieke', 'Dirk', 'Ans', 'Sjaak', 'Lotte'],
+    tints: [0xffb0a0, 0xa0d0ff, 0xb0ffb0, 0xffe0a0, 0xe0b0ff, 0xa0fff0, 0xffc0e0, 0xd0d0d0],
+  },
+
+  // ---------- het leegtebeest ----------
+  pet: {
+    arriveAfterNights: 1,     // na zoveel gewonnen nachten komt het
+    names: ['Blub', 'Kwak', 'Snot', 'Pruts', 'Gnoe', 'Flap', 'Prop'],
+    // xp nodig om niveau 2, 3, ... 10 te halen (opgeteld)
+    xpFor: [0, 0, 20, 50, 95, 160, 250, 370, 520, 720, 1000],
+    feedAmount: 5,            // per voerbeurt zoveel van één grondstof
+    foodXp: { wrakhout: 1, puin: 1, roest: 2, zwavel: 3, leegtekristal: 4, sterrenstof: 5, zielenkristal: 8 },
+    favMult: 3,               // lievelingseten telt zoveel keer
+    // wat het doet per niveau (stapelt; hoger overschrijft lager)
+    perks: {
+      2: { lives: 1, short: '+1 leven in minigames' },
+      3: { shield: 1, short: 'vangt een klap op in de Afdaling' },
+      4: { bite: 3, short: "bijt 's nachts mee" },
+      5: { yield: 0.1, short: '+10% buit uit minigames' },
+      6: { shots: 2, short: '+2 schoten bij de Grijphaak' },
+      7: { lives: 2, short: '+2 levens in minigames' },
+      8: { yield: 0.2, short: '+20% buit uit minigames' },
+      9: { bite: 8, short: 'bijt hard' },
+      10: { yield: 0.35, shield: 2, short: '+35% buit, vangt twee klappen op' },
+    },
+    biteRange: 1.2,
+    biteEveryMs: 1000,
   },
 
   // ---------- De Stem ----------
@@ -808,6 +855,7 @@ export const CONFIG = {
     kristalboor:    { name: 'Kristalboor',    place: 'object', spot: 'inner' },
     zwavelketel:    { name: 'Zwavelketel',    place: 'object' },
     spijkerval:     { name: 'Spijkerval',     place: 'object' },
+    bed:            { name: 'Bed',            place: 'object' },
     zwavelmijn:     { name: 'Zwavelmijn',     place: 'object' },
     sterrenantenne: { name: 'Sterrenantenne', place: 'object', spot: 'edge' },
     zielenlantaarn: { name: 'Zielenlantaarn', place: 'object', spot: 'inner' },
@@ -848,6 +896,7 @@ export const CONFIG = {
     { id: 'wapen4',         at: 'werkbank', cost: { roest: 4, leegtekristal: 6 },    gives: { tool: 'weapon', tier: 4 } },
     { id: 'lantaarn',       at: 'werkbank', cost: { wrakhout: 5, roest: 2 },         gives: { item: 'lantaarn', amount: 1 } },
     { id: 'muur',           at: 'werkbank', cost: { puin: 5 },                       gives: { item: 'muur', amount: 1 } },
+    { id: 'bed',            at: 'werkbank', cost: { wrakhout: 14, puin: 6 },         gives: { item: 'bed', amount: 1 } },
     { id: 'spijkerval',     at: 'werkbank', cost: { wrakhout: 4, roest: 3 },         gives: { item: 'spijkerval', amount: 1 } },
     { id: 'zwavelmijn',     at: 'werkbank', cost: { zwavel: 3, puin: 2 },            gives: { item: 'zwavelmijn', amount: 2 } },
     { id: 'wachttoren',     at: 'werkbank', cost: { wrakhout: 12, puin: 12, roest: 8 }, gives: { item: 'wachttoren', amount: 1 } },

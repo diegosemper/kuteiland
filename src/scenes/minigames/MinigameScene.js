@@ -24,6 +24,15 @@ export class MinigameScene extends Phaser.Scene {
     return this.scene.key.replace(/^mg-/, '');
   }
 
+  // extra levens van het leegtebeest
+  get petLives() {
+    return this.spec.pet?.lives || 0;
+  }
+
+  get maxLives() {
+    return (this.cfg.lives || 3) + this.petLives;
+  }
+
   // waaronder de highscore bewaard wordt
   get scoreKey() {
     return this.mgId;
@@ -233,6 +242,9 @@ export class MinigameScene extends Phaser.Scene {
     this.ended = true;
     this.sfx('craft');
     const res = this.reward();
+    // het leegtebeest graait mee
+    const more = this.spec.pet?.yield || 0;
+    if (more) for (const k of Object.keys(res.items)) res.items[k] = Math.round(res.items[k] * (1 + more));
     const best = this.gs.stats.highscores?.[this.scoreKey] || 0;
     const record = res.score > best && res.score > 0;
     res.good = res.score >= best * 0.6;

@@ -29,7 +29,7 @@ export class HakkenScene extends MinigameScene {
   build() {
     const { S, W, H, cfg } = this;
     const perks = this.spec.perks;
-    this.makeHud({ lives: perks.lives || 3 });
+    this.makeHud({ lives: (perks.lives || 3) + this.petLives });
     this.drawTime(1);
 
     // houtteller linksboven
@@ -73,7 +73,7 @@ export class HakkenScene extends MinigameScene {
     this.pos = 0;
     this.dir = 1;
     this.speed = cfg.speed;
-    this.lives = perks.lives || 3;
+    this.lives = (perks.lives || 3) + this.petLives;
     this.forgive = perks.forgive || 0;
     this.combo = 0;
     this.maxCombo = 0;

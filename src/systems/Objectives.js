@@ -32,6 +32,8 @@ const LIST = [
   { id: 'ontdekking', progress: (g) => [g.discoveryCount, 1] },
   { id: 'anker2', done: (g) => g.objects.some((o) => o.type === 'anchor' && o.tier >= 2) },
   { id: 'harnas', done: (g) => (g.tools.armor || 0) >= 1 },
+  { id: 'bewoner', done: (g) => g.countObjects('castaway') >= 1 },
+  { id: 'voeren', done: (g) => (g.flags.pet?.level || 0) >= 2 },
   { id: 'nacht3', progress: (g) => [g.stats.nights || 0, 3] },
   { id: 'ontdekking3', progress: (g) => [g.discoveryCount, 3] },
   { id: 'skill5', progress: (g) => [Math.max(...['hakken', 'delven', 'bouwen'].map((s) => g.skills.level(s))), 5] },

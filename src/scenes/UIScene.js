@@ -27,6 +27,7 @@ import { MachinePanel } from '../ui/MachinePanel.js';
 import { AnvilPanel } from '../ui/AnvilPanel.js';
 import { SiegeHud } from '../ui/SiegeHud.js';
 import { VoiceHud } from '../ui/VoiceHud.js';
+import { CastawayPanel, PetPanel } from '../ui/ResidentPanels.js';
 import { recipeName } from '../systems/Crafting.js';
 import { COLORS, textStyle, makeButton, roundedBox, shade } from '../ui/style.js';
 import { pick } from '../texts.js';
@@ -71,6 +72,8 @@ export class UIScene extends Phaser.Scene {
     this.anvilPanel = new AnvilPanel(this, game);
     this.siegeHud = new SiegeHud(this, game);
     this.voiceHud = new VoiceHud(this);
+    this.castawayPanel = new CastawayPanel(this, game);
+    this.petPanel = new PetPanel(this, game);
     this.mapButton = this.makeRoundButton(TEXT.mapButton, () => this.openPanel(this.mapPanel));
     this.mapButton.setVisible(!!CONFIG.remoteIslands);
     this.xpBar = new SkillXpBar(this);
@@ -131,6 +134,8 @@ export class UIScene extends Phaser.Scene {
       'minigame-start': () => { this.closeAll(); this.joystick.release(); this.action.release(); },
       'siege': (st) => this.siegeHud.set(st),
       'voice': (line) => this.voiceHud.show(line),
+      'open-castaway': (r) => { this.castawayPanel.resident = r; this.openPanel(this.castawayPanel); },
+      'open-pet': () => this.openPanel(this.petPanel),
       'siege-tick': (st) => this.siegeHud.tick(st),
     };
     for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
@@ -180,7 +185,7 @@ export class UIScene extends Phaser.Scene {
 
   panels() {
     return [this.panel, this.chestPanel, this.craftPanel, this.skillsPanel, this.anchorPanel,
-      this.storyPanel, this.mapPanel, this.prestigePanel, this.machinePanel, this.anvilPanel];
+      this.storyPanel, this.mapPanel, this.prestigePanel, this.machinePanel, this.anvilPanel, this.castawayPanel, this.petPanel];
   }
 
   closeAll() {
@@ -193,6 +198,8 @@ export class UIScene extends Phaser.Scene {
     this.prestigePanel.close();
     this.machinePanel.close();
     this.anvilPanel.close();
+    this.castawayPanel.close();
+    this.petPanel.close();
   }
 
   openPanel(p) {

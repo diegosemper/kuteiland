@@ -95,7 +95,7 @@ export class Night {
     const { island, objects } = this.game;
     if (!island.get(gx, gy)) return false;
     // gewone objecten blokkeren; verdediging niet (daar slaan ze doorheen)
-    return !objects.some((o) => o.gx === gx && o.gy === gy && !o.defense && o.type !== 'grave' && o.type !== 'trap');
+    return !objects.some((o) => o.gx === gx && o.gy === gy && !o.defense && !['grave', 'trap', 'castaway'].includes(o.type));
   }
 
   rebuildField() {
@@ -145,7 +145,7 @@ export class Night {
 
   // Botst een wezen op deze plek tegen iets?
   blockedAt(gx, gy, r) {
-    return this.game.objects.find((o) => o.type !== 'grave' && o.type !== 'trap' && Math.hypot(o.gx - gx, o.gy - gy) < o.radius + r) || null;
+    return this.game.objects.find((o) => !['grave', 'trap', 'castaway'].includes(o.type) && Math.hypot(o.gx - gx, o.gy - gy) < o.radius + r) || null;
   }
 
   hitStructure(o, dmg) {

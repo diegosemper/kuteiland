@@ -17,7 +17,7 @@ export class AfdalingScene extends MinigameScene {
   build() {
     const { S, W, H } = this;
     const perks = this.spec.perks;
-    this.shields = perks.shields || 0;
+    this.shields = (perks.shields || 0) + (this.spec.pet?.shield || 0);
     this.makeHud({ lives: this.shields });
     this.timeBar.setVisible(false);
     this.comboText.setColor('#b8a6d9');

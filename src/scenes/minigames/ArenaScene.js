@@ -15,7 +15,7 @@ export class ArenaScene extends MinigameScene {
 
   build() {
     const { S, W, H, cfg } = this;
-    this.makeHud({ lives: cfg.lives });
+    this.makeHud({ lives: this.maxLives });
     this.drawTime(1);
     this.comboText.setColor('#40ffd0');
 
@@ -48,7 +48,7 @@ export class ArenaScene extends MinigameScene {
     this.wave = 0;
     this.kills = 0;
     this.soulCount = 0;
-    this.lives = cfg.lives;
+    this.lives = this.maxLives;
     this.timeLeft = cfg.timeMs;
     this.waveClearAt = 0;
 
@@ -163,7 +163,7 @@ export class ArenaScene extends MinigameScene {
     this.setScore(this.score);
     // zielenbijl-achtige extra's van het wapen
     if (this.spec.perks.shockwave && this.kills % 10 === 0) this.shockwave();
-    if (this.spec.perks.lifesteal && this.kills % 15 === 0 && this.lives < cfg.lives) {
+    if (this.spec.perks.lifesteal && this.kills % 15 === 0 && this.lives < this.maxLives) {
       this.lives++;
       this.hearts[this.lives - 1]?.setTexture('heart_full');
       this.floatText(this.cx, this.cy - 60 * S, TEXT.mgLifeBack, '#ff9ad0', 18);

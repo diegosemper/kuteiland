@@ -22,7 +22,7 @@ alle balansgetallen in `config.js`, soepel op een telefoon in portretstand.
 - Iets in de leegte praat tegen je: droog, gemeen, grappig. Reageert op wat je doet (missers, records, doodgaan,
   ontdekkingen) en vertelt stukje voor stukje het verhaal. Vervangt de losse meldingen waar het past.
 
-## Fase D: Schipbreukelingen en het leegtebeest
+## Fase D: Schipbreukelingen en het leegtebeest ✅ klaar (v19)
 - **Schipbreukelingen**: met de grijphaak vis je soms een mens op. Geef ze een plek (bed) en ze gaan werken:
   houthakker, steenhouwer, smid... Elk met een naam, een karakter en eigen grapjes. Ze werken per minigame die jij speelt.
 - **Leegtebeest**: een maatje dat je voert met grondstoffen. Het groeit in niveaus en helpt in minigames

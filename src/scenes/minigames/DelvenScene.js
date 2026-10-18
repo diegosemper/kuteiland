@@ -24,7 +24,7 @@ export class DelvenScene extends MinigameScene {
   build() {
     const { S, W, H, cfg } = this;
     const perks = this.spec.perks;
-    this.makeHud({ lives: cfg.lives });
+    this.makeHud({ lives: this.maxLives });
     this.drawTime(1);
 
     // tellers linksboven: hoofdgrondstof en diepte
@@ -50,7 +50,7 @@ export class DelvenScene extends MinigameScene {
 
     this.rows = [];
     this.viewRow = 0;
-    this.lives = cfg.lives;
+    this.lives = this.maxLives;
     this.shield = perks.shield || 0;
     this.ores = 0;
     this.found = {};          // zeldzame vondsten
