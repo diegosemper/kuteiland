@@ -2,7 +2,6 @@
 import { CONFIG } from '../config.js';
 import { bus } from '../bus.js';
 import { screenToGrid } from '../iso.js';
-import { bonus } from './Meta.js';
 
 const SPAN = 1150;   // hoe ver links/rechts van het eiland ze beginnen en verdwijnen
 const GLOW = { branch: 0xe6dcf2, scrap: 0xe09060, crate: 0xf0d090 };
@@ -52,7 +51,7 @@ export class Drift {
   update(time, dt) {
     if (time >= this.nextAt) {
       this.spawn();
-      this.nextAt = time + rand(...CONFIG.drift.intervalMs);
+      this.nextAt = time + rand(...CONFIG.drift.intervalMs) / (1 + this.game.mods.get('drift.rate'));
     }
     const c = this.game.island.center;
     for (const it of [...this.items]) {
@@ -114,8 +113,9 @@ export class Drift {
         const loot = CONFIG.drift.kinds[it.kind].loot;
         let i = 0;
         for (const [item, [min, max]] of Object.entries(loot)) {
-          const n = min + Math.floor(Math.random() * (max - min + 1)) + bonus('buit');
+          const n = min + Math.floor(Math.random() * (max - min + 1)) + game.mods.extra('drift.loot');
           game.inventory.add(item, n);
+          game.collect(item, n);
           if (item === 'roest') game.stats.roest = (game.stats.roest || 0) + n;
           bus.emit('float', {
             wx: target.x, wy: target.y - 110 - i * 26,

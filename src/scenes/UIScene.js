@@ -104,6 +104,8 @@ export class UIScene extends Phaser.Scene {
       'crafted': (r) => this.onCrafted(r),
       'skill-xp': (x) => this.xpBar.show(x),
       'skill-up': (u) => this.onSkillUp(u),
+      'milestone': (m) => this.onMilestone(m),
+      'collection-up': (cu) => this.onCollectionUp(cu),
       'hp': (hp, max) => this.hearts.set(hp, max),
       'hurt': () => this.flashHurt(),
       'player-died': (info) => { this.closeAll(); this.joystick.release(); this.action.release(); this.deathScreen.show(info); },
@@ -246,6 +248,27 @@ export class UIScene extends Phaser.Scene {
       targets: this.vignette, alpha: 0.75, duration: 450,
       onComplete: () => this.vignette.clearTint(),
     });
+  }
+
+  onMilestone({ id, level, text }) {
+    const p = this.gameScene.player.sprite;
+    this.time.delayedCall(1200, () => {
+      this.floatText({ wx: p.x, wy: p.y - 170, text: `${TEXT.milestone}!`, color: '#d9c2ff' });
+      this.toast.show(`${CONFIG.skills[id].name} ${level}: ${text}`, true);
+    });
+  }
+
+  onCollectionUp({ id, tier, reward }) {
+    const ROMAN = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+    const name = id === 'wezens' ? TEXT.collectionKills : CONFIG.items[id].name;
+    const what = reward.recipe
+      ? `${TEXT.collectionUnlocked}: ${CONFIG.items[reward.recipe]?.name || reward.recipe}`
+      : reward.text;
+    bus.emit('sfx', 'levelUp');
+    const p = this.gameScene.player.sprite;
+    this.floatText({ wx: p.x, wy: p.y - 160, text: `${name.toUpperCase()} ${ROMAN[tier]}`, color: '#ffd98a' });
+    this.toast.show(`${TEXT.collectionWord} ${name} ${ROMAN[tier]}. ${what}.`, true);
+    this.panel.rebuild();
   }
 
   // Tik op drijvend wrak

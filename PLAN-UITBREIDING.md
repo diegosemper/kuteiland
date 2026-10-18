@@ -6,7 +6,7 @@ Niet door alles trager te maken, maar door meer om naartoe te werken.
 
 Bouw weer fase voor fase en test elke fase op de telefoon voordat de volgende begint.
 
-## Fase 8: collecties en lange skills
+## Fase 8: collecties en lange skills ✅ klaar
 - Collecties per grondstof (bijv. 50 / 250 / 1.000 / 5.000 / 25.000): elke drempel ontgrendelt een recept of bonus
 - Skills tot level 50, met echte mijlpalen (nieuwe vaardigheden), niet alleen percentages
 - Collectie-paneel in de UI

@@ -82,6 +82,7 @@ export const TEXT = {
     cyclus: 'Begin een nieuwe cyclus bij de Kern',
     nacht3: 'Overleef drie nachten',
     hakken3: 'Haal level 3 in Hakken',
+    collectie: 'Haal Wrakhout-collectie II (zie SKILLS, tab COLLECTIES)',
     roest: 'Vang roest uit de leegte',
     roestgereedschap: 'Maak roestig gereedschap',
     groter: 'Maak het eiland groter',
@@ -114,6 +115,7 @@ export const TEXT = {
     cyclus: 'Opnieuw. Maar nu weet je het.',
     nacht3: 'Drie nachten. De leegte begint je te kennen.',
     hakken3: 'Je bijl en jij beginnen elkaar te begrijpen.',
+    collectie: 'Elke stapel telt. Dat blijft zo, tot in het absurde.',
     roest: 'Roest. Ooit was dit iets belangrijks.',
     roestgereedschap: 'Roestig, maar scherp. Net als jij.',
     groter: 'Een echt eiland. Jammer dat het straks donker wordt.',
@@ -247,6 +249,19 @@ export const TEXT = {
   deathReturn: 'Ophalen kan als het weer dag is.',
   graveNight: 'De leegte houdt het nog even vast. Kom terug als het licht is.',
   graveBack: 'Terug:',
+
+  // voortgang: skills en collecties
+  progressTitle: 'VOORTGANG',
+  tabSkills: 'SKILLS',
+  tabCollections: 'COLLECTIES',
+  milestone: 'MIJLPAAL',
+  milestoneAt: 'Mijlpaal op level',
+  collectionWord: 'Collectie',
+  collectionKills: 'Nachtwezens',
+  collectionNext: 'Volgende',
+  collectionRecipe: 'Recept',
+  collectionUnlocked: 'Nieuw recept',
+  collectionDone: 'Voltooid. Respect, of zorgwekkend.',
 
   // skills
   skillsButton: 'SKILLS',

@@ -70,7 +70,8 @@ export class Generator {
       });
     });
     const double = Math.random() < game.skills.doubleChance('delven');
-    return { skill: 'delven', item: 'puin', amount: CONFIG.generator.puinPerYield[tier] * (double ? 2 : 1), double };
+    const amount = CONFIG.generator.puinPerYield[tier] * (double ? 2 : 1) + game.mods.extra('yield.puin');
+    return { skill: 'delven', item: 'puin', amount, double };
   }
 
   serialize() {

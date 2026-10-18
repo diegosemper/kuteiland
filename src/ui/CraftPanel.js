@@ -4,6 +4,7 @@ import { bus } from '../bus.js';
 import { makeButton } from './style.js';
 import { createPanel, recipeRow } from './Panel.js';
 import { recipesAt, recipeName, recipeIcon, recipeState } from '../systems/Crafting.js';
+import { lockedLabel } from './labels.js';
 
 export class CraftPanel {
   constructor(scene, game) {
@@ -52,7 +53,7 @@ export class CraftPanel {
         state: recipeState(this.game, r),
         onMake: () => { bus.emit('craft', r.id); this.rebuild(); },
         makeButton,
-        labels: { make: TEXT.craftMake, owned: TEXT.craftOwned },
+        labels: { make: TEXT.craftMake, owned: TEXT.craftOwned, locked: lockedLabel },
       });
     }
 

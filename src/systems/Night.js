@@ -184,6 +184,7 @@ export class Night {
       if (o.type === 'kern') list.push({ x: o.sprite.x, y: o.lightY, r: 3.2 });
     }
     for (const p of this.pickups) list.push({ x: p.sprite.x, y: p.sprite.y, r: 0.6 });
+    for (const t of g.island.glowTiles()) list.push({ x: t.x, y: t.y, r: 2.2 });
     for (const e of this.enemies) list.push({ x: e.sprite.x, y: e.hitY, r: e.kind === 'boss' ? 1.6 : 0.45 });
     return list;
   }
@@ -205,6 +206,7 @@ export class Night {
       return;
     }
     g.stats.kills = (g.stats.kills || 0) + 1;
+    g.collect('wezens', 1);
     if (byPlayer) g.skills.gain('vechten', CONFIG.skills.vechten.xpKill);
     const [min, max] = e.def.crystals;
     if (Math.random() < e.def.crystalChance) {
@@ -237,6 +239,7 @@ export class Night {
           p.sprite.destroy();
           p.glow.destroy();
           g.inventory.add('leegtekristal', 1);
+          g.collect('leegtekristal', 1);
           g.stats.crystals = (g.stats.crystals || 0) + 1;
           bus.emit('float', { wx: t.x, wy: t.y - 110, text: '+1 leegtekristal', color: '#d9c2ff' });
         },

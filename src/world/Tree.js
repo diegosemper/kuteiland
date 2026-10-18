@@ -76,7 +76,8 @@ export class Tree {
     if (this.hits >= need) {
       this.hits -= need;
       const double = Math.random() < game.skills.doubleChance('hakken');
-      Object.assign(result, { item: 'wrakhout', amount: CONFIG.tree.woodPerYield[tier] * (double ? 2 : 1), double });
+      const amount = CONFIG.tree.woodPerYield[tier] * (double ? 2 : 1) + game.mods.extra('yield.wrakhout');
+      Object.assign(result, { item: 'wrakhout', amount, double });
     }
     return result;
   }

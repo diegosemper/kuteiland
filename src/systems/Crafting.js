@@ -15,11 +15,20 @@ export function recipeIcon(r) {
   return r.gives.tool ? `icon_${r.gives.tool}${r.gives.tier}` : `icon_${r.gives.item}`;
 }
 
-// owned: gereedschap heb je al (of beter)
+// Welk collectie-niveau ontgrendelt dit recept? (null = altijd beschikbaar)
+export function recipeUnlock(r) {
+  if (!r.requires) return null;
+  const tier = CONFIG.collections.items[r.requires].findIndex((x) => x.recipe === r.id) + 1;
+  return { collection: r.requires, tier };
+}
+
+// owned: gereedschap heb je al (of beter); locked: collectie nog niet ver genoeg
 export function recipeState(game, r) {
   const owned = !!r.gives.tool && game.tools[r.gives.tool] >= r.gives.tier;
+  const unlock = recipeUnlock(r);
+  const locked = !!unlock && game.collectionTier(unlock.collection) < unlock.tier;
   const affordable = Object.entries(r.cost).every(([k, n]) => game.inventory.has(k, n));
-  return { owned, affordable, canCraft: affordable && !owned };
+  return { owned, affordable, locked, unlock, canCraft: affordable && !owned && !locked };
 }
 
 export function craft(game, id) {

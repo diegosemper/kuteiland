@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 10,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 11,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
@@ -190,12 +190,119 @@ export const CONFIG = {
   },
 
   // Skills: XP per actie, bonus per level. Nodig voor level L+1: base * growth^L
-  skillCurve: { base: 10, growth: 1.45, max: 20 },
+  // Nodig voor level L+1: base * (L+1)^exp. Level 50 kost tientallen uren per skill.
+  skillCurve: { base: 10, exp: 1.7, max: 50 },
+  // Per level een kleine bonus; elke 10 levels een mijlpaal (mod = blijvende bonus, zie Mods.js)
   skills: {
-    hakken: { name: 'Hakken', xp: 1, power: 0.08, double: 0.03 },       // xp per slag
-    delven: { name: 'Delven', xp: 2, power: 0.08, double: 0.04 },       // xp per slag
-    bouwen: { name: 'Bouwen', xpTile: 6, xpObject: 10, xpCraft: 1, free: 0.04 },
-    vechten: { name: 'Vechten', xp: 3, xpKill: 10, damage: 0.05, heartEvery: 2 },
+    hakken: {
+      name: 'Hakken', xp: 1, power: 0.04, double: 0.015,       // xp per slag
+      milestones: {
+        10: { mod: { 'yield.wrakhout': 1 }, text: '+1 wrakhout per opbrengst' },
+        20: { mod: { 'double.hakken': 0.1 }, text: '+10% kans op dubbel hout' },
+        30: { mod: { 'yield.wrakhout': 1 }, text: 'Nog eens +1 wrakhout' },
+        40: { mod: { 'xp.hakken': 0.25 }, text: '+25% Hakken-xp' },
+        50: { mod: { 'yield.wrakhout': 2 }, text: 'Meester-houthakker: +2 wrakhout' },
+      },
+    },
+    delven: {
+      name: 'Delven', xp: 2, power: 0.04, double: 0.015,
+      milestones: {
+        10: { mod: { 'yield.puin': 1 }, text: '+1 puin per opbrengst' },
+        20: { mod: { 'double.delven': 0.1 }, text: '+10% kans op dubbele opbrengst' },
+        30: { mod: { 'yield.roest': 1, 'yield.leegtekristal': 0.25 }, text: 'Meer roest en kristal uit aders' },
+        40: { mod: { 'xp.delven': 0.25 }, text: '+25% Delven-xp' },
+        50: { mod: { 'yield.sterrenstof': 1, 'yield.puin': 2 }, text: 'Meester-delver: meer sterrenstof en puin' },
+      },
+    },
+    bouwen: {
+      name: 'Bouwen', xpTile: 6, xpObject: 10, xpCraft: 1, free: 0.012,
+      milestones: {
+        10: { mod: { anchor: 0.15 }, text: '+15% ankerbereik' },
+        20: { mod: { free: 0.1 }, text: '+10% kans op gratis extra blok' },
+        30: { mod: { anchor: 0.25 }, text: '+25% ankerbereik' },
+        40: { mod: { 'xp.bouwen': 0.25 }, text: '+25% Bouwen-xp' },
+        50: { mod: { anchor: 0.5, free: 0.15 }, text: 'Meesterbouwer: groot bereik, veel gratis blokken' },
+      },
+    },
+    vechten: {
+      name: 'Vechten', xp: 3, xpKill: 10, damage: 0.03, heartEvery: 5,
+      milestones: {
+        10: { mod: { damage: 0.15 }, text: '+15% schade' },
+        20: { mod: { hp: 4 }, text: '+2 hartjes' },
+        30: { mod: { damage: 0.25 }, text: '+25% schade' },
+        40: { mod: { hp: 6 }, text: '+3 hartjes' },
+        50: { mod: { damage: 0.5 }, text: 'Leegtejager: +50% schade' },
+      },
+    },
+  },
+
+  // Collecties: hoeveel je in totaal verzamelde. Elk niveau geeft een recept of een blijvende bonus.
+  collections: {
+    thresholds: [25, 100, 250, 750, 2000, 5000, 15000, 50000],
+    items: {
+      wrakhout: [
+        { recipe: 'houtblok' },
+        { mod: { 'xp.hakken': 0.1 }, text: '+10% Hakken-xp' },
+        { mod: { 'yield.wrakhout': 0.25 }, text: '25% kans op extra wrakhout' },
+        { mod: { 'drift.rate': 0.15 }, text: '+15% drijvend wrak' },
+        { mod: { 'double.hakken': 0.05 }, text: '+5% kans op dubbel hout' },
+        { mod: { 'yield.wrakhout': 0.5 }, text: '50% kans op extra wrakhout' },
+        { mod: { 'xp.hakken': 0.2 }, text: '+20% Hakken-xp' },
+        { mod: { 'yield.wrakhout': 1 }, text: '+1 wrakhout per opbrengst' },
+      ],
+      puin: [
+        { recipe: 'bakstenen' },
+        { mod: { 'xp.delven': 0.1 }, text: '+10% Delven-xp' },
+        { mod: { 'yield.puin': 0.25 }, text: '25% kans op extra puin' },
+        { mod: { anchor: 0.1 }, text: '+10% ankerbereik' },
+        { mod: { 'double.delven': 0.05 }, text: '+5% kans op dubbele opbrengst' },
+        { mod: { 'yield.puin': 0.5 }, text: '50% kans op extra puin' },
+        { mod: { 'xp.delven': 0.2 }, text: '+20% Delven-xp' },
+        { mod: { 'yield.puin': 1 }, text: '+1 puin per opbrengst' },
+      ],
+      roest: [
+        { mod: { 'drift.loot': 0.25 }, text: '25% kans op extra buit uit wrak' },
+        { recipe: 'ijzerblok' },
+        { mod: { anchor: 0.1 }, text: '+10% ankerbereik' },
+        { mod: { 'drift.rate': 0.2 }, text: '+20% drijvend wrak' },
+        { mod: { 'yield.roest': 0.5 }, text: '50% kans op extra roest' },
+        { mod: { damage: 0.05 }, text: '+5% schade' },
+        { mod: { 'drift.loot': 1 }, text: '+1 buit uit drijvend wrak' },
+        { mod: { 'yield.roest': 1 }, text: '+1 roest per opbrengst' },
+      ],
+      leegtekristal: [
+        { recipe: 'amethistblok' },
+        { mod: { hp: 2 }, text: '+1 hartje' },
+        { recipe: 'lichtblok' },
+        { mod: { damage: 0.1 }, text: '+10% schade' },
+        { mod: { 'xp.vechten': 0.2 }, text: '+20% Vechten-xp' },
+        { recipe: 'obsidiaanblok' },
+        { mod: { hp: 4 }, text: '+2 hartjes' },
+        { mod: { damage: 0.2 }, text: '+20% schade' },
+      ],
+      sterrenstof: [
+        { recipe: 'kwartsblok' },
+        { mod: { 'yield.sterrenstof': 0.25 }, text: '25% kans op extra sterrenstof' },
+        { mod: { 'xp.delven': 0.15, 'xp.hakken': 0.15 }, text: '+15% Hakken- en Delven-xp' },
+        { mod: { anchor: 0.2 }, text: '+20% ankerbereik' },
+        { mod: { 'yield.sterrenstof': 0.5 }, text: '50% kans op extra sterrenstof' },
+        { mod: { damage: 0.15 }, text: '+15% schade' },
+        { mod: { hp: 4 }, text: '+2 hartjes' },
+        { mod: { 'yield.sterrenstof': 1 }, text: '+1 sterrenstof per opbrengst' },
+      ],
+      wezens: [
+        { mod: { damage: 0.05 }, text: '+5% schade' },
+        { mod: { hp: 2 }, text: '+1 hartje' },
+        { mod: { 'xp.vechten': 0.15 }, text: '+15% Vechten-xp' },
+        { mod: { damage: 0.1 }, text: '+10% schade' },
+        { mod: { hp: 2 }, text: '+1 hartje' },
+        { mod: { damage: 0.15 }, text: '+15% schade' },
+        { mod: { hp: 4 }, text: '+2 hartjes' },
+        { mod: { damage: 0.25 }, text: '+25% schade' },
+      ],
+    },
+    // nachtwezens tellen langzamer op: eigen drempels
+    thresholdsWezens: [10, 40, 120, 300, 750, 2000, 5000, 15000],
   },
 
   // Drijvend wrak dat langs het eiland zweeft
@@ -257,6 +364,13 @@ export const CONFIG = {
     anker:          { name: 'Anker',          place: 'object' },
     brug:           { name: 'Brug',           place: 'tile', tile: 'bridge' },
     sterrenbrug:    { name: 'Sterrenbrug',    place: 'tile', tile: 'starbridge' },
+    houtblok:       { name: 'Houtblok',       place: 'tile', tile: 'logs' },
+    bakstenen:      { name: 'Stenen bakstenen', place: 'tile', tile: 'bricksblock' },
+    ijzerblok:      { name: 'IJzerblok',      place: 'tile', tile: 'ironblock' },
+    amethistblok:   { name: 'Amethistblok',   place: 'tile', tile: 'amethystblock' },
+    kwartsblok:     { name: 'Kwartsblok',     place: 'tile', tile: 'quartzblock' },
+    obsidiaanblok:  { name: 'Obsidiaanblok',  place: 'tile', tile: 'obsidianblock' },
+    lichtblok:      { name: 'Lichtblok',      place: 'tile', tile: 'glow' },
   },
 
   // at: 'hand' = in de rugzak, 'werkbank' = bij een werkbank
@@ -284,5 +398,13 @@ export const CONFIG = {
     { id: 'brug',           at: 'werkbank', cost: { wrakhout: 2, roest: 1 },         gives: { item: 'brug', amount: 2 } },
     { id: 'sterrenbrug',    at: 'werkbank', cost: { sterrenstof: 2, roest: 2 },      gives: { item: 'sterrenbrug', amount: 1 } },
     { id: 'wapen5',         at: 'werkbank', cost: { sterrenstof: 5, leegtekristal: 4 }, gives: { tool: 'weapon', tier: 5 } },
+    // ontgrendeld via collecties
+    { id: 'houtblok',      at: 'werkbank', cost: { wrakhout: 3 },                  gives: { item: 'houtblok', amount: 1 },      requires: 'wrakhout' },
+    { id: 'bakstenen',     at: 'werkbank', cost: { puin: 4 },                      gives: { item: 'bakstenen', amount: 1 },     requires: 'puin' },
+    { id: 'ijzerblok',     at: 'werkbank', cost: { roest: 6 },                     gives: { item: 'ijzerblok', amount: 1 },     requires: 'roest' },
+    { id: 'amethistblok',  at: 'werkbank', cost: { leegtekristal: 2 },             gives: { item: 'amethistblok', amount: 1 },  requires: 'leegtekristal' },
+    { id: 'lichtblok',     at: 'werkbank', cost: { wrakhout: 2, leegtekristal: 1 }, gives: { item: 'lichtblok', amount: 1 },    requires: 'leegtekristal' },
+    { id: 'kwartsblok',    at: 'werkbank', cost: { sterrenstof: 2, puin: 2 },      gives: { item: 'kwartsblok', amount: 1 },    requires: 'sterrenstof' },
+    { id: 'obsidiaanblok', at: 'werkbank', cost: { leegtekristal: 4, puin: 4 },    gives: { item: 'obsidiaanblok', amount: 1 }, requires: 'leegtekristal' },
   ],
 };

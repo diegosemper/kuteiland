@@ -7,12 +7,13 @@ export const SKILL_IDS = Object.keys(CONFIG.skills);
 
 // XP nodig om van level L naar L+1 te gaan
 export function xpNeeded(level) {
-  const { base, growth } = CONFIG.skillCurve;
-  return Math.round(base * growth ** level);
+  const { base, exp } = CONFIG.skillCurve;
+  return Math.round(base * (level + 1) ** exp);
 }
 
 export class Skills {
   constructor(saved = {}) {
+    this.modsFn = () => 0;   // wordt door het spel gezet: blijvende bonussen
     this.xp = {};
     for (const id of SKILL_IDS) this.xp[id] = Math.max(0, Number(saved[id]) || 0);
   }
@@ -26,7 +27,7 @@ export class Skills {
       level++;
     }
     const max = level >= CONFIG.skillCurve.max;
-    return { level, cur: max ? 0 : rest, need: max ? 0 : xpNeeded(level), max };
+    return { level, cur: max ? 0 : Math.floor(rest), need: max ? 0 : xpNeeded(level), max };
   }
 
   level(id) {
@@ -35,11 +36,16 @@ export class Skills {
 
   gain(id, amount) {
     if (!amount) return;
+    amount = Math.round(amount * (1 + this.modsFn(`xp.${id}`)) * 10) / 10;
     const before = this.level(id);
     this.xp[id] += amount;
     const p = this.progress(id);
     bus.emit('skill-xp', { id, amount, ...p });
-    if (p.level > before) bus.emit('skill-up', { id, level: p.level });
+    if (p.level > before) {
+      bus.emit('skill-up', { id, level: p.level });
+      const ms = CONFIG.skills[id].milestones?.[p.level];
+      if (ms) bus.emit('milestone', { id, level: p.level, text: ms.text });
+    }
   }
 
   // kracht per slag (1 = normaal)
@@ -49,11 +55,18 @@ export class Skills {
 
   // kans op dubbele opbrengst
   doubleChance(id) {
-    return this.level(id) * (CONFIG.skills[id].double || 0);
+    return this.level(id) * (CONFIG.skills[id].double || 0) + this.modsFn(`double.${id}`);
   }
 
   freeBlockChance() {
-    return this.level('bouwen') * CONFIG.skills.bouwen.free;
+    return this.level('bouwen') * CONFIG.skills.bouwen.free + this.modsFn('free');
+  }
+
+  // Eerstvolgende mijlpaal (of null)
+  nextMilestone(id) {
+    const level = this.level(id);
+    const list = Object.entries(CONFIG.skills[id].milestones || {}).map(([l, m]) => ({ level: Number(l), ...m }));
+    return list.find((m) => m.level > level) || null;
   }
 
   // Bonus bij een bepaald level, als korte tekst
@@ -67,7 +80,7 @@ export class Skills {
       case 'bouwen':
         return `${pct(level * s.free)} kans op gratis extra blok`;
       case 'vechten':
-        return `+${pct(level * s.damage)} schade, +${Math.floor(level / s.heartEvery)} levens`;
+        return `+${pct(level * s.damage)} schade, +${Math.floor(level / s.heartEvery)} hartjes`;
       default:
         return '';
     }

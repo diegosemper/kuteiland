@@ -7,7 +7,7 @@ import { gridToScreen } from '../iso.js';
 import { layoutFromConfig } from '../world/Island.js';
 import { World, remoteLayout } from '../world/World.js';
 import { Boss } from '../world/Boss.js';
-import { getMeta, bonus, startNextCycle } from '../systems/Meta.js';
+import { getMeta, startNextCycle } from '../systems/Meta.js';
 import { getAudio } from '../systems/Audio.js';
 import { Player } from '../world/Player.js';
 import { createObject } from '../world/objects.js';
@@ -19,6 +19,7 @@ import { drawAnchorRing } from '../systems/Building.js';
 import { findPath, findPathNear } from '../systems/Pathfinding.js';
 import { Skills } from '../systems/Skills.js';
 import { Drift } from '../systems/Drift.js';
+import { Mods, tierFor, COLLECTION_IDS } from '../systems/Mods.js';
 import { DayNight } from '../systems/DayNight.js';
 import { Night } from '../systems/Night.js';
 import { Crumble } from '../systems/Crumble.js';
@@ -40,6 +41,14 @@ export class GameScene extends Phaser.Scene {
     this.skills = new Skills(save?.skills);
     this.inventory = new Inventory(save?.inventory);
     this.chestStore = new Inventory(save?.chest);
+    // collecties: oude saves beginnen bij wat ze al verzamelden
+    this.stats.collected = {
+      wrakhout: this.stats.wood || 0, puin: this.stats.puin || 0, roest: this.stats.roest || 0,
+      leegtekristal: this.stats.crystals || 0, sterrenstof: this.stats.sterrenstof || 0, wezens: this.stats.kills || 0,
+      ...save?.stats?.collected,
+    };
+    this.mods = new Mods(this);
+    this.skills.modsFn = (k) => this.mods.get(k);
 
     this.meta = getMeta();
     this.audio = getAudio();
@@ -437,6 +446,7 @@ export class GameScene extends Phaser.Scene {
     if (result.skill) this.skills.gain(result.skill, CONFIG.skills[result.skill].xp);
     if (result.item) {
       this.inventory.add(result.item, result.amount);
+      this.collect(result.item, result.amount);
       const def = CONFIG.items[result.item];
       bus.emit('float', {
         wx: target.sprite.x,
@@ -466,17 +476,37 @@ export class GameScene extends Phaser.Scene {
     if (result.message) bus.emit('message', result.message, true);
   }
 
+  // ---------- collecties ----------
+
+  collectionTier(id) {
+    return tierFor(id, this.stats.collected[id] || 0);
+  }
+
+  // Verzameld: telt op voor de collectie; een nieuw niveau geeft een recept of bonus
+  collect(id, n) {
+    if (!COLLECTION_IDS.includes(id) || !n) return;
+    const before = this.collectionTier(id);
+    this.stats.collected[id] = (this.stats.collected[id] || 0) + n;
+    const after = this.collectionTier(id);
+    if (after > before) {
+      this.mods.invalidate();
+      for (let t = before + 1; t <= after; t++) bus.emit('collection-up', { id, tier: t, reward: CONFIG.collections.items[id][t - 1] });
+      bus.emit('hp', this.hp, this.maxHp);
+      this.objectives.check();
+    }
+  }
+
   // ---------- vechten en levens ----------
 
   get maxHp() {
     const V = CONFIG.skills.vechten;
-    return CONFIG.combat.baseHp + 2 * Math.floor(this.skills.level('vechten') / V.heartEvery) + bonus('hart');
+    return CONFIG.combat.baseHp + 2 * Math.floor(this.skills.level('vechten') / V.heartEvery) + this.mods.get('hp');
   }
 
   attackEnemy(e) {
     if (!e.alive) return;
     const base = CONFIG.combat.weaponDamage[this.tools.weapon || 0];
-    const dmg = base * (1 + this.skills.level('vechten') * CONFIG.skills.vechten.damage) * (1 + bonus('schade'));
+    const dmg = base * (1 + this.skills.level('vechten') * CONFIG.skills.vechten.damage) * (1 + this.mods.get('damage'));
     bus.emit('sfx', 'enemyHit');
     // zichtbare slag
     const flip = this.player.sprite.flipX;

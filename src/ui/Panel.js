@@ -4,7 +4,7 @@ import { COLORS, textStyle, storyStyle, roundedBox } from './style.js';
 
 // anchor 'bottom': paneel onderin, zodat de wereld erboven zichtbaar blijft
 // footer: ruimte onderin voor knoppen; alles daarboven scrollt als het niet past
-export function createPanel(scene, { title, subtitle, height, onBackdrop, anchor = 'center', footer = 70 }) {
+export function createPanel(scene, { title, subtitle, height, onBackdrop, anchor = 'center', footer = 70, gap = 0 }) {
   const S = scene.S;
   const { width: w, height: h } = scene.scale;
   const safe = scene.safe;
@@ -34,11 +34,13 @@ export function createPanel(scene, { title, subtitle, height, onBackdrop, anchor
     c.add(st);
     y += st.height + 10 * S;
   }
+  const gapTop = y;
+  y += gap * S;
   const line = scene.add.rectangle(px + pad, y, pw - pad * 2, Math.max(1, S), COLORS.panelEdge, 0.18).setOrigin(0, 0.5);
   c.add(line);
   y += 14 * S;
 
-  const panel = { c, px, py, pw, ph, pad, y };
+  const panel = { c, px, py, pw, ph, pad, y, gapTop };
   addScroll(scene, panel, y - 6 * S, py + ph - footer * S);
   return panel;
 }
@@ -117,7 +119,7 @@ export function recipeRow(scene, panel, y, { icon, name, cost, inventory, state,
   const { px, pw, pad } = panel;
   const c = panel.list || panel.c;
   const cy = y + 22 * S;
-  const dim = state.owned ? 0.45 : 1;
+  const dim = state.owned || state.locked ? 0.45 : 1;
   c.add(scene.add.image(px + pad + 15 * S, cy, icon).setDisplaySize(32 * S, 32 * S).setAlpha(dim));
   c.add(scene.add.text(px + pad + 40 * S, cy - 9 * S, name, textStyle(S, 15)).setOrigin(0, 0.5).setAlpha(dim));
 
@@ -133,7 +135,9 @@ export function recipeRow(scene, panel, y, { icon, name, cost, inventory, state,
   }
 
   const bx = px + pw - pad - 42 * S;
-  if (state.owned) {
+  if (state.locked) {
+    c.add(scene.add.text(bx, cy, labels.locked(state.unlock), textStyle(S, 10, COLORS.dim, { fontStyle: '700', align: 'center', wordWrap: { width: 90 * S } })).setOrigin(0.5));
+  } else if (state.owned) {
     c.add(scene.add.text(bx, cy, labels.owned, textStyle(S, 11, COLORS.dim, { fontStyle: '700' })).setOrigin(0.5));
   } else {
     const b = makeButton(scene, bx, cy, 84 * S, 34 * S, labels.make, (lbl, p) => {

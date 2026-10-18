@@ -5,6 +5,7 @@ import { bus } from '../bus.js';
 import { COLORS, textStyle, makeButton } from './style.js';
 import { createPanel, itemRow, recipeRow } from './Panel.js';
 import { recipesAt, recipeName, recipeIcon, recipeState } from '../systems/Crafting.js';
+import { lockedLabel } from './labels.js';
 import { getAudio } from '../systems/Audio.js';
 
 export class InventoryPanel {
@@ -84,7 +85,7 @@ export class InventoryPanel {
         state: recipeState(game, r),
         onMake: () => { bus.emit('craft', r.id); this.rebuild(); },
         makeButton,
-        labels: { make: TEXT.craftMake, owned: TEXT.craftOwned },
+        labels: { make: TEXT.craftMake, owned: TEXT.craftOwned, locked: lockedLabel },
       });
     }
     if (!hasBench) {

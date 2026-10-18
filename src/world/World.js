@@ -125,6 +125,22 @@ export class World {
     this.islandAt(gx, gy)?.clearTufts(gx, gy);
   }
 
+  // Posities van lichtblokken (voor het nachtlicht)
+  glowTiles() {
+    // alleen opnieuw zoeken als het aantal tegels veranderd is
+    const size = this.size;
+    if (this.glowCache && this.glowSize === size) return this.glowCache;
+    const out = [];
+    for (const i of this.islands) {
+      for (const t of i.tiles.values()) {
+        if (t.kind === 'glow' && t.sprite) out.push({ x: t.sprite.x, y: t.sprite.y - 20 });
+      }
+    }
+    this.glowCache = out;
+    this.glowSize = size;
+    return out;
+  }
+
   serialize() {
     const out = {};
     for (const i of this.islands) out[i.id] = i.serialize();

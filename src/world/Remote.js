@@ -53,7 +53,7 @@ export class ResourceNode {
     });
     const [min, max] = this.def.amount;
     const double = Math.random() < game.skills.doubleChance('delven');
-    const n = (min + Math.floor(Math.random() * (max - min + 1))) * (double ? 2 : 1);
+    const n = (min + Math.floor(Math.random() * (max - min + 1))) * (double ? 2 : 1) + game.mods.extra(`yield.${this.def.item}`);
     return { skill: 'delven', item: this.def.item, amount: n, double };
   }
 

@@ -2,7 +2,6 @@
 import { CONFIG } from '../config.js';
 import { ANCHOR } from '../art/anchor.js';
 import { gridToScreen } from '../iso.js';
-import { bonus } from '../systems/Meta.js';
 
 export class Anchor {
   constructor(scene, gx, gy, data = {}) {
@@ -28,7 +27,7 @@ export class Anchor {
 
   // Bereik in tegels, met bonus van de skill Bouwen
   range(game) {
-    return CONFIG.anchor.range[this.tier] * (1 + game.skills.level('bouwen') * CONFIG.anchor.buildBonus) * (1 + bonus('anker'));
+    return CONFIG.anchor.range[this.tier] * (1 + game.skills.level('bouwen') * CONFIG.anchor.buildBonus) * (1 + game.mods.get('anchor'));
   }
 
   covers(game, gx, gy) {

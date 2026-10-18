@@ -23,6 +23,14 @@ export const KINDS = {
   ruin:       { top: 'bricks_glow', side: 'bricks', h: 1, under: 'bricks', deep: 'stone' },
   bridge:     { top: 'bridge', side: 'planks', h: 0.25 },
   starbridge: { top: 'starbridge', side: 'quartz', h: 0.25 },
+  // bouwblokken uit collecties
+  logs:          { top: 'log_top', side: 'log_side', h: 1 },
+  bricksblock:   { top: 'bricks', side: 'bricks', h: 1 },
+  ironblock:     { top: 'iron', side: 'iron', h: 1 },
+  amethystblock: { top: 'amethyst', side: 'amethyst', h: 1 },
+  quartzblock:   { top: 'quartz', side: 'quartz', h: 1 },
+  obsidianblock: { top: 'obsidian', side: 'obsidian', h: 1 },
+  glow:          { top: 'lantern', side: 'lantern', h: 1 },
 };
 
 // Natuurlijke grond heeft blokken eronder; gebouwde blokken niet; bruggen zijn dunne platen
