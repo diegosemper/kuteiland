@@ -7,6 +7,8 @@ import { generateFx } from './fx.js';
 import { generateIcons } from './icons.js';
 import { generateStructures } from './structures.js';
 import { generateDrift } from './drift.js';
+import { generateCreatures } from './creatures.js';
+import { generateDefenses } from './defenses.js';
 
 let noise = null;
 export function getNoise() {
@@ -19,6 +21,8 @@ export function generateTextures(scene) {
   generateProps(scene);
   generateStructures(scene);
   generateDrift(scene);
+  generateCreatures(scene);
+  generateDefenses(scene);
   generateCharacter(scene);
   generateIcons(scene);
 }

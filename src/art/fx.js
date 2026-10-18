@@ -44,6 +44,70 @@ export function generateFx(scene, N) {
     ctx.fillRect(0, 0, 128, 128);
   });
 
+  // licht: wit in het midden, zacht naar de rand (gebruikt om de nacht weg te gummen)
+  canvasTexture(scene, 'light', 256, 256, (ctx) => {
+    ctx.fillStyle = radial(ctx, 128, 128, 128, [[0, 'rgba(255,255,255,1)'], [0.45, 'rgba(255,255,255,0.75)'], [1, 'rgba(255,255,255,0)']]);
+    ctx.fillRect(0, 0, 256, 256);
+  });
+
+  // slag-boog
+  canvasTexture(scene, 'slash', 80, 80, (ctx) => {
+    ctx.lineCap = 'round';
+    for (const [w, a] of [[9, 0.15], [5, 0.35], [2, 0.9]]) {
+      ctx.strokeStyle = `rgba(235,225,255,${a})`;
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.arc(40, 40, 30, -Math.PI * 0.75, Math.PI * 0.15);
+      ctx.stroke();
+    }
+  });
+
+  // schot van de wachttoren
+  canvasTexture(scene, 'bolt', 28, 10, (ctx) => {
+    const g = ctx.createLinearGradient(0, 0, 28, 0);
+    g.addColorStop(0, 'rgba(200,160,255,0)');
+    g.addColorStop(1, 'rgba(240,225,255,1)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(16, 5, 12, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // hartjes
+  const heart = (ctx, fill, half) => {
+    const path = () => {
+      ctx.beginPath();
+      ctx.moveTo(16, 28);
+      ctx.bezierCurveTo(2, 18, 2, 6, 10, 5);
+      ctx.bezierCurveTo(14, 4, 16, 8, 16, 10);
+      ctx.bezierCurveTo(16, 8, 18, 4, 22, 5);
+      ctx.bezierCurveTo(30, 6, 30, 18, 16, 28);
+      ctx.closePath();
+    };
+    path();
+    ctx.fillStyle = 'rgba(20,10,20,0.75)';
+    ctx.fill();
+    if (fill) {
+      ctx.save();
+      if (half) { ctx.beginPath(); ctx.rect(0, 0, 16, 32); ctx.clip(); }
+      path();
+      const g = ctx.createLinearGradient(0, 4, 0, 28);
+      g.addColorStop(0, '#c0485a');
+      g.addColorStop(1, '#6e1c2c');
+      ctx.fillStyle = g;
+      ctx.fill();
+      ellipse(ctx, 10, 10, 3, 2, 'rgba(255,220,220,0.5)', -0.5);
+      ctx.restore();
+    }
+    path();
+    ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  };
+  canvasTexture(scene, 'heart_full', 32, 32, (ctx) => heart(ctx, true, false));
+  canvasTexture(scene, 'heart_half', 32, 32, (ctx) => heart(ctx, true, true));
+  canvasTexture(scene, 'heart_empty', 32, 32, (ctx) => heart(ctx, false, false));
+
   // markering boven het doel
   canvasTexture(scene, 'marker', 26, 18, (ctx) => {
     ctx.lineCap = 'round';

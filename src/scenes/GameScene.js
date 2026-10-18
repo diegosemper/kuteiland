@@ -14,6 +14,8 @@ import { craft } from '../systems/Crafting.js';
 import { findPath, findPathNear } from '../systems/Pathfinding.js';
 import { Skills } from '../systems/Skills.js';
 import { Drift } from '../systems/Drift.js';
+import { DayNight } from '../systems/DayNight.js';
+import { Night } from '../systems/Night.js';
 import { loadGame, saveGame, clearSave } from '../systems/save.js';
 
 const AUTO_WALK_MS = 4000;
@@ -28,7 +30,7 @@ export class GameScene extends Phaser.Scene {
     this.flags = { ...save?.flags };
     this.stats = { chops: 0, wood: 0, puin: 0, tilesPlaced: 0, ...save?.stats };
     this.stats.crafted = { ...save?.stats?.crafted };
-    this.tools = { axe: 0, pickaxe: 0, ...save?.tools };
+    this.tools = { axe: 0, pickaxe: 0, weapon: 0, ...save?.tools };
     this.skills = new Skills(save?.skills);
     this.inventory = new Inventory(save?.inventory);
     this.chestStore = new Inventory(save?.chest);
@@ -44,9 +46,13 @@ export class GameScene extends Phaser.Scene {
     this.objects = [];
     for (const data of world.objects) this.addObject(data);
 
+    this.spawnPoint = start.spawn;
     let pos = start.spawn;
     if (save?.player && this.canStand(save.player.gx, save.player.gy)) pos = save.player;
     this.player = new Player(this, pos.gx, pos.gy);
+    this.hp = Math.min(this.maxHp, save?.hp ?? this.maxHp);
+    this.dead = false;
+    this.hurtUntil = 0;
 
     this.marker = this.add.image(0, 0, 'marker').setOrigin(0.5, 1).setDepth(1e6).setVisible(false);
     this.target = null;
@@ -59,6 +65,9 @@ export class GameScene extends Phaser.Scene {
     this.build = new BuildMode(this);
     this.drift = new Drift(this);
     this.autoGrab = null;
+    this.dayNight = new DayNight(save?.time);
+    this.night = new Night(this);
+    if (this.dayNight.isNight) this.night.start(this.dayNight.night, this.dayNight.t - CONFIG.dayNight.dayMs);
     this.objectives = new Objectives(this, this.flags.objectiveId ?? this.flags.objective ?? 0);
 
     const cam = this.cameras.main;
@@ -78,6 +87,9 @@ export class GameScene extends Phaser.Scene {
       'build-select': (key) => this.build.select(key),
       'placed': (info) => this.onPlaced(info),
       'tap-drift': (it) => this.onTapDrift(it),
+      'dusk': (n) => bus.emit('message', n === 1 ? TEXT.duskFirst : pick(TEXT.dusk), true),
+      'night-start': (n) => this.onNightStart(n),
+      'day-start': (d) => this.onDayStart(d),
     };
     for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
     this.events.once('shutdown', () => {
@@ -127,6 +139,14 @@ export class GameScene extends Phaser.Scene {
     return obj;
   }
 
+  removeObject(obj) {
+    this.objects = this.objects.filter((o) => o !== obj);
+    if (this.target === obj) this.target = null;
+    if (obj.destroy) obj.destroy();
+    else { obj.sprite?.destroy(); obj.shadow?.destroy(); }
+    this.island.puff.explode(10, obj.sprite?.x ?? 0, obj.hitY ?? 0);
+  }
+
   countObjects(type) {
     return this.objects.filter((o) => o.type === type).length;
   }
@@ -161,9 +181,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   findTarget() {
+    // wezens gaan voor: vechten is belangrijker dan hout
     let best = null;
     let bestDist = Infinity;
+    for (const e of this.night.enemies) {
+      if (!e.alive || e.state !== 'hunt') continue;
+      const d = this.distanceTo(e);
+      if (d <= CONFIG.combat.reach && d < bestDist) { best = e; bestDist = d; }
+    }
+    if (best) return best;
     for (const o of this.objects) {
+      if (!o.label) continue;
       const d = this.distanceTo(o);
       if (d <= CONFIG.player.reach && d < bestDist) {
         best = o;
@@ -178,7 +206,7 @@ export class GameScene extends Phaser.Scene {
   objectAt(wx, wy) {
     let hit = null;
     let best = Infinity;
-    for (const o of this.objects) {
+    for (const o of [...this.objects, ...this.night.enemies.filter((e) => e.alive)]) {
       const b = Phaser.Geom.Rectangle.Clone(o.hitArea || o.sprite.getBounds());
       Phaser.Geom.Rectangle.Inflate(b, 10, 10);
       if (!b.contains(wx, wy)) continue;
@@ -212,6 +240,14 @@ export class GameScene extends Phaser.Scene {
 
   onTapObject(obj) {
     this.autoGrab = null;
+    if (this.dead) return;
+    if (obj.type === 'enemy') {
+      // wezen aangetikt: erop af en slaan
+      this.target = obj;
+      if (this.distanceTo(obj) <= CONFIG.combat.reach) controls.actionQueued = true;
+      else { this.autoTarget = obj; this.autoPath = []; this.autoUntil = this.time.now + AUTO_WALK_MS; }
+      return;
+    }
     if (this.distanceTo(obj) <= CONFIG.player.reach) {
       this.target = obj;
       controls.actionQueued = true;
@@ -231,6 +267,17 @@ export class GameScene extends Phaser.Scene {
 
   update(time, delta) {
     const dt = Math.min(delta, 50);
+
+    this.dayNight.update(dt);
+    this.night.update(time, dt);
+    if (!this.dayNight.isNight && !this.dead && this.hp < this.maxHp) {
+      this.hp = Math.min(this.maxHp, this.hp + CONFIG.combat.regenPerSec * dt / 1000);
+      bus.emit('hp', this.hp, this.maxHp);
+    }
+    if (this.dead) {
+      this.marker.setVisible(false);
+      return;
+    }
 
     this.drift.update(time, dt);
     if (!this.flags.driftSeen && this.drift.items.length && time > 8000) {
@@ -266,7 +313,10 @@ export class GameScene extends Phaser.Scene {
         }
       }
     } else if (this.autoTarget) {
-      if (this.distanceTo(this.autoTarget) <= CONFIG.player.reach * 0.8) {
+      const reachFor = this.autoTarget.type === 'enemy' ? CONFIG.combat.reach * 0.8 : CONFIG.player.reach * 0.8;
+      if (this.autoTarget.type === 'enemy' && !this.autoTarget.alive) {
+        this.autoTarget = null;
+      } else if (this.distanceTo(this.autoTarget) <= reachFor) {
         this.target = this.autoTarget;
         this.autoTarget = null;
         controls.actionQueued = true;
@@ -317,7 +367,7 @@ export class GameScene extends Phaser.Scene {
   doAction() {
     const target = this.target;
     if (target) this.player.faceTowards(target.sprite.x);
-    if (!target || (target.type !== 'chest' && target.type !== 'workbench')) this.player.swing();
+    if (!target || !['chest', 'workbench', 'grave'].includes(target.type)) this.player.swing();
     if (!target) return;
 
     const result = target.act(this);
@@ -341,7 +391,115 @@ export class GameScene extends Phaser.Scene {
       bus.emit('open-chest');
     }
     if (result.openCraft) bus.emit('open-craft');
+    if (result.attack) this.attackEnemy(result.attack);
+    if (result.reclaim) this.reclaimGrave(target);
     if (result.message) bus.emit('message', result.message, true);
+  }
+
+  // ---------- vechten en levens ----------
+
+  get maxHp() {
+    const V = CONFIG.skills.vechten;
+    return CONFIG.combat.baseHp + 2 * Math.floor(this.skills.level('vechten') / V.heartEvery);
+  }
+
+  attackEnemy(e) {
+    if (!e.alive) return;
+    const base = CONFIG.combat.weaponDamage[this.tools.weapon || 0];
+    const dmg = base * (1 + this.skills.level('vechten') * CONFIG.skills.vechten.damage);
+    // zichtbare slag
+    const flip = this.player.sprite.flipX;
+    const slash = this.add.image(this.player.sprite.x + (flip ? -36 : 36), this.player.sprite.y - 50, 'slash')
+      .setFlipX(flip).setDepth(6e5).setAlpha(0.9).setScale(0.8);
+    this.tweens.add({ targets: slash, alpha: 0, scale: 1.1, duration: 180, onComplete: () => slash.destroy() });
+    bus.emit('float', { wx: e.sprite.x, wy: e.topY, text: '-' + Math.round(dmg * 10) / 10, color: '#ff9a9a' });
+    this.skills.gain('vechten', CONFIG.skills.vechten.xp);
+    this.night.damageEnemy(e, dmg, true);
+  }
+
+  hurtPlayer(dmg) {
+    if (this.dead || this.time.now < this.hurtUntil) return;
+    this.hurtUntil = this.time.now + CONFIG.combat.hurtCooldownMs;
+    this.hp -= dmg;
+    const p = this.player.sprite;
+    p.setTintFill(0xff6060);
+    this.time.delayedCall(90, () => p.clearTint());
+    this.cameras.main.shake(120, 0.004);
+    bus.emit('hurt', dmg);
+    bus.emit('hp', Math.max(0, this.hp), this.maxHp);
+    if (this.hp <= 0) this.die();
+  }
+
+  die() {
+    this.dead = true;
+    this.autoTarget = null;
+    this.autoGrab = null;
+    if (this.build.active) this.build.close();
+    const p = this.player;
+    this.tweens.add({ targets: p.sprite, alpha: 0, angle: p.sprite.flipX ? -80 : 80, duration: 600 });
+
+    // de helft van wat je draagt blijft liggen; de kist is veilig
+    const lost = {};
+    for (const [k, n] of Object.entries(this.inventory.items)) {
+      const half = Math.floor(n / 2);
+      if (half > 0 && this.inventory.remove(k, half)) lost[k] = half;
+    }
+    const old = this.objects.find((o) => o.type === 'grave');
+    if (old) this.removeObject(old);
+    let grave = null;
+    if (Object.keys(lost).length) {
+      const spot = this.freeTileNear(Math.round(p.gx), Math.round(p.gy));
+      if (spot) grave = this.addObject({ type: 'grave', gx: spot.gx, gy: spot.gy, items: lost });
+    }
+    this.stats.deaths = (this.stats.deaths || 0) + 1;
+    bus.emit('player-died', { lost: grave ? grave.summary() : '', lostOld: !!old });
+    this.saveNow();
+
+    this.time.delayedCall(CONFIG.combat.respawnMs, () => this.respawn());
+  }
+
+  respawn() {
+    const spot = this.freeTileNear(this.spawnPoint.gx, this.spawnPoint.gy) || this.spawnPoint;
+    const p = this.player;
+    p.gx = spot.gx;
+    p.gy = spot.gy;
+    p.sync();
+    this.tweens.killTweensOf(p.sprite);
+    p.sprite.setAngle(0).setAlpha(0);
+    this.tweens.add({ targets: p.sprite, alpha: 1, duration: 500 });
+    this.hp = this.maxHp;
+    this.dead = false;
+    this.hurtUntil = this.time.now + 2000;
+    this.cameras.main.centerOn(p.sprite.x, p.sprite.y);
+    bus.emit('hp', this.hp, this.maxHp);
+    bus.emit('respawn');
+  }
+
+  freeTileNear(gx, gy) {
+    const taken = new Set(this.objects.map((o) => o.gx + ',' + o.gy));
+    const tiles = [...this.island.tiles.values()].filter((t) => !taken.has(t.gx + ',' + t.gy));
+    tiles.sort((a, b) => Math.hypot(a.gx - gx, a.gy - gy) - Math.hypot(b.gx - gx, b.gy - gy));
+    return tiles[0] || null;
+  }
+
+  reclaimGrave(grave) {
+    for (const [k, n] of Object.entries(grave.items)) this.inventory.add(k, n);
+    bus.emit('message', TEXT.graveBack + ' ' + grave.summary() + '.', true);
+    this.removeObject(grave);
+    this.saveNow();
+  }
+
+  onNightStart(n) {
+    bus.emit('message', n === 1 ? TEXT.nightFirst : TEXT.nightLabel + ' ' + n + '. ' + pick(TEXT.night), true);
+    this.night.start(n);
+  }
+
+  onDayStart(d) {
+    this.night.end();
+    this.stats.nights = Math.max(this.stats.nights || 0, d - 1);
+    bus.emit('message', pick(TEXT.dawn), true);
+    this.objectives.check();
+    this.saveNow();
   }
 
   onWood(amount) {
@@ -402,6 +560,8 @@ export class GameScene extends Phaser.Scene {
       chest: this.chestStore.toJSON(),
       tools: this.tools,
       skills: this.skills.toJSON(),
+      time: this.dayNight.toJSON(),
+      hp: this.dead ? this.maxHp : Math.round(this.hp * 10) / 10,
       stats: this.stats,
       flags: this.flags,
       world: {

@@ -77,6 +77,13 @@ export class BackgroundScene extends Phaser.Scene {
     const sx = cam.scrollX * cam.zoom;
     const sy = cam.scrollY * cam.zoom;
 
+    // 's nachts: donkere leegte, fellere Kern
+    const d = this.scene.get('Game').dayNight?.darkness || 0;
+    const v = Math.round(255 * (1 - 0.55 * d));
+    this.bg.setTint(Phaser.Display.Color.GetColor(v, v, Math.round(v * 0.9 + 25 * d)));
+    this.kernCore.setScale(0.18 * this.S * (1 + 0.6 * d));
+    this.kernHalo.setTint(d > 0.5 ? 0x9b5cff : 0x7a4fd0);
+
     const kx = w * 0.8 - sx * 0.01;
     const ky = h * 0.13 - sy * 0.01;
     this.kernHalo.setPosition(kx, ky);

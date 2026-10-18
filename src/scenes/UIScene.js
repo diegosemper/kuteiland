@@ -14,6 +14,10 @@ import { BuildBar } from '../ui/BuildBar.js';
 import { ObjectiveHud } from '../ui/ObjectiveHud.js';
 import { SkillsPanel } from '../ui/SkillsPanel.js';
 import { SkillXpBar } from '../ui/SkillXpBar.js';
+import { NightOverlay } from '../ui/NightOverlay.js';
+import { HeartsHud } from '../ui/HeartsHud.js';
+import { ClockHud } from '../ui/ClockHud.js';
+import { DeathScreen } from '../ui/DeathScreen.js';
 import { recipeName } from '../systems/Crafting.js';
 import { COLORS, textStyle, makeButton, roundedBox, shade } from '../ui/style.js';
 import { pick } from '../texts.js';
@@ -30,6 +34,11 @@ export class UIScene extends Phaser.Scene {
     this.inventory = game.inventory;
 
     this.vignette = this.add.image(0, 0, 'vignette').setOrigin(0).setAlpha(0.75).setDepth(-100);
+    this.nightOverlay = new NightOverlay(this);
+    this.hearts = new HeartsHud(this);
+    this.hearts.set(game.hp, game.maxHp);
+    this.clock = new ClockHud(this);
+    this.deathScreen = new DeathScreen(this);
 
     this.joystick = new Joystick(this);
     this.action = new ActionButton(this);
@@ -78,6 +87,10 @@ export class UIScene extends Phaser.Scene {
       'crafted': (r) => this.onCrafted(r),
       'skill-xp': (x) => this.xpBar.show(x),
       'skill-up': (u) => this.onSkillUp(u),
+      'hp': (hp, max) => this.hearts.set(hp, max),
+      'hurt': () => this.flashHurt(),
+      'player-died': (info) => { this.closeAll(); this.joystick.release(); this.action.release(); this.deathScreen.show(info); },
+      'respawn': () => this.deathScreen.hide(),
     };
     for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
     const onChange = (key) => this.buildResources(key);
@@ -141,6 +154,9 @@ export class UIScene extends Phaser.Scene {
     this.toast.layout(w, h, this.safe);
     this.objective.layout(w, h, this.safe);
     this.xpBar.layout(w, h, this.safe);
+    this.nightOverlay.layout(w, h);
+    this.hearts.layout(w, h, this.safe);
+    this.clock.layout(w, h, this.safe);
     // bouwknop schuin boven de actieknop
     const ax = this.action.circle.x, ay = this.action.circle.y;
     this.buildButton.setPosition(ax - this.action.R * 1.05, ay - this.action.R * 1.75);
@@ -183,6 +199,15 @@ export class UIScene extends Phaser.Scene {
     const name = CONFIG.skills[id].name.toUpperCase();
     this.floatText({ wx: p.x, wy: p.y - 150, text: `${name} ${level}`, color: '#ffd98a' });
     this.toast.show(`${CONFIG.skills[id].name} ${level}. ${pick(TEXT.skillUp[id])}`, true);
+  }
+
+  flashHurt() {
+    this.tweens.killTweensOf(this.vignette);
+    this.vignette.setTint(0xff2030).setAlpha(1);
+    this.tweens.add({
+      targets: this.vignette, alpha: 0.75, duration: 450,
+      onComplete: () => this.vignette.clearTint(),
+    });
   }
 
   // Tik op drijvend wrak
@@ -258,12 +283,15 @@ export class UIScene extends Phaser.Scene {
   }
 
   update() {
+    this.nightOverlay.update(this.gameScene);
+    this.clock.update(this.gameScene.dayNight);
+
     const k = this.keys;
     let kx = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0);
     let ky = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0);
     if (kx && ky) { kx *= Math.SQRT1_2; ky *= Math.SQRT1_2; }
 
-    if (this.anyPanelOpen()) {
+    if (this.anyPanelOpen() || this.gameScene.dead) {
       controls.move.x = 0;
       controls.move.y = 0;
       controls.action = false;

@@ -14,7 +14,7 @@ export class ObjectiveHud {
 
   layout(w, h, safe) {
     const S = this.scene.S;
-    this.c.setPosition(safe.left + 22 * S, safe.top + 66 * S);
+    this.c.setPosition(safe.left + 22 * S, safe.top + 96 * S);
     this.label.setPosition(0, 0);
     this.text.setPosition(0, 14 * S).setWordWrapWidth(w * 0.62);
   }

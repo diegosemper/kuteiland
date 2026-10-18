@@ -1,7 +1,7 @@
 // Service worker: zorgt dat het spel installeerbaar is en offline blijft werken.
 // Strategie: eerst het netwerk (zodat updates meteen binnenkomen), bij geen verbinding de cache.
 // Verhoog CACHE bij grote wijzigingen om oude bestanden op te ruimen.
-const CACHE = 'kuteiland-v4';
+const CACHE = 'kuteiland-v5';
 
 const CORE = [
   './',
@@ -20,6 +20,8 @@ const CORE = [
   './src/rng.js',
   './src/texts.js',
   './src/art/character.js',
+  './src/art/creatures.js',
+  './src/art/defenses.js',
   './src/art/drift.js',
   './src/art/fx.js',
   './src/art/icons.js',
@@ -34,8 +36,10 @@ const CORE = [
   './src/scenes/UIScene.js',
   './src/systems/Building.js',
   './src/systems/Crafting.js',
+  './src/systems/DayNight.js',
   './src/systems/Drift.js',
   './src/systems/Inventory.js',
+  './src/systems/Night.js',
   './src/systems/Objectives.js',
   './src/systems/Pathfinding.js',
   './src/systems/Skills.js',
@@ -43,9 +47,13 @@ const CORE = [
   './src/ui/ActionButton.js',
   './src/ui/BuildBar.js',
   './src/ui/ChestPanel.js',
+  './src/ui/ClockHud.js',
   './src/ui/CraftPanel.js',
+  './src/ui/DeathScreen.js',
+  './src/ui/HeartsHud.js',
   './src/ui/InventoryPanel.js',
   './src/ui/Joystick.js',
+  './src/ui/NightOverlay.js',
   './src/ui/ObjectiveHud.js',
   './src/ui/Panel.js',
   './src/ui/SkillXpBar.js',
@@ -53,7 +61,11 @@ const CORE = [
   './src/ui/Toast.js',
   './src/ui/style.js',
   './src/world/Chest.js',
+  './src/world/Defenses.js',
+  './src/world/Enemy.js',
   './src/world/Generator.js',
+  './src/world/Grave.js',
+  './src/world/Health.js',
   './src/world/Island.js',
   './src/world/Player.js',
   './src/world/Tree.js',

@@ -106,7 +106,7 @@ export class BuildMode {
       game.stats.tilesPlaced = (game.stats.tilesPlaced || 0) + 1;
     } else {
       game.island.clearTufts(gx, gy);
-      game.addObject({ type: ITEM_TO_OBJECT[key], gx, gy }, true);
+      game.addObject({ ...ITEM_TO_OBJECT[key], gx, gy }, true);
     }
     bus.emit('placed', { item: key, gx, gy });
 

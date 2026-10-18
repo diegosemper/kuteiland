@@ -214,7 +214,100 @@ function toolIcon(ctx, kind, tier) {
   ctx.fillRect(38, 14, 6, 6);
 }
 
+function weaponIcon(ctx, tier) {
+  ctx.lineCap = 'round';
+  if (tier === 1) {
+    // knuppel
+    ctx.strokeStyle = '#3a2618'; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.moveTo(16, 52); ctx.lineTo(44, 16); ctx.stroke();
+    ctx.strokeStyle = '#7a5434'; ctx.lineWidth = 12;
+    ctx.beginPath(); ctx.moveTo(32, 32); ctx.lineTo(46, 14); ctx.stroke();
+    ctx.strokeStyle = '#9a7450'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(30, 30); ctx.lineTo(44, 12); ctx.stroke();
+    return;
+  }
+  if (tier === 2) {
+    // puinhamer
+    ctx.strokeStyle = '#3a2618'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(18, 54); ctx.lineTo(40, 18); ctx.stroke();
+    poly(ctx, [{ x: 26, y: 8 }, { x: 54, y: 22 }, { x: 48, y: 34 }, { x: 20, y: 20 }]);
+    ctx.fillStyle = '#8a827a'; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 1.2; ctx.stroke();
+    return;
+  }
+  // zwaarden
+  const blade = tier === 3 ? ['#b06a3e', '#6a3418'] : ['#c9a6ff', '#5a37a8'];
+  poly(ctx, [{ x: 48, y: 8 }, { x: 54, y: 10 }, { x: 26, y: 40 }, { x: 22, y: 36 }]);
+  const g = ctx.createLinearGradient(22, 36, 54, 10);
+  g.addColorStop(0, blade[1]); g.addColorStop(1, blade[0]);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 1.2; ctx.stroke();
+  ctx.strokeStyle = '#3a3a40'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(16, 34); ctx.lineTo(30, 46); ctx.stroke();
+  ctx.strokeStyle = '#3a2618'; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(22, 42); ctx.lineTo(12, 54); ctx.stroke();
+  if (tier === 4) {
+    const gl = ctx.createRadialGradient(38, 24, 1, 38, 24, 26);
+    gl.addColorStop(0, 'rgba(180,140,255,0.45)'); gl.addColorStop(1, 'rgba(180,140,255,0)');
+    ctx.fillStyle = gl; ctx.fillRect(0, 0, S, S);
+  }
+}
+
+function wallIcon(ctx) {
+  isoCube(ctx, '#7e766e', '#6a635c', '#48433f', (T, L, R) => {
+    ctx.strokeStyle = 'rgba(15,12,10,0.7)';
+    ctx.lineWidth = 1;
+    for (const pts of [L, R]) {
+      for (const t of [0.33, 0.66]) {
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x + (pts[3].x - pts[0].x) * t, pts[0].y + (pts[3].y - pts[0].y) * t);
+        ctx.lineTo(pts[1].x + (pts[2].x - pts[1].x) * t, pts[1].y + (pts[2].y - pts[1].y) * t);
+        ctx.stroke();
+      }
+    }
+  });
+}
+
+function lampIcon(ctx, crystal) {
+  const glow = ctx.createRadialGradient(36, 30, 2, 36, 30, 24);
+  glow.addColorStop(0, crystal ? 'rgba(190,150,255,0.6)' : 'rgba(255,210,130,0.6)');
+  glow.addColorStop(1, 'rgba(255,200,120,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, S, S);
+  ctx.fillStyle = '#4a3422';
+  ctx.fillRect(20, 10, 4, 48);
+  ctx.fillRect(20, 10, 18, 3);
+  if (crystal) {
+    poly(ctx, [{ x: 36, y: 16 }, { x: 43, y: 28 }, { x: 36, y: 42 }, { x: 29, y: 28 }]);
+    ctx.fillStyle = '#d9c2ff'; ctx.fill();
+    ctx.strokeStyle = '#2a1d40'; ctx.lineWidth = 1.2; ctx.stroke();
+  } else {
+    ctx.fillStyle = '#ffd88a';
+    ctx.fillRect(30, 18, 12, 18);
+    ctx.strokeStyle = '#2a2a2e'; ctx.lineWidth = 2;
+    ctx.strokeRect(30, 18, 12, 18);
+  }
+}
+
+function towerIcon(ctx) {
+  ctx.fillStyle = '#5a4030';
+  for (const x of [20, 40]) ctx.fillRect(x, 22, 4, 20);
+  poly(ctx, [{ x: 14, y: 40 }, { x: 50, y: 40 }, { x: 46, y: 58 }, { x: 18, y: 58 }]);
+  ctx.fillStyle = '#625b54'; ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 1.2; ctx.stroke();
+  ctx.fillStyle = '#86643f';
+  ctx.fillRect(14, 18, 36, 5);
+  ctx.strokeStyle = '#7a3f22'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(20, 14); ctx.quadraticCurveTo(32, 2, 44, 14); ctx.stroke();
+  ellipse(ctx, 32, 10, 3, 3, '#c9a6ff');
+}
+
 export function generateIcons(scene) {
+  for (const tier of [1, 2, 3, 4]) canvasTexture(scene, `icon_weapon${tier}`, S, S, (ctx) => weaponIcon(ctx, tier));
+  canvasTexture(scene, 'icon_muur', S, S, wallIcon);
+  canvasTexture(scene, 'icon_lantaarn', S, S, (ctx) => lampIcon(ctx, false));
+  canvasTexture(scene, 'icon_kristallamp', S, S, (ctx) => lampIcon(ctx, true));
+  canvasTexture(scene, 'icon_wachttoren', S, S, towerIcon);
   canvasTexture(scene, 'icon_vlonder', S, S, plankIcon);
   canvasTexture(scene, 'icon_puinblok', S, S, stoneBlockIcon);
   canvasTexture(scene, 'icon_werkbank', S, S, benchIcon);
