@@ -48,4 +48,12 @@ for (const ev of ['gesturestart', 'gesturechange', 'contextmenu', 'dblclick']) {
 // PWA: service worker alleen op https of localhost (anders weigert de browser hem toch)
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  // nieuwe versie actief geworden? Eén keer herladen, zodat je meteen de nieuwe code hebt.
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloaded) return;
+    reloaded = true;
+    window.location.reload();
+  });
 }

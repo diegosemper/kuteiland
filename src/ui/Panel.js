@@ -43,10 +43,11 @@ export function createPanel(scene, { title, subtitle, height, onBackdrop, anchor
   return panel;
 }
 
-// Scrollbare lijst: rijen gaan in panel.list; slepen of het muiswiel schuift hem.
+// Scrollbare lijst: rijen gaan in panel.list. Slepen (overal op het paneel), het muiswiel
+// of tikken op de pijltjes schuift hem.
 function addScroll(scene, panel, top, bottom) {
   const S = scene.S;
-  const { c, px, pw } = panel;
+  const { c, px, py, pw, ph } = panel;
   const list = scene.add.container(0, 0);
   c.add(list);
   const shape = scene.make.graphics({ add: false });
@@ -57,18 +58,36 @@ function addScroll(scene, panel, top, bottom) {
   let minY = 0;
   let drag = null;
   const clamp = (v) => Math.max(minY, Math.min(0, v));
-  let hint = null;
-  const updateHint = () => hint?.setVisible(minY < 0 && list.y > minY + 2);
+  const page = (bottom - top) * 0.7;
+
+  const arrow = (char, y, dir) => {
+    const t = scene.add.text(px + pw - 26 * S, y, char, textStyle(S, 22, COLORS.text, { fontStyle: '700' }))
+      .setOrigin(0.5).setVisible(false);
+    const z = scene.add.zone(px + pw - 26 * S, y, 48 * S, 48 * S).setInteractive();
+    z.on('pointerup', () => {
+      if (!t.visible) return;
+      scene.tweens.add({ targets: list, y: clamp(list.y - dir * page), duration: 220, ease: 'Quad.easeOut', onUpdate: update, onComplete: update });
+    });
+    c.add([t, z]);
+    return t;
+  };
+  const up = arrow('▴', top + 14 * S, -1);
+  const down = arrow('▾', bottom - 14 * S, 1);
+  function update() {
+    up.setVisible(list.y < -2);
+    down.setVisible(minY < 0 && list.y > minY + 2);
+  }
+
   const onDown = (p) => {
-    if (p.x >= px && p.x <= px + pw && p.y >= top && p.y <= bottom) drag = { y: p.y, start: list.y };
+    if (p.x >= px && p.x <= px + pw && p.y >= py && p.y <= py + ph) drag = { y: p.y, start: list.y };
   };
   const onMove = (p) => {
     if (!drag || !p.isDown) return;
     list.y = clamp(drag.start + (p.y - drag.y));
-    updateHint();
+    update();
   };
   const onUp = () => { drag = null; };
-  const onWheel = (p, over, dx, dy) => { list.y = clamp(list.y - dy); updateHint(); };
+  const onWheel = (p, over, dx, dy) => { list.y = clamp(list.y - dy); update(); };
   scene.input.on('pointerdown', onDown);
   scene.input.on('pointermove', onMove);
   scene.input.on('pointerup', onUp);
@@ -81,17 +100,12 @@ function addScroll(scene, panel, top, bottom) {
     shape.destroy();
   });
 
-  // pijltje als er meer onder zit
-  hint = scene.add.text(px + pw / 2, bottom - 2 * S, '▾', textStyle(S, 16, COLORS.dim)).setOrigin(0.5, 1).setVisible(false);
-  c.add(hint);
-  scene.tweens.add({ targets: hint, y: hint.y + 4 * S, duration: 600, yoyo: true, repeat: -1 });
-
   panel.list = list;
-  // na het vullen: hoe hoog is de inhoud (eindpunt y in schermcoördinaten)
+  // na het vullen: tot waar loopt de inhoud (y in schermcoördinaten)
   panel.setContentEnd = (endY) => {
     minY = Math.min(0, bottom - endY - 10 * S);
     list.y = clamp(list.y);
-    updateHint();
+    update();
   };
   // is een punt op het scherm zichtbaar in de lijst? (knoppen buiten beeld doen niks)
   panel.inView = (y) => y >= top && y <= bottom;

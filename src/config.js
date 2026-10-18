@@ -2,6 +2,8 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
+  version: 10,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
     viewTilesWide: 6.5, // hoeveel tegels je ongeveer in de breedte ziet (bepaalt de zoom)

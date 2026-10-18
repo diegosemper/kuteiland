@@ -1,7 +1,7 @@
 // Service worker: zorgt dat het spel installeerbaar is en offline blijft werken.
 // Strategie: eerst het netwerk (zodat updates meteen binnenkomen), bij geen verbinding de cache.
 // Verhoog CACHE bij grote wijzigingen om oude bestanden op te ruimen.
-const CACHE = 'kuteiland-v9';
+const CACHE = 'kuteiland-v10';
 
 const CORE = [
   './',
@@ -109,7 +109,7 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
 
   event.respondWith(
-    fetch(req)
+    fetch(req, { cache: 'no-cache' })
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();

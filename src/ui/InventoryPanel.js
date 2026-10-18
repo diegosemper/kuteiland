@@ -106,6 +106,7 @@ export class InventoryPanel {
       audio.setSfx(!audio.settings.sfx);
       lbl.setText(onOff(TEXT.soundSfx, audio.settings.sfx));
     }, 11));
+    c.add(sc.add.text(px + pw - pad, py + ph - 6 * S, `versie ${CONFIG.version}`, textStyle(S, 10, COLORS.dim)).setOrigin(1, 1));
     let confirmReset = false;
     c.add(makeButton(sc, px + pad + bw / 2, by, bw, 44 * S, TEXT.reset, (lbl) => {
       if (!confirmReset) {
