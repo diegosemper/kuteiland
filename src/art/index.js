@@ -10,6 +10,7 @@ import { generateDrift } from './drift.js';
 import { generateCreatures } from './creatures.js';
 import { generateDefenses } from './defenses.js';
 import { generateAnchor } from './anchor.js';
+import { generateRemote } from './remote.js';
 
 let noise = null;
 export function getNoise() {
@@ -25,6 +26,7 @@ export function generateTextures(scene) {
   generateCreatures(scene);
   generateDefenses(scene);
   generateAnchor(scene);
+  generateRemote(scene);
   generateCharacter(scene);
   generateIcons(scene);
 }

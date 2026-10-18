@@ -19,6 +19,10 @@ import { HeartsHud } from '../ui/HeartsHud.js';
 import { ClockHud } from '../ui/ClockHud.js';
 import { DeathScreen } from '../ui/DeathScreen.js';
 import { AnchorPanel } from '../ui/AnchorPanel.js';
+import { StoryPanel } from '../ui/StoryPanel.js';
+import { MapPanel } from '../ui/MapPanel.js';
+import { PrestigePanel } from '../ui/PrestigePanel.js';
+import { BossBar } from '../ui/BossBar.js';
 import { recipeName } from '../systems/Crafting.js';
 import { COLORS, textStyle, makeButton, roundedBox, shade } from '../ui/style.js';
 import { pick } from '../texts.js';
@@ -55,6 +59,11 @@ export class UIScene extends Phaser.Scene {
     this.buildBar = new BuildBar(this);
     this.skillsPanel = new SkillsPanel(this, game);
     this.anchorPanel = new AnchorPanel(this, game);
+    this.storyPanel = new StoryPanel(this);
+    this.mapPanel = new MapPanel(this, game);
+    this.prestigePanel = new PrestigePanel(this);
+    this.bossBar = new BossBar(this);
+    this.mapButton = this.makeRoundButton(TEXT.mapButton, () => this.openPanel(this.mapPanel));
     this.xpBar = new SkillXpBar(this);
 
     this.bagButton = makeButton(this, 0, 0, 104 * this.S, 40 * this.S, 'RUGZAK', () => this.togglePanel(), 12);
@@ -85,6 +94,11 @@ export class UIScene extends Phaser.Scene {
       'open-chest': () => this.openPanel(this.chestPanel),
       'open-craft': () => this.openPanel(this.craftPanel),
       'open-anchor': (a) => { this.anchorPanel.anchor = a; this.openPanel(this.anchorPanel); },
+      'open-story': (st) => { this.closeAll(); this.joystick.release(); this.action.release(); this.storyPanel.open(st); },
+      'open-prestige': () => this.openPanel(this.prestigePanel),
+      'boss-start': () => this.bossBar.show(),
+      'boss-hp': (hp, max) => this.bossBar.set(hp, max),
+      'boss-end': () => this.bossBar.hide(),
       'objective': (o) => this.objective.set(o),
       'build-changed': (state) => this.onBuildChanged(state),
       'crafted': (r) => this.onCrafted(r),
@@ -96,7 +110,15 @@ export class UIScene extends Phaser.Scene {
       'respawn': () => this.deathScreen.hide(),
     };
     for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
-    const onChange = (key) => this.buildResources(key);
+    let lastPickup = 0;
+    const onChange = (key, n, diff) => {
+      this.buildResources(key);
+      // geluidje bij iets erbij krijgen (niet bij bouwen of craften)
+      if (diff > 0 && CONFIG.items[key]?.resource && this.time.now - lastPickup > 120) {
+        lastPickup = this.time.now;
+        bus.emit('sfx', 'pickup');
+      }
+    };
     this.inventory.on('change', onChange);
 
     // als je de app wegklikt, geen vastzittende knoppen bij terugkomst
@@ -129,7 +151,12 @@ export class UIScene extends Phaser.Scene {
   }
 
   anyPanelOpen() {
-    return this.panel.isOpen || this.chestPanel.isOpen || this.craftPanel.isOpen || this.skillsPanel.isOpen || this.anchorPanel.isOpen;
+    return this.panels().some((p) => p.isOpen);
+  }
+
+  panels() {
+    return [this.panel, this.chestPanel, this.craftPanel, this.skillsPanel, this.anchorPanel,
+      this.storyPanel, this.mapPanel, this.prestigePanel];
   }
 
   closeAll() {
@@ -138,6 +165,8 @@ export class UIScene extends Phaser.Scene {
     this.craftPanel.close();
     this.skillsPanel.close();
     this.anchorPanel.close();
+    this.mapPanel.close();
+    this.prestigePanel.close();
   }
 
   openPanel(p) {
@@ -164,6 +193,8 @@ export class UIScene extends Phaser.Scene {
     // bouwknop schuin boven de actieknop
     const ax = this.action.circle.x, ay = this.action.circle.y;
     this.buildButton.setPosition(ax - this.action.R * 1.05, ay - this.action.R * 1.75);
+    this.mapButton.setPosition(ax - this.action.R * 1.05 - CONFIG.ui.buildRadius * S * 2.4, ay - this.action.R * 1.75);
+    this.bossBar.layout(w, h, this.safe);
     this.bagButton.setPosition(w - this.safe.right - 16 * S - 52 * S, this.safe.top + 16 * S + 20 * S);
     this.skillsButton.setPosition(w - this.safe.right - 16 * S - 52 * S, this.safe.top + 16 * S + 20 * S + 48 * S);
     this.resBar?.setPosition(this.safe.left + 16 * S, this.safe.top + 36 * S);
@@ -172,7 +203,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   togglePanel() {
-    if (this.chestPanel.isOpen || this.craftPanel.isOpen || this.skillsPanel.isOpen || this.anchorPanel.isOpen) return;
+    if (this.panels().some((p) => p !== this.panel && p.isOpen)) return;
     if (this.buildBar.active) bus.emit('build-close');
     this.panel.toggle();
     this.joystick.release();
@@ -188,6 +219,8 @@ export class UIScene extends Phaser.Scene {
     this.action.zone.input.enabled = !on;
     this.buildButton.setVisible(!on);
     this.buildButton.list[2].input.enabled = !on;
+    this.mapButton.setVisible(!on);
+    this.mapButton.list[2].input.enabled = !on;
     this.joystick.setVisible(!on);
     if (on) this.action.release();
   }
@@ -199,6 +232,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   onSkillUp({ id, level }) {
+    bus.emit('sfx', 'levelUp');
     const p = this.gameScene.player.sprite;
     const name = CONFIG.skills[id].name.toUpperCase();
     this.floatText({ wx: p.x, wy: p.y - 150, text: `${name} ${level}`, color: '#ffd98a' });
@@ -265,6 +299,8 @@ export class UIScene extends Phaser.Scene {
     const bg = roundedBox(this, x, 40 * S, { fill: 0x0c0812, alpha: 0.55, edgeAlpha: 0.12, radius: 20 });
     bg.setPosition(x / 2, 0);
     c.add([bg, ...items]);
+    const maxW = this.scale.width - this.safe.left - this.safe.right - 16 * S - 104 * S - 28 * S;
+    if (x > maxW) c.setScale(maxW / x);
     this.resBar = c;
   }
 

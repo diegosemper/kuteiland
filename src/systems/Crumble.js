@@ -5,6 +5,7 @@ import { bus } from '../bus.js';
 import { gridToScreen } from '../iso.js';
 import { TILE_TEX } from '../art/terrain.js';
 import { itemForObject } from '../world/objects.js';
+import { BRIDGES } from '../art/terrain.js';
 
 const C = CONFIG.crumble;
 const key = (gx, gy) => `${gx},${gy}`;
@@ -47,18 +48,21 @@ export class Crumble {
   }
 
   candidates() {
-    const { island } = this.game;
-    if (island.size - this.cracks.size <= C.minTiles) return [];
-    const dist = island.edgeDistances();
-    return island.sortedTiles().filter((t) => dist.get(key(t.gx, t.gy)) === 1
+    // alleen je eigen eiland brokkelt; veroverde eilanden en bruggen blijven
+    const home = this.game.island.home;
+    if (home.size - this.cracks.size <= C.minTiles) return [];
+    const dist = home.edgeDistances();
+    return home.sortedTiles().filter((t) => dist.get(key(t.gx, t.gy)) === 1
+      && !BRIDGES.includes(t.kind)
       && !this.cracks.has(key(t.gx, t.gy))
       && !this.isAnchored(t.gx, t.gy)
       && !this.rooted(t.gx, t.gy)
-      && island.staysConnected(t.gx, t.gy));
+      && home.staysConnected(t.gx, t.gy));
   }
 
   startCrack(gx, gy, t = 0, quiet = false) {
     const tile = this.game.island.get(gx, gy);
+    if (!quiet) bus.emit('sfx', 'crack');
     if (!tile) return;
     const s = gridToScreen(gx, gy);
     const overlay = this.game.add.image(s.x, s.y, 'cracks')
@@ -185,6 +189,7 @@ export class Crumble {
 
     const texKey = `tile_${gx}_${gy}`;
     g.island.removeTile(gx, gy, true);
+    bus.emit('sfx', 'fall');
     g.stats.tilesLost = (g.stats.tilesLost || 0) + 1;
 
     for (const s of falling) {

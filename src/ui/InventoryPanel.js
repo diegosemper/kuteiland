@@ -5,6 +5,7 @@ import { bus } from '../bus.js';
 import { COLORS, textStyle, makeButton } from './style.js';
 import { createPanel, itemRow, recipeRow } from './Panel.js';
 import { recipesAt, recipeName, recipeIcon, recipeState } from '../systems/Crafting.js';
+import { getAudio } from '../systems/Audio.js';
 
 export class InventoryPanel {
   constructor(scene, game) {
@@ -43,7 +44,7 @@ export class InventoryPanel {
     const height = Math.max(1, owned.length) * 40 * S
       + (tools.length ? 36 * S + tools.length * 40 * S : 0)
       + 36 * S + hand.length * 50 * S + (hasBench ? 0 : 24 * S)
-      + 150 * S;
+      + 210 * S;
     const panel = createPanel(sc, { title: TEXT.bagTitle, height, onBackdrop: () => this.close() });
     const { c, px, py, pw, ph, pad } = panel;
     let y = panel.y;
@@ -91,6 +92,17 @@ export class InventoryPanel {
 
     const bw = (pw - pad * 3) / 2;
     const by = py + ph - pad - 22 * S;
+    // geluid aan/uit
+    const audio = getAudio();
+    const onOff = (name, on) => `${name}: ${on ? TEXT.on : TEXT.off}`;
+    c.add(makeButton(sc, px + pad + bw / 2, by - 54 * S, bw, 40 * S, onOff(TEXT.soundMusic, audio.settings.music), (lbl) => {
+      audio.setMusic(!audio.settings.music);
+      lbl.setText(onOff(TEXT.soundMusic, audio.settings.music));
+    }, 11));
+    c.add(makeButton(sc, px + pad * 2 + bw * 1.5, by - 54 * S, bw, 40 * S, onOff(TEXT.soundSfx, audio.settings.sfx), (lbl) => {
+      audio.setSfx(!audio.settings.sfx);
+      lbl.setText(onOff(TEXT.soundSfx, audio.settings.sfx));
+    }, 11));
     let confirmReset = false;
     c.add(makeButton(sc, px + pad + bw / 2, by, bw, 44 * S, TEXT.reset, (lbl) => {
       if (!confirmReset) {

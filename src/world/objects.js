@@ -6,6 +6,7 @@ import { Generator } from './Generator.js';
 import { Wall, Lamp, Tower } from './Defenses.js';
 import { Grave } from './Grave.js';
 import { Anchor } from './Anchor.js';
+import { ResourceNode, Note, KernCore } from './Remote.js';
 
 // Welk object hoort bij welk plaatsbaar item
 export const ITEM_TO_OBJECT = {
@@ -35,6 +36,9 @@ export function createObject(scene, data) {
     case 'tower': return new Tower(scene, data.gx, data.gy);
     case 'grave': return new Grave(scene, data.gx, data.gy, data);
     case 'anchor': return new Anchor(scene, data.gx, data.gy, data);
+    case 'node': return new ResourceNode(scene, data.gx, data.gy, data);
+    case 'note': return new Note(scene, data.gx, data.gy, data);
+    case 'kern': return new KernCore(scene, data.gx, data.gy);
     default: return null;
   }
 }

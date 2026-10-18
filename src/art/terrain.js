@@ -194,11 +194,124 @@ function decorateTop(ctx, s, N, rnd) {
   ctx.restore();
 }
 
+// ---------- as (het Asveld) ----------
+
+const ASH = { dark: hex('#1f1c1c'), light: hex('#5a5552'), ember: hex('#e07030'), soil: hex('#2a2220') };
+
+function ashTop(N, wx, wy) {
+  const n = N.fbm(wx * 0.03, wy * 0.06, 4);
+  const fine = N.noise(wx * 0.6, wy * 1.2);
+  let col = mix(ASH.dark, ASH.light, 0.2 + 0.6 * n + 0.15 * fine);
+  // gloeiende sintels
+  const e = N.noise(wx * 0.25 + 50, wy * 0.5);
+  if (e > 0.86) col = mix(col, ASH.ember, smooth(0.86, 0.95, e));
+  // scheuren met gloed
+  if (Math.abs(N.noise(wx * 0.04 + 9, wy * 0.08) - 0.5) < 0.012) col = mix(hex('#3a1408'), ASH.ember, 0.4);
+  const b1 = N.fbm((wx - 1.5) * 0.07, (wy - 1.5) * 0.14, 2), b2 = N.fbm((wx + 1.5) * 0.07, (wy + 1.5) * 0.14, 2);
+  return mul(col, 0.95 + (b1 - b2) * 2.2);
+}
+
+function ashSide(N, wx, wy, depth, left) {
+  const t = depth / BD;
+  let col = mix(ASH.soil, hex('#4a403a'), 0.2 + 0.6 * N.fbm(wx * 0.03, wy * 0.2, 3));
+  if (N.noise(wx * 0.2 + 3, wy * 0.4) > 0.88) col = mix(col, ASH.ember, 0.5);
+  if (depth < 3) col = mul(ASH.light, 0.6);
+  return mul(col, (left ? 1 : 0.62) * (1 - 0.35 * t));
+}
+
+// ---------- kristal (de Kristalklip) ----------
+
+const CRY = { dark: hex('#17131c'), light: hex('#3e3848'), shard: hex('#9b6bff'), glow: hex('#e2d0ff') };
+
+function crystalTop(N, wx, wy) {
+  const n = N.fbm(wx * 0.04, wy * 0.08, 4);
+  let col = mix(CRY.dark, CRY.light, 0.15 + 0.7 * n + 0.15 * N.noise(wx * 0.7, wy * 1.4));
+  // kristalsplinters die door de steen steken
+  const c = cobble(wx * 0.05, wy * 0.1);
+  if (c.id > 0.82 && c.d1 < 0.22) {
+    col = mix(CRY.shard, CRY.glow, smooth(0.15, 0, c.d1) * 0.7);
+  }
+  const b1 = N.fbm((wx - 1.5) * 0.08, (wy - 1.5) * 0.16, 2), b2 = N.fbm((wx + 1.5) * 0.08, (wy + 1.5) * 0.16, 2);
+  return mul(col, 0.95 + (b1 - b2) * 3);
+}
+
+function crystalSide(N, wx, wy, depth, left) {
+  const t = depth / BD;
+  let col = mix(CRY.dark, CRY.light, 0.1 + 0.6 * N.fbm(wx * 0.04, wy * 0.15, 3));
+  if (Math.abs(N.noise(wx * 0.06 + 21, wy * 0.03) - 0.5) < 0.02) col = mix(col, CRY.shard, 0.8);
+  return mul(col, (left ? 1 : 0.62) * (1 - 0.3 * t));
+}
+
+// ---------- ruïne (de Kern) ----------
+
+const RUIN = { a: hex('#4e5260'), b: hex('#8a8c98'), joint: hex('#16141c'), vein: hex('#b48cff') };
+
+function ruinTop(N, wx, wy) {
+  const g = screenToGrid(wx, wy);
+  // grote plavuizen, half verschoven
+  const u = g.gx * 2, v = g.gy * 2 + (Math.floor(g.gx * 2) & 1) * 0.5;
+  const fu = u - Math.floor(u), fv = v - Math.floor(v);
+  let col = mix(RUIN.a, RUIN.b, 0.2 + 0.5 * hash2(Math.floor(u), Math.floor(v)) + 0.2 * N.noise(wx * 0.3, wy * 0.6));
+  col = mix(col, hex('#3a3a30'), 0.3 * smooth(0.55, 0.8, N.fbm(wx * 0.02, wy * 0.04, 3)));   // mos en vuil
+  if (fu < 0.04 || fv < 0.04) col = RUIN.joint;
+  // gloeiende aders die naar het midden lopen
+  if (Math.abs(N.noise(wx * 0.03 + 77, wy * 0.06) - 0.5) < 0.01) col = mix(col, RUIN.vein, 0.85);
+  return mul(col, 0.92 + (N.noise(wx * 0.9, wy * 1.8) - 0.5) * 0.1);
+}
+
+function ruinSide(N, wx, wy, depth, left) {
+  const t = depth / BD;
+  const course = Math.floor(depth / 15);
+  let col = mix(RUIN.a, RUIN.b, 0.1 + 0.4 * hash2(Math.floor((wx + course * 20) / 40), course));
+  if ((depth % 15) < 1.5 || frac((wx + course * 20) / 40) < 0.03) col = RUIN.joint;
+  return mul(col, (left ? 0.95 : 0.6) * (1 - 0.3 * t));
+}
+
+// ---------- bruggen ----------
+
+const ROPE = hex('#8a7a52');
+const STAR = { a: hex('#c8c0e0'), b: hex('#f0ecff'), glow: hex('#b48cff') };
+
+function bridgeTop(N, wx, wy, star) {
+  const g = screenToGrid(wx, wy);
+  const fx = g.gx - Math.round(g.gx), fy = g.gy - Math.round(g.gy);
+  // touwen langs de randen (in beide richtingen, de brug ligt waar je hem legt)
+  if (Math.abs(Math.abs(fx) - 0.46) < 0.025 || Math.abs(Math.abs(fy) - 0.46) < 0.025) return star ? STAR.glow : ROPE;
+  // planken dwars, met gaten ertussen
+  const p = (g.gx + g.gy) * 3.5;
+  const pf = p - Math.floor(p);
+  if (pf > 0.78) return null;
+  if (Math.abs(fx) > 0.44 || Math.abs(fy) > 0.44) return null;
+  const h = hash2(Math.floor(p), 3);
+  if (star) {
+    let col = mix(STAR.a, STAR.b, 0.3 + 0.5 * h);
+    if (N.noise(wx * 0.5, wy) > 0.9) col = STAR.glow;
+    return col;
+  }
+  let col = mix(WOOD.dark, WOOD.light, 0.2 + 0.5 * h);
+  col = mix(col, WOOD.grey, 0.4 * N.noise(wx * 0.05, wy * 0.1));
+  return mul(col, 0.8 + 0.3 * N.noise(wx * 0.6 + h * 30, wy * 0.2));
+}
+
+function bridgeSide(N, wx, wy, depth, left, star) {
+  if (depth > 5) return null;
+  return mul(star ? STAR.a : WOOD.dark, left ? 0.8 : 0.55);
+}
+
 const KINDS = {
   dirt:  { top: topColor, side: sideColor, jag: true },
   plank: { top: plankTop, side: plankSide, jag: false },
   stone: { top: stoneTop, side: stoneSide, jag: false },
+  ash:   { top: ashTop, side: ashSide, jag: true },
+  crystal: { top: crystalTop, side: crystalSide, jag: true },
+  ruin:  { top: ruinTop, side: ruinSide, jag: false },
+  bridge: { top: (N, x, y) => bridgeTop(N, x, y, false), side: (N, x, y, d, l) => bridgeSide(N, x, y, d, l, false), jag: false },
+  starbridge: { top: (N, x, y) => bridgeTop(N, x, y, true), side: (N, x, y, d, l) => bridgeSide(N, x, y, d, l, true), jag: false },
 };
+
+// Natuurlijke grond heeft een rotsklomp eronder; gebouwde tegels hangen dun, bruggen hebben niks
+export const NATURAL = ['dirt', 'ash', 'crystal', 'ruin'];
+export const BRIDGES = ['bridge', 'starbridge'];
 
 // Eén blok op positie (gx, gy). kind: 'dirt', 'plank' of 'stone'.
 export function tileTexture(scene, key, gx, gy, N, kind = 'dirt') {
@@ -234,6 +347,8 @@ export function tileTexture(scene, key, gx, gy, N, kind = 'dirt') {
 export function undersideTexture(scene, key, tiles, dist, N, rnd) {
   const R = 0.5;
   let minX = Infinity, maxX = -Infinity, minY = Infinity, sumX = 0;
+  tiles = tiles.filter((t) => !BRIDGES.includes(t.kind));
+  if (!tiles.length) tiles = [{ gx: 0, gy: 0, kind: 'plank' }];
   const placed = tiles.map((t) => {
     const s = gridToScreen(t.gx, t.gy);
     minX = Math.min(minX, s.x - TW / 2);
@@ -242,7 +357,7 @@ export function undersideTexture(scene, key, tiles, dist, N, rnd) {
     sumX += s.x;
     const d = dist.get(`${t.gx},${t.gy}`) || 1;
     const r = hash2(t.gx + 1000, t.gy + 1000);
-    return { s, depth: (t.kind || 'dirt') === 'dirt' ? 20 + (d - 1) * 60 + r * 35 : 4 + r * 6 };
+    return { s, depth: NATURAL.includes(t.kind || 'dirt') ? 20 + (d - 1) * 60 + r * 35 : 4 + r * 6 };
   });
   const centerX = sumX / tiles.length;
   const halfW = (maxX - minX) / 2;

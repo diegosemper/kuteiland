@@ -23,10 +23,17 @@ const LIST = [
   { id: 'roest', progress: (g) => [g.stats.roest || 0, 6] },
   { id: 'roestgereedschap', done: (g) => g.tools.pickaxe >= 3 || g.tools.axe >= 3 },
   { id: 'toren', done: (g) => g.countObjects('tower') >= 1 },
+  { id: 'brug', done: (g) => (g.stats.crafted.brug || 0) >= 1 },
+  { id: 'asveld', done: (g) => !!g.flags.discovered?.asveld },
   { id: 'anker2', done: (g) => g.objects.some((o) => o.type === 'anchor' && o.tier >= 2) },
   { id: 'groter', progress: (g) => [g.stats.tilesPlaced || 0, 8] },
+  { id: 'kristalklip', done: (g) => !!g.flags.discovered?.kristalklip },
   { id: 'nacht3', progress: (g) => [g.stats.nights || 0, 3] },
+  { id: 'sterrenstof', progress: (g) => [g.stats.sterrenstof || 0, 4] },
   { id: 'skill5', progress: (g) => [Math.max(...['hakken', 'delven', 'bouwen'].map((s) => g.skills.level(s))), 5] },
+  { id: 'kern', done: (g) => !!g.flags.discovered?.kern },
+  { id: 'hoeder', done: (g) => !!g.flags.bossDefeated },
+  { id: 'cyclus', done: () => false },
 ];
 
 // Fase 2 sloeg een nummer op in plaats van een naam

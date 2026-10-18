@@ -27,8 +27,12 @@ export function layoutFromConfig() {
 
 export class Island {
   // tileList: [[gx, gy, kind], ...]   blockedSpots: plekken van objecten (daar geen graspollen)
-  constructor(scene, tileList, blockedSpots = []) {
+  // opts: { id, name, seed }
+  constructor(scene, tileList, blockedSpots = [], opts = {}) {
     this.scene = scene;
+    this.id = opts.id || 'home';
+    this.name = opts.name || '';
+    this.seed = opts.seed || CONFIG.island.seed;
     this.blockedSpots = blockedSpots;
     this.N = getNoise();
     this.tiles = new Map();
@@ -40,7 +44,7 @@ export class Island {
 
     this.center = this.computeCenter();
     this.rebuildUnderside();
-    this.addTufts(mulberry32(CONFIG.island.seed));
+    this.addTufts(mulberry32(this.seed));
     this.addAmbience();
   }
 
@@ -180,9 +184,9 @@ export class Island {
   rebuildUnderside() {
     const scene = this.scene;
     const oldKey = this.undersideKey;
-    this.undersideKey = `underside_${this.undersideVersion++}`;
+    this.undersideKey = `underside_${this.id}_${this.undersideVersion++}`;
     const u = undersideTexture(scene, this.undersideKey, this.sortedTiles(), this.edgeDistances(),
-      this.N, mulberry32(CONFIG.island.seed));
+      this.N, mulberry32(this.seed));
     if (!this.underside) {
       this.underside = scene.add.image(u.x, u.y, this.undersideKey).setOrigin(0).setDepth(-20000);
     }

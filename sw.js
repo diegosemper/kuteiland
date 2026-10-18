@@ -1,7 +1,7 @@
 // Service worker: zorgt dat het spel installeerbaar is en offline blijft werken.
 // Strategie: eerst het netwerk (zodat updates meteen binnenkomen), bij geen verbinding de cache.
 // Verhoog CACHE bij grote wijzigingen om oude bestanden op te ruimen.
-const CACHE = 'kuteiland-v6';
+const CACHE = 'kuteiland-v7';
 
 const CORE = [
   './',
@@ -28,6 +28,7 @@ const CORE = [
   './src/art/icons.js',
   './src/art/index.js',
   './src/art/props.js',
+  './src/art/remote.js',
   './src/art/structures.js',
   './src/art/terrain.js',
   './src/art/util.js',
@@ -35,12 +36,14 @@ const CORE = [
   './src/scenes/BootScene.js',
   './src/scenes/GameScene.js',
   './src/scenes/UIScene.js',
+  './src/systems/Audio.js',
   './src/systems/Building.js',
   './src/systems/Crafting.js',
   './src/systems/Crumble.js',
   './src/systems/DayNight.js',
   './src/systems/Drift.js',
   './src/systems/Inventory.js',
+  './src/systems/Meta.js',
   './src/systems/Night.js',
   './src/systems/Objectives.js',
   './src/systems/Pathfinding.js',
@@ -48,6 +51,7 @@ const CORE = [
   './src/systems/save.js',
   './src/ui/ActionButton.js',
   './src/ui/AnchorPanel.js',
+  './src/ui/BossBar.js',
   './src/ui/BuildBar.js',
   './src/ui/ChestPanel.js',
   './src/ui/ClockHud.js',
@@ -56,14 +60,18 @@ const CORE = [
   './src/ui/HeartsHud.js',
   './src/ui/InventoryPanel.js',
   './src/ui/Joystick.js',
+  './src/ui/MapPanel.js',
   './src/ui/NightOverlay.js',
   './src/ui/ObjectiveHud.js',
   './src/ui/Panel.js',
+  './src/ui/PrestigePanel.js',
   './src/ui/SkillXpBar.js',
   './src/ui/SkillsPanel.js',
+  './src/ui/StoryPanel.js',
   './src/ui/Toast.js',
   './src/ui/style.js',
   './src/world/Anchor.js',
+  './src/world/Boss.js',
   './src/world/Chest.js',
   './src/world/Defenses.js',
   './src/world/Enemy.js',
@@ -72,8 +80,10 @@ const CORE = [
   './src/world/Health.js',
   './src/world/Island.js',
   './src/world/Player.js',
+  './src/world/Remote.js',
   './src/world/Tree.js',
   './src/world/Workbench.js',
+  './src/world/World.js',
   './src/world/objects.js',
 ];
 

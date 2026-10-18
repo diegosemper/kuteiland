@@ -53,8 +53,9 @@ export class Night {
 
   end() {
     this.queue = [];
-    for (const e of this.enemies) e.vanish(this.fx);
-    this.enemies = [];
+    // de Hoeder trekt zich niets aan van de zon
+    for (const e of this.enemies) if (e.kind !== 'boss') e.vanish(this.fx);
+    this.enemies = this.enemies.filter((e) => e.kind === 'boss');
     for (const o of this.game.objects) o.healFull?.();
     // kristallen die nog liggen, komen vanzelf naar je toe
     for (const p of this.pickups) p.gx = this.game.player.gx, p.gy = this.game.player.gy;
@@ -70,12 +71,20 @@ export class Night {
     const { island, player, objects } = this.game;
     const occupied = new Set(objects.filter((o) => o.type !== 'grave').map((o) => key(o.gx, o.gy)));
     const dist = island.edgeDistances();
-    let edge = island.sortedTiles().filter((t) => dist.get(key(t.gx, t.gy)) === 1 && !occupied.has(key(t.gx, t.gy)));
+    if (!this.field.size) this.rebuildField();
+    let edge = island.sortedTiles().filter((t) => dist.get(key(t.gx, t.gy)) === 1 && !occupied.has(key(t.gx, t.gy))
+      && this.field.has(key(t.gx, t.gy)));
     const far = edge.filter((t) => Math.hypot(t.gx - player.gx, t.gy - player.gy) >= 2.5);
     if (far.length) edge = far;
     if (!edge.length) return;
     const t = edge[Math.floor(Math.random() * edge.length)];
     this.enemies.push(new Enemy(this.game, kind, t.gx, t.gy, this.nightNum || this.game.dayNight.night));
+  }
+
+  spawnAt(kind, gx, gy) {
+    const e = new Enemy(this.game, kind, gx, gy, this.nightNum || this.game.dayNight.night);
+    this.enemies.push(e);
+    return e;
   }
 
   // ---------- route ----------
@@ -170,9 +179,12 @@ export class Night {
       if (o.type === 'tower') list.push({ x: o.sprite.x, y: o.lightY, r: CONFIG.defenses.tower.light });
       if (o.type === 'generator') list.push({ x: o.sprite.x, y: o.hitY, r: 0.8 });
       if (o.type === 'grave') list.push({ x: o.sprite.x, y: o.hitY, r: 0.6 });
+      if (o.type === 'anchor' || o.type === 'note') list.push({ x: o.sprite.x, y: o.lightY, r: 0.7 });
+      if (o.type === 'node' && o.node !== 'wrak') list.push({ x: o.sprite.x, y: o.lightY, r: 1.1 });
+      if (o.type === 'kern') list.push({ x: o.sprite.x, y: o.lightY, r: 3.2 });
     }
     for (const p of this.pickups) list.push({ x: p.sprite.x, y: p.sprite.y, r: 0.6 });
-    for (const e of this.enemies) list.push({ x: e.sprite.x, y: e.hitY, r: 0.45 });
+    for (const e of this.enemies) list.push({ x: e.sprite.x, y: e.hitY, r: e.kind === 'boss' ? 1.6 : 0.45 });
     return list;
   }
 
@@ -187,6 +199,11 @@ export class Night {
     e.vanish(this.fx);
     this.enemies = this.enemies.filter((x) => x !== e);
     const g = this.game;
+    bus.emit('sfx', 'enemyDie');
+    if (e.kind === 'boss') {
+      g.onBossDefeated(e);
+      return;
+    }
     g.stats.kills = (g.stats.kills || 0) + 1;
     if (byPlayer) g.skills.gain('vechten', CONFIG.skills.vechten.xpKill);
     const [min, max] = e.def.crystals;
@@ -194,7 +211,7 @@ export class Night {
       const n = Math.max(1, min + Math.floor(Math.random() * (max - min + 1)));
       for (let i = 0; i < n; i++) this.dropCrystal(e.gx + (Math.random() - 0.5) * 0.4, e.gy + (Math.random() - 0.5) * 0.4);
     }
-    if (!this.enemies.length && !this.queue.length && g.dayNight.isNight) bus.emit('message', TEXT.nightCleared);
+    if (!this.enemies.length && !this.queue.length && g.dayNight.isNight && !g.boss?.alive) bus.emit('message', TEXT.nightCleared);
   }
 
   dropCrystal(gx, gy) {

@@ -73,6 +73,13 @@ export const TEXT = {
     anker: 'Bouw een anker tegen het afbrokkelen',
     herstel: 'Herstel een barst voor hij valt',
     anker2: 'Versterk een anker',
+    brug: 'Maak een brug en bouw richting een ander eiland',
+    asveld: 'Bereik het Asveld',
+    kristalklip: 'Bereik de Kristalklip',
+    sterrenstof: 'Delf sterrenstof op de Kristalklip',
+    kern: 'Bouw een sterrenbrug naar de Kern',
+    hoeder: 'Wek de Kern en versla wat eruit komt',
+    cyclus: 'Begin een nieuwe cyclus bij de Kern',
     nacht3: 'Overleef drie nachten',
     hakken3: 'Haal level 3 in Hakken',
     roest: 'Vang roest uit de leegte',
@@ -98,6 +105,13 @@ export const TEXT = {
     anker: 'Vastgeschroefd aan het niets. Het werkt. Vraag niet hoe.',
     herstel: 'Gelijmd met puin en koppigheid.',
     anker2: 'Dieper verankerd. Het eiland blijft. Jij ook.',
+    brug: 'Een brug. Over het niets heen. Kijk niet naar beneden.',
+    asveld: 'Een nieuw stuk wereld. Het ziet er net zo vrolijk uit als het oude.',
+    kristalklip: 'Hier groeit de leegte als kristal. Mooi. Verontrustend.',
+    sterrenstof: 'Sterrenstof. Het enige hier dat nog glanst zonder te dreigen.',
+    kern: 'Je staat op de Kern. Het hart klopt onder je voeten.',
+    hoeder: 'Het is stil. Voor het eerst sinds lang echt stil.',
+    cyclus: 'Opnieuw. Maar nu weet je het.',
     nacht3: 'Drie nachten. De leegte begint je te kennen.',
     hakken3: 'Je bijl en jij beginnen elkaar te begrijpen.',
     roest: 'Roest. Ooit was dit iets belangrijks.',
@@ -155,6 +169,75 @@ export const TEXT = {
   anchorUpgrade: 'VERSTERK',
   anchorMax: 'Sterker wordt hij niet. Bouw er een bij.',
   anchorUpgraded: 'Het anker zakt dieper. De grond zucht.',
+
+  // verhaal: vijf fragmenten
+  notes: {
+    1: {
+      title: 'Ingekrast in een steen',
+      text: 'Dag één. De grond is weg. Iedereen is weg.\n\nIk heb een boom. Ik praat tegen de boom. '
+        + 'De boom zegt niks terug, wat eerlijk gezegd een verbetering is ten opzichte van mijn collega\'s.\n\n'
+        + 'Er hangt een licht in de verte. Het knippert alsof het iets wil zeggen. Ik denk dat het boos is.',
+    },
+    2: {
+      title: 'Een verbrande werkorder',
+      text: 'PROJECT KERN — BOORFASE 7\nDoel: 40% meer energie voor de bovensteden.\n\n'
+        + 'Opmerking van de ploegbaas: de grond trilt bij elke boorslag. De geologen zeggen dat dat normaal is. '
+        + 'De geologen wonen niet hier.\n\nOndertekend: [de handtekening is weggebrand].',
+    },
+    3: {
+      title: 'Gekrast in kristal',
+      text: 'De kristallen zijn geen steen. Het is gestolde leegte, uit het hart gelekt toen we het openboorden.\n\n'
+        + 'Wie ze te lang aanraakt, verandert. Eerst de ogen. Dan de rest.\n\n'
+        + 'Ze kruipen \'s nachts omhoog. Ze zoeken het licht. Ik denk dat ze naar huis willen. Ik denk dat ze ons waren.',
+    },
+    4: {
+      title: 'Plaquette bij de ingang',
+      text: 'HIER RUST DE KERN\nHet hart dat de wereld bij elkaar hield.\n\n'
+        + 'Wij hebben het wakker gemaakt. Het was niet blij.\n\n'
+        + 'Wie dit leest: raak het niet aan. Of doe het wel. Erger dan nu kan het toch niet.',
+    },
+    5: {
+      title: 'Wat de Kern je laat zien',
+      text: 'De Hoeder valt. Het hart wordt even stil, en dan zie je het.\n\n'
+        + 'De Kern was een anker. Het grootste. Alle grond hing eraan vast, zoals jouw eiland aan je roestige staken. '
+        + 'Iemand besloot dat een anker ook een batterij kon zijn. Iemand tekende de order voor boorfase 7.\n\n'
+        + 'Je kijkt naar de weggebrande handtekening en je weet ineens van wie hij is.\n\n'
+        + 'Hij is van jou.\n\n'
+        + 'De wereld brak omdat jij meer licht wilde. De leegte heeft je niet opgegeten. Ze heeft je teruggestuurd, om het te zien.',
+    },
+  },
+  nodeNeedsTool: {
+    wrak: 'dit lukt alleen met een houweel.',
+    kristalader: 'hier heb je minstens een stenen houweel voor nodig.',
+    sterrenader: 'te hard. Alleen een roestig houweel krijgt hier iets los.',
+  },
+  bossStart: 'Het hart scheurt open. Iets stapt eruit. Het is niet blij je te zien.',
+  bossPhase2: 'De Hoeder brult. Het licht in zijn borst wordt fel. Nu wordt het menens.',
+  bossName: 'DE HOEDER VAN DE KERN',
+  storyClose: 'VERDER',
+
+  // kaart
+  mapButton: 'KAART',
+  mapTitle: 'KAART',
+  mapSubtitle: 'Wat er nog over is van de wereld.',
+  mapUnknown: '???',
+  mapYou: 'jij',
+  mapHint: 'Bruggen maak je bij de werkbank. Het laatste stuk naar de Kern vraagt een sterrenbrug.',
+
+  // prestige
+  prestigeTitle: 'NIEUWE CYCLUS',
+  prestigeSubtitle: 'Begin opnieuw op een kaal eilandje. Neem één ding mee dat blijft.',
+  prestigeCycle: 'Cyclus',
+  prestigeGo: 'BEGIN OPNIEUW',
+  prestigePick: 'Kies wat je meeneemt:',
+  prestigeHave: 'Al verzameld:',
+  cycleLabel: 'C',
+
+  // geluid
+  soundMusic: 'MUZIEK',
+  soundSfx: 'GELUID',
+  on: 'AAN',
+  off: 'UIT',
 
   // doodgaan
   deathTitle: 'Je bent gevallen.',

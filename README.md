@@ -2,7 +2,7 @@
 
 Mobiel isometrisch overlevingsspel op een zwevend eiland boven de leegte. Zie [PLAN.md](PLAN.md) voor het volledige plan.
 
-**Status:** fase 1 t/m 5 klaar (basis, bouwen en craften, skills en roest, dag/nacht en vechten, afbrokkelen).
+**Status:** alle 7 fases gebouwd: basis, bouwen en craften, skills en roest, dag/nacht en vechten, afbrokkelen, verre eilanden met de eindbaas, prestige met geluid en muziek.
 
 ## Lokaal spelen
 
@@ -16,7 +16,9 @@ npm start
 - Op je telefoon (zelfde wifi): open het adres dat `npm start` toont, bijvoorbeeld `http://192.168.1.23:8080`.
   Vraagt Windows om netwerktoegang voor Node? Kies "Toestaan" voor privénetwerken.
 
-Besturing op de computer: WASD of pijltjes om te lopen, spatie of E voor actie, I voor de rugzak, B voor bouwen.
+Besturing op de computer: WASD of pijltjes om te lopen, spatie of E voor actie, I voor de rugzak, B voor bouwen, Esc sluit panelen.
+
+Geluid en muziek worden in de browser opgewekt en starten na de eerste aanraking. Uitzetten kan in de rugzak.
 
 Testen met `?debug` achter de URL maakt het spel bereikbaar als `window.kuteiland` in de console.
 
@@ -46,10 +48,18 @@ src/
   art/                  alle graphics, in code getekend
   iso.js                isometrische omrekening
   scenes/               Boot, Background (leegte), Game (wereld), UI (knoppen)
-  world/                Island, Player, Tree, Chest, Workbench, Generator, Enemy, Defenses, Grave, Anchor
-  systems/              Inventory, Crafting, Building, Skills, Drift, DayNight, Night, Crumble, Objectives, Pathfinding, save
-  ui/                   Joystick, knoppen, panelen (rugzak, kist, werkbank), bouwbalk, doelen
+  world/                World (alle eilanden), Island, Player, objecten, Enemy, Boss
+  systems/              Inventory, Crafting, Building, Skills, Drift, DayNight, Night, Crumble,
+                        Objectives, Pathfinding, Audio, Meta (prestige), save
+  ui/                   Joystick, knoppen, panelen (rugzak, kist, werkbank, skills, anker, kaart,
+                        verhaal, prestige), bouwbalk, doelen, hartjes, klok, nacht
 tools/                  lokale server en icoongenerator
 ```
 
 Nieuwe bestanden in `src/`? Zet ze ook in de `CORE`-lijst in `sw.js` en verhoog daar `CACHE`.
+
+## Opslag
+
+- `kuteiland.save.v1`: het lopende spel (wordt gewist bij een nieuwe cyclus of WIS VOORTGANG)
+- `kuteiland.meta.v1`: cyclus en gekozen prestige-bonussen (blijft altijd)
+- `kuteiland.audio`: muziek en geluid aan/uit

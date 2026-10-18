@@ -4,7 +4,11 @@ import { TEXT, pick } from '../texts.js';
 import { bus } from '../bus.js';
 import { controls } from '../controls.js';
 import { gridToScreen } from '../iso.js';
-import { Island, layoutFromConfig } from '../world/Island.js';
+import { layoutFromConfig } from '../world/Island.js';
+import { World, remoteLayout } from '../world/World.js';
+import { Boss } from '../world/Boss.js';
+import { getMeta, bonus, startNextCycle } from '../systems/Meta.js';
+import { getAudio } from '../systems/Audio.js';
 import { Player } from '../world/Player.js';
 import { createObject } from '../world/objects.js';
 import { Inventory } from '../systems/Inventory.js';
@@ -37,16 +41,37 @@ export class GameScene extends Phaser.Scene {
     this.inventory = new Inventory(save?.inventory);
     this.chestStore = new Inventory(save?.chest);
 
-    // Wereld: opgeslagen, of de startopstelling. Oude saves (fase 1) hebben alleen boom/kist-gegevens.
-    const start = layoutFromConfig();
-    const world = save?.world || {
-      tiles: start.tiles,
-      objects: start.objects.map((o) => (o.type === 'tree' ? { ...o, ...save?.tree } : o)),
-    };
+    this.meta = getMeta();
+    this.audio = getAudio();
+    // nieuwe cyclus: je begint niet helemaal met niks
+    if (!save && this.meta.cycle > 1) {
+      this.inventory.add('werkbank', 1);
+      this.inventory.add('wrakhout', 5);
+    }
 
-    this.island = new Island(this, world.tiles, world.objects);
+    // Wereld: opgeslagen, of de startopstelling. Oude saves hebben alleen het starteiland (of minder).
+    const start = layoutFromConfig();
+    const savedIslands = save?.world?.islands || (save?.world?.tiles ? { home: save.world.tiles } : null);
+    const objects = save?.world?.objects
+      || start.objects.map((o) => (o.type === 'tree' ? { ...o, ...save?.tree } : o));
+    // verre eilanden die nog niet in de save zitten: hun objecten erbij
+    for (const def of CONFIG.islands) {
+      if (!savedIslands?.[def.id]) objects.push(...remoteLayout(def).objects);
+    }
+    if (!this.flags.note1Placed) {
+      this.flags.note1Placed = true;
+      objects.push({ type: 'note', note: 1, gx: 1, gy: 1 });
+    }
+
+    this.island = new World(this, savedIslands, objects);
     this.objects = [];
-    for (const data of world.objects) this.addObject(data);
+    for (const data of objects) {
+      // een object op een tegel die niet (meer) bestaat, laten we weg
+      if (this.island.get(data.gx, data.gy)) this.addObject(data);
+    }
+    this.flags.discovered = { ...this.flags.discovered };
+    this.flags.notes = { ...this.flags.notes };
+    this.boss = null;
 
     this.spawnPoint = start.spawn;
     let pos = start.spawn;
@@ -92,8 +117,9 @@ export class GameScene extends Phaser.Scene {
       'placed': (info) => this.onPlaced(info),
       'tap-drift': (it) => this.onTapDrift(it),
       'dusk': (n) => bus.emit('message', n === 1 ? TEXT.duskFirst : pick(TEXT.dusk), true),
-      'night-start': (n) => this.onNightStart(n),
-      'day-start': (d) => this.onDayStart(d),
+      'night-start': (n) => { bus.emit('sfx', 'night'); this.onNightStart(n); },
+      'prestige': (id) => this.startNewCycle(id),
+      'day-start': (d) => { bus.emit('sfx', 'day'); this.onDayStart(d); },
       'anchor-closed': () => this.showAnchorRing(null),
       'anchor-upgrade': (a) => this.upgradeAnchor(a),
     };
@@ -284,6 +310,7 @@ export class GameScene extends Phaser.Scene {
 
     this.dayNight.update(dt);
     this.night.update(time, dt);
+    this.audio.update(this.dayNight.darkness);
     this.crumble.update(time, dt);
     if (!this.dayNight.isNight && !this.dead && this.hp < this.maxHp) {
       this.hp = Math.min(this.maxHp, this.hp + CONFIG.combat.regenPerSec * dt / 1000);
@@ -375,14 +402,33 @@ export class GameScene extends Phaser.Scene {
 
     if (time >= this.nextObjectiveCheck) {
       this.nextObjectiveCheck = time + 300;
+      this.checkDiscovery();
       this.objectives.check();
     }
+  }
+
+  // Voor het eerst op een ver eiland?
+  checkDiscovery() {
+    const isl = this.island.islandAt(Math.round(this.player.gx), Math.round(this.player.gy));
+    if (!isl || isl.id === 'home' || this.flags.discovered[isl.id]) return;
+    this.flags.discovered[isl.id] = true;
+    const def = CONFIG.islands.find((d) => d.id === isl.id);
+    bus.emit('message', def.arrive, true);
+    bus.emit('sfx', 'note');
+    this.saveNow();
   }
 
   doAction() {
     const target = this.target;
     if (target) this.player.faceTowards(target.sprite.x);
-    if (!target || !['chest', 'workbench', 'grave'].includes(target.type)) this.player.swing();
+    if (!target || !['chest', 'workbench', 'grave', 'note', 'kern', 'anchor'].includes(target.type)) this.player.swing();
+    if (target) {
+      const sfx = { tree: 'chop', generator: 'mine', node: 'mine', crack: 'place' }[target.type];
+      if (sfx) bus.emit('sfx', sfx);
+      else if (target.type === 'enemy') bus.emit('sfx', 'swing');
+    } else {
+      bus.emit('sfx', 'swing');
+    }
     if (!target) return;
 
     const result = target.act(this);
@@ -400,6 +446,8 @@ export class GameScene extends Phaser.Scene {
       });
       if (result.item === 'wrakhout') this.onWood(result.amount);
       if (result.item === 'puin') this.stats.puin += result.amount;
+      if (result.item === 'sterrenstof') this.stats.sterrenstof = (this.stats.sterrenstof || 0) + result.amount;
+      if (result.item === 'roest') this.stats.roest = (this.stats.roest || 0) + result.amount;
     }
     if (result.openChest) {
       this.chest.setOpen(true);
@@ -409,6 +457,8 @@ export class GameScene extends Phaser.Scene {
     if (result.attack) this.attackEnemy(result.attack);
     if (result.reclaim) this.reclaimGrave(target);
     if (result.repair) this.crumble.repair(result.repair);
+    if (result.readNote) this.readNote(result.readNote);
+    if (result.kern) this.onKern();
     if (result.openAnchor) {
       this.showAnchorRing(result.openAnchor);
       bus.emit('open-anchor', result.openAnchor);
@@ -420,13 +470,14 @@ export class GameScene extends Phaser.Scene {
 
   get maxHp() {
     const V = CONFIG.skills.vechten;
-    return CONFIG.combat.baseHp + 2 * Math.floor(this.skills.level('vechten') / V.heartEvery);
+    return CONFIG.combat.baseHp + 2 * Math.floor(this.skills.level('vechten') / V.heartEvery) + bonus('hart');
   }
 
   attackEnemy(e) {
     if (!e.alive) return;
     const base = CONFIG.combat.weaponDamage[this.tools.weapon || 0];
-    const dmg = base * (1 + this.skills.level('vechten') * CONFIG.skills.vechten.damage);
+    const dmg = base * (1 + this.skills.level('vechten') * CONFIG.skills.vechten.damage) * (1 + bonus('schade'));
+    bus.emit('sfx', 'enemyHit');
     // zichtbare slag
     const flip = this.player.sprite.flipX;
     const slash = this.add.image(this.player.sprite.x + (flip ? -36 : 36), this.player.sprite.y - 50, 'slash')
@@ -446,6 +497,7 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(90, () => p.clearTint());
     this.cameras.main.shake(120, 0.004);
     bus.emit('hurt', dmg);
+    bus.emit('sfx', 'hurt');
     bus.emit('hp', Math.max(0, this.hp), this.maxHp);
     if (this.hp <= 0) this.die();
   }
@@ -473,6 +525,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.stats.deaths = (this.stats.deaths || 0) + 1;
     bus.emit('player-died', { lost: grave ? grave.summary() : '', lostOld: !!old });
+    bus.emit('sfx', 'death');
     this.saveNow();
 
     this.time.delayedCall(CONFIG.combat.respawnMs, () => this.respawn());
@@ -507,6 +560,62 @@ export class GameScene extends Phaser.Scene {
     bus.emit('message', TEXT.graveBack + ' ' + grave.summary() + '.', true);
     this.removeObject(grave);
     this.saveNow();
+  }
+
+  // ---------- verhaal, de Kern en de Hoeder ----------
+
+  readNote(n) {
+    const first = !this.flags.notes[n];
+    this.flags.notes[n] = true;
+    bus.emit('sfx', 'note');
+    bus.emit('open-story', { title: TEXT.notes[n].title, text: TEXT.notes[n].text });
+    if (first) this.objectives.check();
+  }
+
+  onKern() {
+    if (this.boss?.alive) return;
+    if (this.flags.bossDefeated) {
+      bus.emit('open-prestige');
+      return;
+    }
+    this.startBoss();
+  }
+
+  startBoss() {
+    const kern = this.objects.find((o) => o.type === 'kern');
+    if (!kern) return;
+    // de Hoeder klimt naast het hart omhoog
+    const spot = [[0, 2], [2, 0], [0, -2], [-2, 0], [1, 1]].map(([dx, dy]) => ({ gx: kern.gx + dx, gy: kern.gy + dy }))
+      .find((p) => this.island.get(p.gx, p.gy)) || { gx: kern.gx, gy: kern.gy + 1 };
+    this.boss = new Boss(this, spot.gx, spot.gy);
+    this.night.enemies.push(this.boss);
+    bus.emit('sfx', 'roar');
+    bus.emit('message', TEXT.bossStart, true);
+    bus.emit('boss-start', { name: CONFIG.boss.name });
+    bus.emit('boss-hp', this.boss.hp, this.boss.maxHp);
+  }
+
+  onBossDefeated(boss) {
+    this.flags.bossDefeated = true;
+    this.stats.bossKills = (this.stats.bossKills || 0) + 1;
+    bus.emit('boss-end');
+    this.cameras.main.shake(1200, 0.01);
+    this.cameras.main.flash(900, 220, 200, 255);
+    for (const [k, n] of Object.entries(CONFIG.boss.reward)) this.inventory.add(k, n);
+    this.skills.gain('vechten', 200);
+    this.saveNow();
+    this.time.delayedCall(1800, () => {
+      bus.emit('open-story', { title: TEXT.notes[5].title, text: TEXT.notes[5].text, after: 'prestige' });
+      this.flags.notes[5] = true;
+      this.objectives.check();
+    });
+  }
+
+  startNewCycle(bonusId) {
+    this.resetting = true;
+    startNextCycle(bonusId);
+    clearSave();
+    window.location.reload();
   }
 
   onNightStart(n) {
@@ -546,6 +655,7 @@ export class GameScene extends Phaser.Scene {
   onCraft(id) {
     const r = craft(this, id);
     if (!r) return;
+    bus.emit('sfx', 'craft');
     const B = CONFIG.skills.bouwen;
     this.skills.gain('bouwen', B.xpCraft);
     // skill Bouwen: kans op een gratis extra blok
@@ -560,6 +670,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   onPlaced(info) {
+    bus.emit('sfx', 'place');
     const B = CONFIG.skills.bouwen;
     this.skills.gain('bouwen', CONFIG.items[info.item].place === 'tile' ? B.xpTile : B.xpObject);
     this.objectives.check();
@@ -598,7 +709,7 @@ export class GameScene extends Phaser.Scene {
       stats: this.stats,
       flags: this.flags,
       world: {
-        tiles: this.island.serialize(),
+        islands: this.island.serialize(),
         objects: this.objects.map((o) => o.serialize()),
       },
     });

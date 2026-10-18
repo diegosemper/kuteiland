@@ -29,8 +29,9 @@ export function createPanel(scene, { title, subtitle, height, onBackdrop, anchor
   c.add(scene.add.text(px + pad, py + pad, title, textStyle(S, 13, COLORS.dim, { fontStyle: '700', letterSpacing: 2 * S })));
   let y = py + pad + 22 * S;
   if (subtitle) {
-    c.add(scene.add.text(px + pad, y, subtitle, storyStyle(S, 14, COLORS.text, { wordWrap: { width: pw - pad * 2 } })));
-    y += 30 * S;
+    const st = scene.add.text(px + pad, y, subtitle, storyStyle(S, 14, COLORS.text, { wordWrap: { width: pw - pad * 2 } }));
+    c.add(st);
+    y += st.height + 10 * S;
   }
   const line = scene.add.rectangle(px + pad, y, pw - pad * 2, Math.max(1, S), COLORS.panelEdge, 0.18).setOrigin(0, 0.5);
   c.add(line);

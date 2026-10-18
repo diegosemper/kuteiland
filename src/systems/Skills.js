@@ -1,6 +1,7 @@
 // Skills: XP verzamelen door te doen, levels met kleine, zichtbare bonussen.
 import { CONFIG } from '../config.js';
 import { bus } from '../bus.js';
+import { bonus } from './Meta.js';
 
 export const SKILL_IDS = Object.keys(CONFIG.skills);
 
@@ -43,7 +44,7 @@ export class Skills {
 
   // kracht per slag (1 = normaal)
   power(id) {
-    return 1 + this.level(id) * (CONFIG.skills[id].power || 0);
+    return (1 + this.level(id) * (CONFIG.skills[id].power || 0)) * (1 + bonus(id));
   }
 
   // kans op dubbele opbrengst

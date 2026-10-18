@@ -61,7 +61,7 @@ export class BuildMode {
     if (!this.active || !this.item) return [];
     const def = CONFIG.items[this.item];
     const { island, player, objects } = this.game;
-    if (def.place === 'tile') return island.freeEdgeSpots();
+    if (def.place === 'tile') return island.freeEdgeSpots().filter((s) => island.canAddTile(s.gx, s.gy, def.tile));
     // object: op een vrije tegel, niet waar de speler staat
     return island.sortedTiles().filter((t) =>
       !objects.some((o) => o.gx === t.gx && o.gy === t.gy)
@@ -111,7 +111,7 @@ export class BuildMode {
     const key = this.item;
     const def = CONFIG.items[key];
     const valid = def.place === 'tile'
-      ? game.island.canAddTile(gx, gy)
+      ? game.island.canAddTile(gx, gy, def.tile)
       : game.island.has(gx, gy) && !game.objects.some((o) => o.gx === gx && o.gy === gy);
     if (!valid || !game.inventory.remove(key, 1)) return;
 

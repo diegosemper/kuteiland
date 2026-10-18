@@ -236,7 +236,7 @@ function weaponIcon(ctx, tier) {
     return;
   }
   // zwaarden
-  const blade = tier === 3 ? ['#b06a3e', '#6a3418'] : ['#c9a6ff', '#5a37a8'];
+  const blade = tier === 3 ? ['#b06a3e', '#6a3418'] : tier === 5 ? ['#fff8e0', '#b8b090'] : ['#c9a6ff', '#5a37a8'];
   poly(ctx, [{ x: 48, y: 8 }, { x: 54, y: 10 }, { x: 26, y: 40 }, { x: 22, y: 36 }]);
   const g = ctx.createLinearGradient(22, 36, 54, 10);
   g.addColorStop(0, blade[1]); g.addColorStop(1, blade[0]);
@@ -246,9 +246,10 @@ function weaponIcon(ctx, tier) {
   ctx.beginPath(); ctx.moveTo(16, 34); ctx.lineTo(30, 46); ctx.stroke();
   ctx.strokeStyle = '#3a2618'; ctx.lineWidth = 5;
   ctx.beginPath(); ctx.moveTo(22, 42); ctx.lineTo(12, 54); ctx.stroke();
-  if (tier === 4) {
+  if (tier >= 4) {
     const gl = ctx.createRadialGradient(38, 24, 1, 38, 24, 26);
-    gl.addColorStop(0, 'rgba(180,140,255,0.45)'); gl.addColorStop(1, 'rgba(180,140,255,0)');
+    const rgb = tier === 5 ? '255,245,200' : '180,140,255';
+    gl.addColorStop(0, `rgba(${rgb},0.45)`); gl.addColorStop(1, `rgba(${rgb},0)`);
     ctx.fillStyle = gl; ctx.fillRect(0, 0, S, S);
   }
 }
@@ -323,9 +324,26 @@ function anchorIcon(ctx) {
   ctx.fillRect(16, 52, 32, 6);
 }
 
+function bridgeIcon(ctx, star) {
+  ctx.strokeStyle = star ? '#b48cff' : '#8a7a52';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(6, 24); ctx.quadraticCurveTo(32, 40, 58, 24); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(6, 40); ctx.quadraticCurveTo(32, 56, 58, 40); ctx.stroke();
+  for (let i = 0; i < 6; i++) {
+    const x = 10 + i * 9;
+    const y = 30 + Math.sin((i / 5) * Math.PI) * 8;
+    ctx.fillStyle = star ? '#e8e2ff' : ['#7a5a3c', '#5a4029'][i % 2];
+    ctx.fillRect(x - 3, y, 7, 14);
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
+    ctx.strokeRect(x - 3, y, 7, 14);
+  }
+}
+
 export function generateIcons(scene) {
+  canvasTexture(scene, 'icon_brug', S, S, (ctx) => bridgeIcon(ctx, false));
+  canvasTexture(scene, 'icon_sterrenbrug', S, S, (ctx) => bridgeIcon(ctx, true));
   canvasTexture(scene, 'icon_anker', S, S, anchorIcon);
-  for (const tier of [1, 2, 3, 4]) canvasTexture(scene, `icon_weapon${tier}`, S, S, (ctx) => weaponIcon(ctx, tier));
+  for (const tier of [1, 2, 3, 4, 5]) canvasTexture(scene, `icon_weapon${tier}`, S, S, (ctx) => weaponIcon(ctx, tier));
   canvasTexture(scene, 'icon_muur', S, S, wallIcon);
   canvasTexture(scene, 'icon_lantaarn', S, S, (ctx) => lampIcon(ctx, false));
   canvasTexture(scene, 'icon_kristallamp', S, S, (ctx) => lampIcon(ctx, true));

@@ -1,5 +1,6 @@
 // Dag of nacht, met een balkje dat aangeeft hoe lang het nog duurt.
 import { TEXT } from '../texts.js';
+import { getMeta } from '../systems/Meta.js';
 import { COLORS, textStyle, shade } from './style.js';
 
 export class ClockHud {
@@ -20,7 +21,8 @@ export class ClockHud {
 
   update(dn) {
     const night = dn.isNight;
-    this.label.setText(`${night ? TEXT.nightLabelCaps : TEXT.dayLabel} ${dn.day}`);
+    const cycle = getMeta().cycle;
+    this.label.setText(`${night ? TEXT.nightLabelCaps : TEXT.dayLabel} ${dn.day}${cycle > 1 ? ` · ${TEXT.cycleLabel}${cycle}` : ''}`);
     this.label.setColor(night ? '#d9c2ff' : COLORS.text);
     // balkje loopt leeg tot de volgende fase
     this.fill.width = Math.max(1, this.w * (1 - dn.phaseProgress));
