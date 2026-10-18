@@ -155,6 +155,7 @@ export class UIScene extends Phaser.Scene {
     document.addEventListener('visibilitychange', onHide);
 
     this.scale.on('resize', this.layout, this);
+    if (window.kuteilandSplash) this.scene.pause();
     this.events.once('shutdown', () => {
       for (const [ev, fn] of Object.entries(handlers)) bus.off(ev, fn);
       this.inventory.off('change', onChange);

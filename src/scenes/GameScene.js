@@ -169,6 +169,9 @@ export class GameScene extends Phaser.Scene {
     this.scene.launch('Background');
     this.scene.launch('UI');
     this.time.delayedCall(700, () => this.greet(!!save));
+    // opstartscherm: wachten tot de speler op 'spelen' tikt
+    window.dispatchEvent(new Event('kuteiland-ready'));
+    if (window.kuteilandSplash) this.scene.pause();
   }
 
   layoutCamera() {

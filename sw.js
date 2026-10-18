@@ -1,7 +1,7 @@
 // Service worker: zorgt dat het spel installeerbaar is en offline blijft werken.
 // Strategie: eerst het netwerk (zodat updates meteen binnenkomen), bij geen verbinding de cache.
 // Verhoog CACHE bij grote wijzigingen om oude bestanden op te ruimen.
-const CACHE = 'kuteiland-v19';
+const CACHE = 'kuteiland-v20';
 
 const CORE = [
   './',
@@ -10,6 +10,8 @@ const CORE = [
   './lib/phaser.min.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/logo.webp',
+  './icons/apple-touch-icon.png',
   './src/bus.js',
   './src/config.js',
   './src/controls.js',

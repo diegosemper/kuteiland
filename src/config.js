@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 19,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 20,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties

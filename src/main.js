@@ -38,6 +38,12 @@ const game = new Phaser.Game({
   scene: [BootScene, BackgroundScene, GameScene, UIScene, HakkenScene, DelvenScene, GrijphaakScene, AfdalingScene, KokenScene, SterrenvangstScene, ArenaScene, ProefScene],
 });
 
+// Opstartscherm: het spel staat stil tot je op 'tik om te spelen' drukt
+window.addEventListener('kuteiland-start', () => {
+  game.scene.resume('Game');
+  game.scene.resume('UI');
+});
+
 // Voor testen: ?debug in de URL maakt het spel bereikbaar via window.kuteiland
 if (new URLSearchParams(location.search).has('debug')) window.kuteiland = game;
 
