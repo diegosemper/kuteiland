@@ -112,7 +112,30 @@ function star(scene) {
   crisp(scene, 'mg_star');
 }
 
+function eye(scene) {
+  const P = [
+    '....######....',
+    '..##wwwwww##..',
+    '.#wwwppppwww#.',
+    '#wwwpPPPPpwww#',
+    '#wwwpPkkPpwww#',
+    '.#wwwppppwww#.',
+    '..##wwwwww##..',
+    '....######....',
+  ];
+  const col = { '#': '#2a1440', w: '#d9c2ff', p: '#9b6bff', P: '#6a3fc0', k: '#08040c' };
+  canvasTexture(scene, 'voice_eye', 56, 32, (ctx) => {
+    P.forEach((row, y) => [...row].forEach((ch, x) => {
+      if (ch === '.') return;
+      ctx.fillStyle = col[ch];
+      ctx.fillRect(x * 4, y * 4, 4, 4);
+    }));
+  });
+  crisp(scene, 'voice_eye');
+}
+
 export function generateMinigameArt(scene) {
+  eye(scene);
   for (const n of FLAT) flat(scene, n);
   crack(scene);
   hook(scene);

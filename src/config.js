@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 17,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 18,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
@@ -299,6 +299,12 @@ export const CONFIG = {
     tower:  { hp: 30, radius: 0.36, range: 3.6, damage: 2, cooldownMs: 1500, light: 1.2 },
     spikes: { charges: 12, range: 0.5, damage: 3, everyMs: 700 },    // spijkerval: prikt wat erop staat
     mine:   { trigger: 0.45, blast: 1.6, damage: 30 },               // zwavelmijn: ontploft één keer
+  },
+
+  // ---------- De Stem ----------
+  voice: {
+    globalCooldownMs: 20000,  // minstens zo lang stil tussen twee opmerkingen
+    idleMs: 75000,            // zo lang niks doen = opmerking
   },
 
   // ---------- de nacht als spel ----------

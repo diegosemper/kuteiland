@@ -294,6 +294,7 @@ export class AfdalingScene extends MinigameScene {
     const m = Math.floor(this.meters);
     return {
       score: m,
+      lost: !!this.lost,
       items,
       xp: (m / 100) * this.cfg.xpPer100m,
       line: `${m} m · ${this.lost ? TEXT.mgAfdalingHitLine : TEXT.mgAfdalingSafeLine}`,

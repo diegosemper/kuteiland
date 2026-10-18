@@ -468,6 +468,7 @@ export const TEXT = {
   ],
   repairNeeds: 'Herstellen kost',
   repaired: 'Hersteld',
+  voiceToggle: 'DE STEM',
   trapTouch: 'Een val. Niet op gaan staan. Jij in elk geval niet.',
   recipeNeeds: { zegels: '4 zegels nodig', hoeder: 'Versla de Hoeder' },
   mgKokenHow: 'Vinger op het scherm = vuur aan.\nLoslaten = afkoelen.\n\n'

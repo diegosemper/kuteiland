@@ -183,6 +183,7 @@ export class Siege {
       g.time.delayedCall(i * 250, () => bus.emit('float', { wx: p.x, wy: p.y - 120 - i * 26, text: `+${n} ${CONFIG.items[k].name.toLowerCase()}`, color: '#ffd98a' }));
     });
     g.stats.nightsWon = (g.stats.nightsWon || 0) + 1;
+    bus.emit('siege-won', this.n);
     g.skills.gain('vechten', 20 + this.n * 5);
     bus.emit('sfx', 'levelUp');
     bus.emit('message', `${TEXT.siegeWon} ${this.n}. ${pick(TEXT.siegeWonLines)}`, true);

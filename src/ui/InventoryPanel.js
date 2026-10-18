@@ -100,14 +100,21 @@ export class InventoryPanel {
     // geluid aan/uit
     const audio = getAudio();
     const onOff = (name, on) => `${name}: ${on ? TEXT.on : TEXT.off}`;
-    c.add(makeButton(sc, px + pad + bw / 2, by - 54 * S, bw, 40 * S, onOff(TEXT.soundMusic, audio.settings.music), (lbl) => {
+    const b3 = (pw - pad * 4) / 3;
+    c.add(makeButton(sc, px + pad + b3 / 2, by - 54 * S, b3, 40 * S, onOff(TEXT.soundMusic, audio.settings.music), (lbl) => {
       audio.setMusic(!audio.settings.music);
       lbl.setText(onOff(TEXT.soundMusic, audio.settings.music));
-    }, 11));
-    c.add(makeButton(sc, px + pad * 2 + bw * 1.5, by - 54 * S, bw, 40 * S, onOff(TEXT.soundSfx, audio.settings.sfx), (lbl) => {
+    }, 10));
+    c.add(makeButton(sc, px + pad * 2 + b3 * 1.5, by - 54 * S, b3, 40 * S, onOff(TEXT.soundSfx, audio.settings.sfx), (lbl) => {
       audio.setSfx(!audio.settings.sfx);
       lbl.setText(onOff(TEXT.soundSfx, audio.settings.sfx));
-    }, 11));
+    }, 10));
+    const voiceOn = () => audio.settings.voice !== false;
+    c.add(makeButton(sc, px + pad * 3 + b3 * 2.5, by - 54 * S, b3, 40 * S, onOff(TEXT.voiceToggle, voiceOn()), (lbl) => {
+      audio.settings.voice = !voiceOn();
+      audio.save();
+      lbl.setText(onOff(TEXT.voiceToggle, voiceOn()));
+    }, 10));
     c.add(sc.add.text(px + pw - pad, py + ph - 6 * S, `versie ${CONFIG.version}`, textStyle(S, 10, COLORS.dim)).setOrigin(1, 1));
     let confirmReset = false;
     c.add(makeButton(sc, px + pad + bw / 2, by, bw, 44 * S, TEXT.reset, (lbl) => {

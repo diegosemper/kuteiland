@@ -163,6 +163,11 @@ export class Audio {
         this.tone(70, 0.18, { vol: 0.55, to: 45 });
         this.hiss(0.15, { freq: 300, type: 'lowpass', vol: 0.35 });
         break;
+      case 'voice':
+        this.tone(62, 0.9, { vol: 0.22, to: 48, attack: 0.08 });
+        this.tone(93, 0.7, { type: 'triangle', vol: 0.05, to: 80, attack: 0.1, delay: 0.05 });
+        this.hiss(0.6, { freq: 300, type: 'lowpass', vol: 0.12 });
+        break;
       case 'pickup':
         this.tone(880 * r, 0.12, { vol: 0.12 });
         this.tone(1320 * r, 0.18, { vol: 0.1, delay: 0.06 });

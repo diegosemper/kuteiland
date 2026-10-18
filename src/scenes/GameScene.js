@@ -27,6 +27,7 @@ import { Night } from '../systems/Night.js';
 import { Crumble } from '../systems/Crumble.js';
 import { toolPerks } from '../systems/Perks.js';
 import { Siege } from '../systems/Siege.js';
+import { Voice } from '../systems/Voice.js';
 import { loadGame, saveGame, clearSave } from '../systems/save.js';
 
 const AUTO_WALK_MS = 4000;
@@ -120,6 +121,7 @@ export class GameScene extends Phaser.Scene {
     this.dayNight = new DayNight(save?.time);
     this.night = new Night(this);
     this.siege = new Siege(this);
+    this.voice = new Voice(this);
     // halverwege de nacht geladen: meteen weer vechten
     if (this.dayNight.isNight) this.time.delayedCall(800, () => this.siege.resume(this.dayNight.night));
     this.crumble = new Crumble(this, save?.crumble);
@@ -350,6 +352,8 @@ export class GameScene extends Phaser.Scene {
 
     this.dayNight.update(this.siege.clockStep(dt));
     this.siege.update(time, dt);
+    this.voice.update(time);
+    if (Math.hypot(controls.move.x, controls.move.y) > 0.15) this.voice.poke();
     this.night.update(time, dt);
     this.audio.update(this.dayNight.darkness);
     this.crumble.update(time, dt);
@@ -468,6 +472,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   doAction() {
+    this.voice.poke();
     const target = this.target;
     if (target) this.player.faceTowards(target.sprite.x);
     if (!target || !['chest', 'workbench', 'grave', 'note', 'kern', 'anchor'].includes(target.type)) this.player.swing();
@@ -579,7 +584,10 @@ export class GameScene extends Phaser.Scene {
   markDiscoveries(list) {
     if (!list?.length) return;
     this.flags.discoveries = { ...this.flags.discoveries };
-    for (const d of list) this.flags.discoveries[d.id] = true;
+    for (const d of list) {
+      this.flags.discoveries[d.id] = true;
+      bus.emit('discovery', d);
+    }
     this.objectives.check();
   }
 
@@ -972,6 +980,7 @@ export class GameScene extends Phaser.Scene {
     bus.emit('sfx', 'place');
     this.skills.gain('bouwen', CONFIG.skills.bouwen.xpObject / 2);
     this.stats.repairs = (this.stats.repairs || 0) + 1;
+    bus.emit('repaired', o);
     bus.emit('float', { wx: o.sprite.x, wy: o.topY, text: TEXT.repaired, color: '#b8e0a0' });
     this.saveNow();
   }

@@ -18,7 +18,7 @@ alle balansgetallen in `config.js`, soepel op een telefoon in portretstand.
 - Stap 5 uit het minigameplan: 15 seconden bouwen (top-down), dan het gevecht met golven vanaf de randen.
 - Muren, torens en lampen tellen mee; beschadigde gebouwen moet je overdag repareren.
 
-## Fase C: De Stem
+## Fase C: De Stem ✅ klaar (v18)
 - Iets in de leegte praat tegen je: droog, gemeen, grappig. Reageert op wat je doet (missers, records, doodgaan,
   ontdekkingen) en vertelt stukje voor stukje het verhaal. Vervangt de losse meldingen waar het past.
 

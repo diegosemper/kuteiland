@@ -26,6 +26,7 @@ import { BossBar } from '../ui/BossBar.js';
 import { MachinePanel } from '../ui/MachinePanel.js';
 import { AnvilPanel } from '../ui/AnvilPanel.js';
 import { SiegeHud } from '../ui/SiegeHud.js';
+import { VoiceHud } from '../ui/VoiceHud.js';
 import { recipeName } from '../systems/Crafting.js';
 import { COLORS, textStyle, makeButton, roundedBox, shade } from '../ui/style.js';
 import { pick } from '../texts.js';
@@ -69,6 +70,7 @@ export class UIScene extends Phaser.Scene {
     this.machinePanel = new MachinePanel(this, game);
     this.anvilPanel = new AnvilPanel(this, game);
     this.siegeHud = new SiegeHud(this, game);
+    this.voiceHud = new VoiceHud(this);
     this.mapButton = this.makeRoundButton(TEXT.mapButton, () => this.openPanel(this.mapPanel));
     this.mapButton.setVisible(!!CONFIG.remoteIslands);
     this.xpBar = new SkillXpBar(this);
@@ -128,6 +130,7 @@ export class UIScene extends Phaser.Scene {
       'respawn': () => this.deathScreen.hide(),
       'minigame-start': () => { this.closeAll(); this.joystick.release(); this.action.release(); },
       'siege': (st) => this.siegeHud.set(st),
+      'voice': (line) => this.voiceHud.show(line),
       'siege-tick': (st) => this.siegeHud.tick(st),
     };
     for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
@@ -214,6 +217,7 @@ export class UIScene extends Phaser.Scene {
     this.hearts.layout(w, h, this.safe);
     this.clock.layout(w, h, this.safe);
     this.siegeHud.layout(w, h, this.safe);
+    this.voiceHud.layout(w, h, this.safe);
     // bouwknop schuin boven de actieknop
     const ax = this.action.circle.x, ay = this.action.circle.y;
     this.buildButton.setPosition(ax - this.action.R * 1.05, ay - this.action.R * 1.75);

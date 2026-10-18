@@ -5,8 +5,11 @@ import { CONFIG } from '../../config.js';
 import { TEXT } from '../../texts.js';
 import { bus } from '../../bus.js';
 import { getDpr, getSafeArea } from '../../display.js';
-import { COLORS, textStyle, makeButton, roundedBox, shade } from '../../ui/style.js';
+import { COLORS, textStyle, storyStyle, makeButton, roundedBox, shade } from '../../ui/style.js';
+
+const px0 = (W, pw) => W / 2 - pw / 2;
 import { perkSummary, perkText } from '../../systems/Perks.js';
+import { minigameQuip } from '../../systems/Voice.js';
 
 export class MinigameScene extends Phaser.Scene {
   init(data) {
@@ -232,6 +235,7 @@ export class MinigameScene extends Phaser.Scene {
     const res = this.reward();
     const best = this.gs.stats.highscores?.[this.scoreKey] || 0;
     const record = res.score > best && res.score > 0;
+    res.good = res.score >= best * 0.6;
     // meteen bijschrijven: wie de app nu dichtklikt, verliest niks
     this.gs.applyMinigame(this.scoreKey, this.spec, res);
     this.time.delayedCall(600, () => this.showResult(reason, res, record, Math.max(best, res.score)));
@@ -294,6 +298,14 @@ export class MinigameScene extends Phaser.Scene {
       const t = this.add.text(W / 2, y + 26 * S, TEXT.noteFound, textStyle(S, 14, '#ffd98a', { fontStyle: '800', align: 'center' })).setOrigin(0.5, 0);
       c.add(t);
       this.tweens.add({ targets: t, alpha: 0.5, duration: 500, yoyo: true, repeat: -1 });
+    }
+
+    // De Stem heeft er ook iets van te zeggen
+    const quip = minigameQuip(this.mgId, res, record);
+    if (quip) {
+      const qy = py + ph - 108 * S;
+      c.add(this.add.image(px0(W, pw) + 34 * S, qy + 10 * S, 'voice_eye').setDisplaySize(26 * S, 16 * S));
+      c.add(this.add.text(px0(W, pw) + 56 * S, qy, quip, storyStyle(S, 13, '#d9c2ff', { wordWrap: { width: pw - 80 * S } })));
     }
 
     // knoppen
