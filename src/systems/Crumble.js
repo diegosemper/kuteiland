@@ -125,7 +125,8 @@ export class Crumble {
     if (!this.active) return;
     const g = this.game;
 
-    this.nextIn -= dt / (g.dayNight.isNight ? C.nightFactor : 1);
+    const speed = Math.max(0.3, 1 + g.mods.get('crumble.speed'));
+    this.nextIn -= dt * speed / (g.dayNight.isNight ? C.nightFactor : 1);
     if (this.nextIn <= 0) {
       this.nextIn = rand(...C.intervalMs);
       const list = this.candidates();

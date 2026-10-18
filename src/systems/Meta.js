@@ -10,7 +10,7 @@ export function getMeta() {
   meta = { cycle: 1, bonuses: {} };
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (raw && raw.cycle) meta = { cycle: raw.cycle, bonuses: { ...raw.bonuses } };
+    if (raw && raw.cycle) meta = { cycle: raw.cycle, bonuses: { ...raw.bonuses }, cycleMod: raw.cycleMod || null, bestDepth: raw.bestDepth || 0 };
   } catch {
     // privémodus: dan maar zonder
   }
@@ -35,7 +35,18 @@ export function startNextCycle(bonusId) {
   const m = getMeta();
   m.cycle += 1;
   if (bonusId) m.bonuses[bonusId] = (m.bonuses[bonusId] || 0) + 1;
+  // elke nieuwe cyclus een andere regel (niet dezelfde als vorige keer)
+  const rules = CONFIG.cycleMods.filter((r) => r.id !== m.cycleMod);
+  m.cycleMod = rules[Math.floor(Math.random() * rules.length)].id;
   saveMeta();
+}
+
+export function recordDepth(level) {
+  const m = getMeta();
+  if (level > (m.bestDepth || 0)) {
+    m.bestDepth = level;
+    saveMeta();
+  }
 }
 
 // Willekeurige keuze uit de bonussen voor het prestige-scherm

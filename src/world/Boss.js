@@ -7,12 +7,17 @@ import { BOSS } from '../art/remote.js';
 import { gridToScreen } from '../iso.js';
 import { getMeta } from '../systems/Meta.js';
 
-const B = CONFIG.boss;
-const SCALE = 1.6;   // de Hoeder is groot
 const { tileW: TW, tileH: TH } = CONFIG.iso;
 
+// key: 'hoeder' voor de eindbaas, of de naam van een bewaker (zwavel, padde, ijs, echo)
 export class Boss {
-  constructor(game, gx, gy) {
+  constructor(game, gx, gy, key = 'hoeder') {
+    const B = key === 'hoeder' ? { ...CONFIG.boss, scale: 1.6 } : { ...CONFIG.boss, ...CONFIG.bewakers[key] };
+    this.B = B;
+    this.key = key;
+    this.name = B.name;
+    this.scale = B.scale;
+    this.baseTint = B.tint || null;
     this.game = game;
     this.type = 'enemy';
     this.kind = 'boss';
@@ -38,7 +43,8 @@ export class Boss {
     const s = gridToScreen(gx, gy);
     this.shadow = game.add.image(s.x, s.y, 'shadow').setScale(2.4, 2).setDepth(-5000).setAlpha(0);
     this.sprite = game.add.image(s.x, s.y + 120, 'boss0').setOrigin(BOSS.footX / BOSS.w, BOSS.footY / BOSS.h)
-      .setScale(SCALE).setAlpha(0).setDepth(s.y);
+      .setScale(this.scale).setAlpha(0).setDepth(s.y);
+    if (this.baseTint) this.sprite.setTint(this.baseTint);
     this.hitY = s.y - 110;
     this.topY = s.y - 230;
     this.bar = game.add.graphics().setVisible(false);   // de UI toont een eigen balk
@@ -54,6 +60,7 @@ export class Boss {
 
   update(time, dt, night) {
     if (!this.alive || this.state !== 'hunt') return;
+    const B = this.B;
     const g = this.game;
     const p = g.player;
 
@@ -63,6 +70,7 @@ export class Boss {
       bus.emit('sfx', 'roar');
       g.cameras.main.shake(800, 0.008);
       this.sprite.setTint(0xffc0e0);
+      this.baseTint = 0xffc0e0;
     }
     const ph = this.phase - 1;
 
@@ -90,7 +98,7 @@ export class Boss {
     if (!g.dead && toPlayer - this.radius - CONFIG.player.radius <= CONFIG.enemies.attackRange) {
       if (time >= this.attackAt) {
         this.attackAt = time + B.attackMs;
-        g.tweens.add({ targets: this.sprite, scaleX: SCALE * 1.08, scaleY: SCALE * 0.94, duration: 120, yoyo: true });
+        g.tweens.add({ targets: this.sprite, scaleX: this.scale * 1.08, scaleY: this.scale * 0.94, duration: 120, yoyo: true });
         g.hurtPlayer(this.damage, this);
       }
     } else if (!g.dead) {
@@ -116,6 +124,7 @@ export class Boss {
 
   // Aangekondigde klap: rode cirkel op de grond, dan pijn als je er nog staat
   slam(gx, gy) {
+    const B = this.B;
     const g = this.game;
     const s = gridToScreen(gx, gy);
     const w = B.slamRadius * TW * Math.SQRT2, h = B.slamRadius * TH * Math.SQRT2;
@@ -151,6 +160,7 @@ export class Boss {
 
   // Leegteschot naar waar je nu staat; wie beweegt, ontwijkt
   bolt(gx, gy) {
+    const B = this.B;
     const g = this.game;
     const from = { x: this.sprite.x, y: this.hitY };
     const to = gridToScreen(gx, gy);
@@ -177,7 +187,7 @@ export class Boss {
     this.game.time.delayedCall(80, () => {
       if (!this.sprite.active) return;
       this.sprite.clearTint();
-      if (this.phase === 2) this.sprite.setTint(0xffc0e0);
+      if (this.baseTint) this.sprite.setTint(this.baseTint);
     });
     bus.emit('boss-hp', this.hp, this.maxHp);
     if (this.hp <= 0) {
@@ -193,7 +203,7 @@ export class Boss {
     this.bar.destroy();
     fx?.explode(60, this.sprite.x, this.hitY);
     this.game.tweens.add({
-      targets: [this.sprite, this.shadow], alpha: 0, scale: SCALE * 1.4, duration: 1600,
+      targets: [this.sprite, this.shadow], alpha: 0, scale: this.scale * 1.4, duration: 1600,
       onComplete: () => { this.sprite.destroy(); this.shadow.destroy(); },
     });
   }

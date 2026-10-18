@@ -11,20 +11,20 @@ Bouw weer fase voor fase en test elke fase op de telefoon voordat de volgende be
 - Skills tot level 50, met echte mijlpalen (nieuwe vaardigheden), niet alleen percentages
 - Collectie-paneel in de UI
 
-## Fase 9: meer wereld
+## Fase 9: meer wereld ✅ klaar
 - Eilanden in ringen per niveau, elk gebied moeilijker, met eigen grondstoffen, vijanden en een eigen baas
 - De Kern wordt het einde van een veel langere reis
 - Kaart groeit mee
 
-## Fase 10: automatisering
+## Fase 10: automatisering ✅ klaar
 - Werkers/machines die hakken, delven en verzamelen terwijl je speelt (niet offline)
 - Opwaarderen van machines; van handwerk naar een eiland vol machines
 
-## Fase 11: uitrusting
+## Fase 11: uitrusting ✅ klaar
 - Meer niveaus gereedschap, wapens en harnassen
 - Opwaarderen met zeldzame drops; een topwapen kost dagen, niet minuten
 
-## Fase 12: cycli en eindspel
+## Fase 12: cycli en eindspel ✅ klaar
 - Elke cyclus een andere wereld (andere eilanden, modifiers)
 - Eindeloze diepte: steeds verder de leegte in, steeds zwaarder, zeldzame buit
 

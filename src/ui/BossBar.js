@@ -19,7 +19,8 @@ export class BossBar {
     this.c.setPosition(w / 2, h - safe.bottom - 290 * S);
   }
 
-  show() {
+  show(name) {
+    if (name) this.name.setText(name.toUpperCase());
     this.c.setVisible(true).setAlpha(0);
     this.scene.tweens.add({ targets: this.c, alpha: 1, duration: 600 });
   }

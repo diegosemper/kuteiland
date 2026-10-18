@@ -70,7 +70,7 @@ export class Tree {
     }
 
     // skill Hakken maakt elke slag sterker; overschot telt mee voor de volgende
-    this.hits += game.skills.power('hakken');
+    this.hits += game.skills.power('hakken') * game.upgradeMult('axe');
     const need = CONFIG.tree.hitsPerYield[tier];
     const result = { skill: 'hakken' };
     if (this.hits >= need) {

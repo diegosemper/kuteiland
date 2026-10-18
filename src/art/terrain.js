@@ -23,6 +23,10 @@ export const KINDS = {
   ruin:       { top: 'bricks_glow', side: 'bricks', h: 1, under: 'bricks', deep: 'stone' },
   bridge:     { top: 'bridge', side: 'planks', h: 0.25 },
   starbridge: { top: 'starbridge', side: 'quartz', h: 0.25 },
+  sulfur:     { top: 'sulfur', side: 'sulfur_side', h: 1, under: 'sulfur_side', deep: 'stone' },
+  mycelium:   { top: 'mycelium_top', side: 'mycelium_side', h: 1, under: 'dirt', deep: 'stone' },
+  snow:       { top: 'snow_top', side: 'snow_side', h: 1, under: 'packed_ice', deep: 'stone' },
+  sculk:      { top: 'sculk', side: 'sculk_side', h: 1, under: 'sculk_side', deep: 'deepslate' },
   // bouwblokken uit collecties
   logs:          { top: 'log_top', side: 'log_side', h: 1 },
   bricksblock:   { top: 'bricks', side: 'bricks', h: 1 },
@@ -34,7 +38,7 @@ export const KINDS = {
 };
 
 // Natuurlijke grond heeft blokken eronder; gebouwde blokken niet; bruggen zijn dunne platen
-export const NATURAL = ['dirt', 'ash', 'crystal', 'ruin'];
+export const NATURAL = ['dirt', 'ash', 'crystal', 'ruin', 'sulfur', 'mycelium', 'snow', 'sculk'];
 export const BRIDGES = ['bridge', 'starbridge'];
 
 function drawBlock(ctx, top, side, h) {

@@ -53,7 +53,7 @@ export class Generator {
     scene.tweens.add({ targets: stone, x: { from: stone.x + 2, to: stone.x }, duration: 140, ease: 'Bounce.easeOut' });
     this.chips.explode(5, stone.x, this.stoneY - 14);
 
-    this.hits += game.skills.power('delven');
+    this.hits += game.skills.power('delven') * game.upgradeMult('pickaxe');
     const need = CONFIG.generator.hitsPerYield[tier];
     if (this.hits < need) return { skill: 'delven' };
 

@@ -1,6 +1,7 @@
 // Iconen (64x64) in Minecraft-stijl: blokken als mini-kubus, spullen als pixel-sprite van 16x16.
 import { canvasTexture } from './util.js';
-import { iso, drawBoxes, boxAt, all, crisp } from './blocks.js';
+import { iso, drawBoxes, boxAt, all, crisp, machineFace } from './blocks.js';
+import { CONFIG } from '../config.js';
 
 const S = 64;
 
@@ -33,7 +34,10 @@ const MATERIAL = {
   3: ['#c06a36', '#7a3e22', '#e08a50'],   // roest
   4: ['#b48cff', '#6a45a8', '#e2d0ff'],   // leegtekristal
   5: ['#f8eeb0', '#c8b870', '#ffffff'],   // sterrenstof
+  6: ['#40ffd0', '#1a9a80', '#d0fff4'],   // zielenkristal
 };
+// gereedschapsniveau -> materiaal (niveau 5 is van zielenkristal)
+const TOOL_MAT = [0, 1, 2, 3, 4, 6];
 
 // steel van linksonder naar rechtsboven
 function handle(px, from = 2, to = 10) {
@@ -44,7 +48,7 @@ function handle(px, from = 2, to = 10) {
 }
 
 function pickaxe(tier) {
-  const [m, d, l] = MATERIAL[tier];
+  const [m, d, l] = MATERIAL[TOOL_MAT[tier]];
   return sprite((px) => {
     handle(px, 2, 10);
     const head = [[3, 3], [4, 2], [5, 2], [6, 2], [7, 2], [8, 3], [9, 3], [10, 4], [11, 5], [12, 6], [12, 7], [13, 8], [13, 9], [13, 10]];
@@ -53,7 +57,7 @@ function pickaxe(tier) {
 }
 
 function axe(tier) {
-  const [m, d, l] = MATERIAL[tier];
+  const [m, d, l] = MATERIAL[TOOL_MAT[tier]];
   return sprite((px) => {
     handle(px, 2, 11);
     for (let y = 2; y <= 7; y++) for (let x = 8; x <= 13; x++) {
@@ -87,6 +91,41 @@ function hammer() {
   });
 }
 
+// harnas: een borstplaat
+function chestplate(mat) {
+  const [m, d, l] = MATERIAL[mat];
+  return sprite((px) => {
+    const rows = ['..mm....mm..', '.mmmm..mmmm.', '.mlmmmmmmmd.', '.mlmmmmmmmd.', '..lmmmmmmd..', '..mmmmmmmd..', '..mmmmmmmd..', '..mmmmmmdd..', '...dddddd...'];
+    rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') px(x + 2, y + 4, ch === 'm' ? m : ch === 'l' ? l : d); }));
+  });
+}
+
+function heart() {
+  return sprite((px) => {
+    const rows = ['.kk..kk.', 'kppkkppk', 'kpwpppdk', 'kpppppdk', '.kpppdk.', '..kpdk..', '...kk...'];
+    rows.forEach((row, y) => [...row].forEach((ch, x) => {
+      if (ch === '.') return;
+      px(x + 4, y + 4, { k: '#1a0a24', p: '#9b4be0', w: '#f0d0ff', d: '#5a2a90' }[ch]);
+    }));
+  });
+}
+
+function sulfurDust() {
+  return sprite((px) => {
+    for (const [x, y, c] of [[5, 9, '#f0d830'], [7, 7, '#fff070'], [9, 10, '#d8c040'], [10, 8, '#f0d830'], [6, 11, '#c8b030'],
+      [8, 9, '#fff070'], [11, 11, '#d8c040'], [4, 11, '#f0d830'], [9, 12, '#c8b030'], [7, 12, '#e0cc50'], [8, 11, '#f0d830']]) px(x, y, c);
+  });
+}
+
+function soulShard() {
+  return sprite((px) => {
+    for (let y = 2; y <= 13; y++) {
+      const w = y < 8 ? (y - 2) / 2 : (13 - y) / 1.5;
+      for (let x = Math.round(8 - w); x <= Math.round(8 + w); x++) px(x, y, x < 8 ? '#d0fff4' : x > 9 ? '#1a9a80' : '#40ffd0');
+    }
+  });
+}
+
 function ingot() {
   return sprite((px) => {
     const rows = [[4, 11, 6], [3, 12, 7], [2, 13, 8], [2, 13, 9], [3, 12, 10]];
@@ -111,6 +150,8 @@ function dust() {
 }
 
 export function generateIcons(scene) {
+  // machinefronten bestaan pas als ze één keer aangemaakt zijn
+  for (const [type, def] of Object.entries(CONFIG.machines.types)) machineFace(`machine_${type}`, def.glow);
   const icons = {
     // grondstoffen
     icon_wrakhout: miniCube({ top: 'log_top', left: 'log_side', right: 'log_side' }),
@@ -144,8 +185,21 @@ export function generateIcons(scene) {
     icon_weapon3: sword(3),
     icon_weapon4: sword(4),
     icon_weapon5: sword(5),
+    icon_weapon6: sword(6),
+    icon_zwavel: sulfurDust(),
+    icon_zielenkristal: soulShard(),
+    icon_leegtehart: heart(),
+    icon_aambeeld: miniCube(all('anvil'), 0.7),
+    icon_armor1: chestplate(1),
+    icon_armor2: chestplate(3),
+    icon_armor3: chestplate(4),
+    icon_armor4: chestplate(5),
+    icon_armor5: chestplate(6),
   };
-  for (const tier of [1, 2, 3]) {
+  for (const type of Object.keys(CONFIG.machines.types)) {
+    icons[`icon_${type}`] = miniCube({ top: 'iron', left: `machine_${type}`, right: `machine_${type}` });
+  }
+  for (const tier of [1, 2, 3, 4, 5]) {
     icons[`icon_axe${tier}`] = axe(tier);
     icons[`icon_pickaxe${tier}`] = pickaxe(tier);
   }

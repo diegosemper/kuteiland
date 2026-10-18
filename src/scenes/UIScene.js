@@ -23,6 +23,8 @@ import { StoryPanel } from '../ui/StoryPanel.js';
 import { MapPanel } from '../ui/MapPanel.js';
 import { PrestigePanel } from '../ui/PrestigePanel.js';
 import { BossBar } from '../ui/BossBar.js';
+import { MachinePanel } from '../ui/MachinePanel.js';
+import { AnvilPanel } from '../ui/AnvilPanel.js';
 import { recipeName } from '../systems/Crafting.js';
 import { COLORS, textStyle, makeButton, roundedBox, shade } from '../ui/style.js';
 import { pick } from '../texts.js';
@@ -63,6 +65,8 @@ export class UIScene extends Phaser.Scene {
     this.mapPanel = new MapPanel(this, game);
     this.prestigePanel = new PrestigePanel(this);
     this.bossBar = new BossBar(this);
+    this.machinePanel = new MachinePanel(this, game);
+    this.anvilPanel = new AnvilPanel(this, game);
     this.mapButton = this.makeRoundButton(TEXT.mapButton, () => this.openPanel(this.mapPanel));
     this.xpBar = new SkillXpBar(this);
 
@@ -96,7 +100,9 @@ export class UIScene extends Phaser.Scene {
       'open-anchor': (a) => { this.anchorPanel.anchor = a; this.openPanel(this.anchorPanel); },
       'open-story': (st) => { this.closeAll(); this.joystick.release(); this.action.release(); this.storyPanel.open(st); },
       'open-prestige': () => this.openPanel(this.prestigePanel),
-      'boss-start': () => this.bossBar.show(),
+      'boss-start': (b) => this.bossBar.show(b?.name),
+      'open-machine': (m) => { this.machinePanel.machine = m; this.openPanel(this.machinePanel); },
+      'open-anvil': () => this.openPanel(this.anvilPanel),
       'boss-hp': (hp, max) => this.bossBar.set(hp, max),
       'boss-end': () => this.bossBar.hide(),
       'objective': (o) => this.objective.set(o),
@@ -158,7 +164,7 @@ export class UIScene extends Phaser.Scene {
 
   panels() {
     return [this.panel, this.chestPanel, this.craftPanel, this.skillsPanel, this.anchorPanel,
-      this.storyPanel, this.mapPanel, this.prestigePanel];
+      this.storyPanel, this.mapPanel, this.prestigePanel, this.machinePanel, this.anvilPanel];
   }
 
   closeAll() {
@@ -169,6 +175,8 @@ export class UIScene extends Phaser.Scene {
     this.anchorPanel.close();
     this.mapPanel.close();
     this.prestigePanel.close();
+    this.machinePanel.close();
+    this.anvilPanel.close();
   }
 
   openPanel(p) {
@@ -347,7 +355,7 @@ export class UIScene extends Phaser.Scene {
 
   update() {
     this.nightOverlay.update(this.gameScene);
-    this.clock.update(this.gameScene.dayNight);
+    this.clock.update(this.gameScene.dayNight, this.gameScene.depth);
 
     const k = this.keys;
     let kx = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0);

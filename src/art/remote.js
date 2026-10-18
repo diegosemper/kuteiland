@@ -6,12 +6,24 @@ import { iso, drawBoxes, boxAt, all, crisp } from './blocks.js';
 const { tileH: TH } = CONFIG.iso;
 
 export const NODE = { w: 120, h: 110, ox: 60, oy: 84 };
-const ORE = { wrak: 'rust_ore', kristalader: 'amethyst', sterrenader: 'star_ore' };
+const ORE = {
+  wrak: 'rust_ore', kristalader: 'amethyst', sterrenader: 'star_ore',
+  zwavelader: 'sulfur_ore', ijsader: 'ice_ore', zielenader: 'soul_ore',
+};
+const BASE = { wrak: 'basalt', zwavelader: 'sulfur_side', paddenstoel: 'mycelium_top', ijsader: 'packed_ice', zielenader: 'sculk_side' };
 
 function drawNode(ctx, kind, part) {
   const P = iso(NODE.ox, NODE.oy);
   if (part === 'base') {
-    drawBoxes(ctx, P, [boxAt(0, 0, 0, 0.56, 8, all(kind === 'wrak' ? 'basalt' : 'deepslate'))]);
+    drawBoxes(ctx, P, [boxAt(0, 0, 0, 0.56, 8, all(BASE[kind] || 'deepslate'))]);
+    return;
+  }
+  if (kind === 'paddenstoel') {
+    // reuzenpaddenstoel: witte steel, rode hoed met stippen
+    drawBoxes(ctx, P, [
+      boxAt(0, 0, 8, 0.16, 34, all('mushroom_stem')),
+      boxAt(0, 0, 42, 0.62, 18, all('mushroom_cap')),
+    ]);
     return;
   }
   drawBoxes(ctx, P, [boxAt(0, 0, 8, 0.42, 0.42 * TH, all(ORE[kind]))]);
@@ -80,7 +92,7 @@ function drawBoss(ctx, frame) {
 }
 
 export function generateRemote(scene) {
-  for (const kind of ['wrak', 'kristalader', 'sterrenader']) {
+  for (const kind of ['wrak', 'kristalader', 'sterrenader', 'zwavelader', 'paddenstoel', 'ijsader', 'zielenader']) {
     canvasTexture(scene, `node_${kind}_base`, NODE.w, NODE.h, (ctx) => drawNode(ctx, kind, 'base'));
     canvasTexture(scene, `node_${kind}_top`, NODE.w, NODE.h, (ctx) => drawNode(ctx, kind, 'top'));
     crisp(scene, `node_${kind}_base`);

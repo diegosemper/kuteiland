@@ -2,7 +2,7 @@
 
 Mobiel isometrisch overlevingsspel op een zwevend eiland boven de leegte. Zie [PLAN.md](PLAN.md) voor het volledige plan.
 
-**Status:** alle 7 fases gebouwd: basis, bouwen en craften, skills en roest, dag/nacht en vechten, afbrokkelen, verre eilanden met de eindbaas, prestige met geluid en muziek.
+**Status:** basisspel (fase 1-7) en uitbreiding (fase 8-12) gebouwd: collecties, skills tot 50, acht eilanden in ringen met bewakers, machines, uitrusting met aambeeld, cyclusregels en de eindeloze Diepte.
 
 ## Lokaal spelen
 

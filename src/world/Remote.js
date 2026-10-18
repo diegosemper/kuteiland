@@ -41,7 +41,7 @@ export class ResourceNode {
     if (!this.ready) return null;
     this.scene.tweens.add({ targets: this.top, x: { from: this.top.x + 2, to: this.top.x }, duration: 140, ease: 'Bounce.easeOut' });
     this.chips.explode(5, this.top.x, this.hitY - 10);
-    this.hits += game.skills.power('delven');
+    this.hits += game.skills.power('delven') * game.upgradeMult('pickaxe');
     if (this.hits < need) return { skill: 'delven' };
     this.hits = 0;
     this.ready = false;

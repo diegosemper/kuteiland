@@ -77,7 +77,15 @@ export const TEXT = {
     asveld: 'Bereik het Asveld',
     kristalklip: 'Bereik de Kristalklip',
     sterrenstof: 'Delf sterrenstof op de Kristalklip',
+    zwavelklif: 'Bouw bruggen naar de tweede ring en bereik het Zwavelklif',
+    bewaker: 'Roep een bewaker op bij zijn altaar en versla hem',
+    harnas: 'Maak een harnas bij de werkbank',
+    aambeeld: 'Maak een aambeeld en versterk iets naar +1',
+    machine: 'Bouw je eerste machine (ontgrendel via collecties)',
+    zegels: 'Verzamel de vier zegels van de bewakers',
     kern: 'Bouw een sterrenbrug naar de Kern',
+    diepte5: 'Bereik diepte 5 in de poort bij de Kern',
+    diepte20: 'Bereik diepte 20',
     hoeder: 'Wek de Kern en versla wat eruit komt',
     cyclus: 'Begin een nieuwe cyclus bij de Kern',
     nacht3: 'Overleef drie nachten',
@@ -110,7 +118,15 @@ export const TEXT = {
     asveld: 'Een nieuw stuk wereld. Het ziet er net zo vrolijk uit als het oude.',
     kristalklip: 'Hier groeit de leegte als kristal. Mooi. Verontrustend.',
     sterrenstof: 'Sterrenstof. Het enige hier dat nog glanst zonder te dreigen.',
+    zwavelklif: 'De tweede ring. Het wordt hier niet gezelliger.',
+    bewaker: 'Een bewaker minder. Hij had het waarschijnlijk verdiend.',
+    harnas: 'Een harnas. Nu doet het nog steeds pijn, maar minder.',
+    aambeeld: 'Plus één. De wereld is nog steeds kapot, maar jouw spullen niet.',
+    machine: 'Een machine die voor je werkt. Eindelijk iemand.',
+    zegels: 'Vier zegels. Het hart ligt open.',
     kern: 'Je staat op de Kern. Het hart klopt onder je voeten.',
+    diepte5: 'Diepte 5. Het wordt alleen maar dieper.',
+    diepte20: 'Diepte 20. Er is geen bodem. Dat wist je toch al.',
     hoeder: 'Het is stil. Voor het eerst sinds lang echt stil.',
     cyclus: 'Opnieuw. Maar nu weet je het.',
     nacht3: 'Drie nachten. De leegte begint je te kennen.',
@@ -198,6 +214,30 @@ export const TEXT = {
         + 'Wij hebben het wakker gemaakt. Het was niet blij.\n\n'
         + 'Wie dit leest: raak het niet aan. Of doe het wel. Erger dan nu kan het toch niet.',
     },
+    6: {
+      title: 'Een zwavelgele logboekpagina',
+      text: 'Ploegbaas Verhoef hier. De boorkop is weer gesmolten. Wij smelten hem bij.\n\n'
+        + 'Iemand heeft hem in zwavel gedoopt zodat hij niet meer slijt. Hij slijt nu niet meer. Hij eet.\n\n'
+        + 'Als je dit leest en er staat iets groots en geels naast je: dat was ik.',
+    },
+    7: {
+      title: 'Krabbels op een paddenstoel',
+      text: 'De sporen kwamen mee met de boorvloeistof. Eerst groeiden ze op de machines. Toen op ons.\n\n'
+        + 'Mijn armen voelen zacht. Mijn gedachten ook. Het is niet onaangenaam.\n\n'
+        + 'Ze noemen haar de moeder nu. Ik noem haar Ineke. Zo heette ze toen ze nog koffie haalde.',
+    },
+    8: {
+      title: 'Ingevroren in het ijs',
+      text: 'Koelsysteem van boorfase 7: onvoldoende. Dat stond in het rapport. Ik heb het rapport ondertekend.\n\n'
+        + 'We hebben de leegte stilgezet met kou. Het werkte drie weken. Toen werkte het andersom.\n\n'
+        + 'Ik heb het nooit meer warm gehad. De koning ook niet.',
+    },
+    9: {
+      title: 'Wat de kloof terugzegt',
+      text: 'Hier is het gat waar de boor doorheen ging. Alles wat erin viel, roept nog.\n\n'
+        + 'Je hoort je eigen naam. Je hoort je eigen stem die het bevel geeft. "Doorgaan."\n\n'
+        + 'De echo is de enige die nog luistert naar wat je toen zei.',
+    },
     5: {
       title: 'Wat de Kern je laat zien',
       text: 'De Hoeder valt. Het hart wordt even stil, en dan zie je het.\n\n'
@@ -212,8 +252,44 @@ export const TEXT = {
     wrak: 'dit lukt alleen met een houweel.',
     kristalader: 'hier heb je minstens een stenen houweel voor nodig.',
     sterrenader: 'te hard. Alleen een roestig houweel krijgt hier iets los.',
+    zwavelader: 'zwavel breekt alleen voor een roestig houweel.',
+    paddenstoel: 'die steel is taaier dan hij eruitziet. Roestig houweel nodig.',
+    ijsader: 'zo koud dat alleen een kristallen houweel erdoor komt.',
+    zielenader: 'de zielen laten niet los voor minder dan een kristallen houweel.',
   },
   bossStart: 'Het hart scheurt open. Iets stapt eruit. Het is niet blij je te zien.',
+  kernSealed: 'Het hart zit dicht. Vier zegels, één per bewaker op de verre eilanden. Je hebt er',
+  sealGained: 'Een zegel valt van het hart. Zegels:',
+  guardianFirst: 'Hij bewaakt een van de zegels.',
+  guardianAgain: 'Hij is terug. Hij heeft er spijt van dat hij er was. Jij straks ook.',
+  heartDrop: 'Een leegtehart. Het klopt nog. Zeldzaam en walgelijk.',
+  portalClosed: 'De poort is dicht zolang het hart bewaakt wordt.',
+  depthStart: 'Je stapt de poort door. De Diepte ruikt je.',
+  depthLabel: 'Diepte',
+  depthCleared: 'Golf verslagen. De volgende komt eraan.',
+  depthDied: 'De Diepte heeft je uitgespuugd.',
+  depthStopped: 'Je trekt je terug.',
+  depthReached: 'Bereikt: diepte',
+  depthBest: 'Je beste:',
+  cycleRule: 'Regel van deze cyclus:',
+
+  // machines en aambeeld
+  machineLevel: 'NIVEAU',
+  machineSubtitle: 'Werkt zolang jij er bent. Net als jij.',
+  machineMakes: 'Maakt',
+  machineRate: 'Snelheid',
+  perMinute: 'per minuut',
+  machineStored: 'Opgeslagen',
+  machineUpgradeCost: 'Verbeteren kost',
+  machineMax: 'Sneller wordt hij niet.',
+  machineCollect: 'OPHALEN',
+  machineUpgrade: 'VERBETER',
+  machineUpgraded: 'is nu niveau',
+  anvilTitle: 'AAMBEELD',
+  anvilSubtitle: 'Slaan tot het beter wordt. Werkt ook bij gereedschap.',
+  anvilNoGear: 'Nog niks om te versterken.',
+  anvilMax: 'Sterker kan niet. Dit is het.',
+  gearUpgraded: 'Sterker. Zwaarder. Beter.',
   bossPhase2: 'De Hoeder brult. Het licht in zijn borst wordt fel. Nu wordt het menens.',
   bossName: 'DE HOEDER VAN DE KERN',
   storyClose: 'VERDER',

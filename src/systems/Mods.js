@@ -3,12 +3,14 @@
 //           'hp', 'damage', 'anchor', 'free'
 import { CONFIG } from '../config.js';
 import { bus } from '../bus.js';
-import { bonus } from './Meta.js';
+import { bonus, getMeta } from './Meta.js';
 
 export const COLLECTION_IDS = Object.keys(CONFIG.collections.items);
 
 export function thresholdsFor(id) {
-  return id === 'wezens' ? CONFIG.collections.thresholdsWezens : CONFIG.collections.thresholds;
+  if (id === 'wezens') return CONFIG.collections.thresholdsWezens;
+  if (id === 'zielenkristal') return CONFIG.collections.thresholdsZielen;
+  return CONFIG.collections.thresholds;
 }
 
 // Hoeveel niveaus van deze collectie heb je bij dit aantal?
@@ -45,6 +47,9 @@ export class Mods {
     }
     // prestige
     add({ damage: bonus('schade'), hp: bonus('hart'), anchor: bonus('anker'), 'drift.loot': bonus('buit') });
+    // regel van deze cyclus
+    const rule = CONFIG.cycleMods.find((m) => m.id === getMeta().cycleMod);
+    if (rule) add(rule.mod);
     return sum;
   }
 

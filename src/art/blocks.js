@@ -228,6 +228,72 @@ const FACES = {
 };
 const FACES_REF = FACES;
 
+// ---------- verre eilanden (ring 2 en 3) ----------
+Object.assign(FACES, {
+  sulfur: (x, y, r) => (r() < 0.1 ? '#f8f0a0' : pick(r, ['#d8c040', '#c8b030', '#e0cc50', '#b8a028'])),
+  sulfur_side: (x, y, r) => (r() < 0.08 ? '#f0e070' : pick(r, ['#a89028', '#988020', '#b09a30', '#8a7418'])),
+  sulfur_ore: (() => {
+    const c = cells(mulberry32(41), 5);
+    return (x, y, r) => {
+      const k = c(x, y);
+      if (k.v > 0.5 && k.d1 < 2.2) return pick(r, ['#fff070', '#f0d830', '#e8c820']);
+      return pick(r, ['#7a6a40', '#6a5a34', '#857446']);
+    };
+  })(),
+  mycelium_top: (x, y, r) => (r() < 0.15 ? pick(r, ['#b8a0c0', '#c8b0d0']) : pick(r, ['#7a6478', '#6e5a6c', '#857082', '#665264'])),
+  mycelium_side: (() => {
+    const fringe = [];
+    const rr = mulberry32(55);
+    for (let x = 0; x < N; x++) fringe.push(2 + Math.floor(rr() * 3));
+    return (x, y, r) => (y < fringe[x] ? pick(r, ['#7a6478', '#6e5a6c']) : (r() < 0.05 ? '#8f8f8f' : pick(r, DIRT)));
+  })(),
+  mushroom_cap: (x, y, r) => ((x * 7 + y * 3) % 11 < 2 && r() < 0.8 ? '#f0e8e0' : pick(r, ['#a02828', '#b03030', '#8a2020'])),
+  mushroom_stem: (x, y, r) => pick(r, ['#e8e0d0', '#d8d0c0', '#f0e8dc']),
+  snow_top: (x, y, r) => (r() < 0.12 ? '#e0ecf8' : pick(r, ['#f8fcff', '#eef4fa', '#f4f8fc'])),
+  snow_side: (() => {
+    const fringe = [];
+    const rr = mulberry32(57);
+    for (let x = 0; x < N; x++) fringe.push(2 + Math.floor(rr() * 4));
+    return (x, y, r) => (y < fringe[x] ? pick(r, ['#f8fcff', '#e8f0f8']) : (r() < 0.05 ? '#8f8f8f' : pick(r, DIRT)));
+  })(),
+  packed_ice: (x, y, r) => (r() < 0.1 ? '#e8f8ff' : pick(r, ['#88b8e8', '#7aa8d8', '#98c4f0', '#6e9ccc'])),
+  ice_ore: (() => {
+    const c = cells(mulberry32(43), 5);
+    return (x, y, r) => {
+      const k = c(x, y);
+      if (k.v > 0.55 && k.d1 < 2) return r() < 0.4 ? '#ffffff' : pick(r, ['#f8eeb0', '#e0f0ff']);
+      return pick(r, ['#88b8e8', '#7aa8d8', '#98c4f0']);
+    };
+  })(),
+  sculk: (x, y, r) => (r() < 0.06 ? pick(r, ['#40ffd0', '#80fff0']) : pick(r, ['#0c1a22', '#102430', '#0a141c', '#14303a'])),
+  sculk_side: (x, y, r) => (r() < 0.05 ? '#30e0c0' : (y % 4 === 0 && r() < 0.4 ? '#06100e' : pick(r, ['#1a2a30', '#14222a', '#203238']))),
+  soul_ore: (() => {
+    const c = cells(mulberry32(47), 5);
+    return (x, y, r) => {
+      const k = c(x, y);
+      if (k.v > 0.5 && k.d1 < 2.2) return r() < 0.3 ? '#e0fff8' : pick(r, ['#40ffd0', '#30d8b8', '#60ffe0']);
+      return pick(r, ['#1a2a30', '#14222a', '#203238']);
+    };
+  })(),
+  soul_crystal: (x, y, r) => (r() < 0.2 ? '#e0fff8' : pick(r, ['#40ffd0', '#30d8b8', '#60ffe0', '#20b898'])),
+  anvil: (x, y, r) => {
+    if (y === 0) return '#9a9aa2';
+    return pick(r, ['#4a4a52', '#424248', '#525258']);
+  },
+});
+
+// Machinefront: ijzeren kader met een gekleurd venster (kleur per machine)
+export function machineFace(name, glow) {
+  if (!FACES[name]) {
+    FACES[name] = (x, y, r) => {
+      if (x < 2 || x > 13 || y < 2 || y > 13) return x === 0 || y === 0 ? '#d8d8d8' : pick(r, ['#9a9a9a', '#8a8a8a']);
+      if (x < 4 || x > 11 || y < 4 || y > 11) return '#3a3a40';
+      return (x + y) % 5 === 0 ? '#ffffff' : glow;
+    };
+  }
+  return name;
+}
+
 // Barsten zoals bij het slopen van een blok: alleen donkere lijnen, de rest doorzichtig
 FACES.crack = (() => {
   const set = new Set();

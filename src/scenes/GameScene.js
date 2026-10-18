@@ -5,7 +5,9 @@ import { bus } from '../bus.js';
 import { controls } from '../controls.js';
 import { gridToScreen } from '../iso.js';
 import { layoutFromConfig } from '../world/Island.js';
-import { World, remoteLayout } from '../world/World.js';
+import { World, remoteLayout, islandDefs } from '../world/World.js';
+import { Depth } from '../systems/Depth.js';
+import { machineUpgradeCost, gearUpgradeCost, pay } from '../systems/Upgrades.js';
 import { Boss } from '../world/Boss.js';
 import { getMeta, startNextCycle } from '../systems/Meta.js';
 import { getAudio } from '../systems/Audio.js';
@@ -64,8 +66,16 @@ export class GameScene extends Phaser.Scene {
     const objects = save?.world?.objects
       || start.objects.map((o) => (o.type === 'tree' ? { ...o, ...save?.tree } : o));
     // verre eilanden die nog niet in de save zitten: hun objecten erbij
-    for (const def of CONFIG.islands) {
-      if (!savedIslands?.[def.id]) objects.push(...remoteLayout(def).objects);
+    for (const def of islandDefs()) {
+      const layoutObjects = remoteLayout(def).objects;
+      if (!savedIslands?.[def.id]) {
+        objects.push(...layoutObjects);
+      } else {
+        // oudere saves: altaar en poort bestonden nog niet; zet ze erbij
+        for (const o of layoutObjects) {
+          if ((o.type === 'portal' || o.type === 'altar') && !objects.some((x) => x.type === o.type && x.gx === o.gx && x.gy === o.gy)) objects.push(o);
+        }
+      }
     }
     if (!this.flags.note1Placed) {
       this.flags.note1Placed = true;
@@ -80,7 +90,11 @@ export class GameScene extends Phaser.Scene {
     }
     this.flags.discovered = { ...this.flags.discovered };
     this.flags.notes = { ...this.flags.notes };
+    this.flags.seals = { ...this.flags.seals };
+    this.upgrades = { axe: 0, pickaxe: 0, weapon: 0, armor: 0, ...save?.upgrades };
+    this.tools.armor = this.tools.armor || 0;
     this.boss = null;
+    this.depth = new Depth(this);
 
     this.spawnPoint = start.spawn;
     let pos = start.spawn;
@@ -131,6 +145,9 @@ export class GameScene extends Phaser.Scene {
       'day-start': (d) => { bus.emit('sfx', 'day'); this.onDayStart(d); },
       'anchor-closed': () => this.showAnchorRing(null),
       'anchor-upgrade': (a) => this.upgradeAnchor(a),
+      'machine-collect': (m) => this.collectMachine(m),
+      'machine-upgrade': (m) => this.upgradeMachine(m),
+      'gear-upgrade': (slot) => this.upgradeGear(slot),
     };
     for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
     this.events.once('shutdown', () => {
@@ -160,6 +177,8 @@ export class GameScene extends Phaser.Scene {
     } else if (hadSave) {
       bus.emit('message', TEXT.welcomeBack);
     }
+    const rule = CONFIG.cycleMods.find((m) => m.id === this.meta.cycleMod);
+    if (rule && !hadSave) bus.emit('message', `${TEXT.cycleRule} ${rule.name}. ${rule.text}.`);
     this.objectives.check();
   }
 
@@ -321,6 +340,8 @@ export class GameScene extends Phaser.Scene {
     this.night.update(time, dt);
     this.audio.update(this.dayNight.darkness);
     this.crumble.update(time, dt);
+    this.depth.update(time);
+    for (const o of this.objects) if (o.type === 'machine') o.tick(dt);
     if (!this.dayNight.isNight && !this.dead && this.hp < this.maxHp) {
       this.hp = Math.min(this.maxHp, this.hp + CONFIG.combat.regenPerSec * dt / 1000);
       bus.emit('hp', this.hp, this.maxHp);
@@ -469,6 +490,10 @@ export class GameScene extends Phaser.Scene {
     if (result.repair) this.crumble.repair(result.repair);
     if (result.readNote) this.readNote(result.readNote);
     if (result.kern) this.onKern();
+    if (result.summon) this.summonGuardian(result.summon);
+    if (result.portal) this.onPortal();
+    if (result.openAnvil) bus.emit('open-anvil');
+    if (result.openMachine) bus.emit('open-machine', result.openMachine);
     if (result.openAnchor) {
       this.showAnchorRing(result.openAnchor);
       bus.emit('open-anchor', result.openAnchor);
@@ -506,7 +531,8 @@ export class GameScene extends Phaser.Scene {
   attackEnemy(e) {
     if (!e.alive) return;
     const base = CONFIG.combat.weaponDamage[this.tools.weapon || 0];
-    const dmg = base * (1 + this.skills.level('vechten') * CONFIG.skills.vechten.damage) * (1 + this.mods.get('damage'));
+    const dmg = base * (1 + this.skills.level('vechten') * CONFIG.skills.vechten.damage) * (1 + this.mods.get('damage'))
+      * this.upgradeMult('weapon');
     bus.emit('sfx', 'enemyHit');
     // zichtbare slag
     const flip = this.player.sprite.flipX;
@@ -521,6 +547,9 @@ export class GameScene extends Phaser.Scene {
   hurtPlayer(dmg) {
     if (this.dead || this.time.now < this.hurtUntil) return;
     this.hurtUntil = this.time.now + CONFIG.combat.hurtCooldownMs;
+    // harnas vangt een deel op
+    const reduce = Math.min(0.8, CONFIG.combat.armorReduction[this.tools.armor || 0] + this.upgrades.armor * CONFIG.upgrades.per.armor);
+    dmg *= 1 - reduce;
     this.hp -= dmg;
     const p = this.player.sprite;
     p.setTintFill(0xff6060);
@@ -534,6 +563,7 @@ export class GameScene extends Phaser.Scene {
 
   die() {
     this.dead = true;
+    if (this.depth.active) this.depth.stop('dood');
     this.autoTarget = null;
     this.autoGrab = null;
     if (this.build.active) this.build.close();
@@ -602,36 +632,139 @@ export class GameScene extends Phaser.Scene {
     if (first) this.objectives.check();
   }
 
+  get sealCount() {
+    return Object.values(this.flags.seals).filter(Boolean).length;
+  }
+
   onKern() {
     if (this.boss?.alive) return;
     if (this.flags.bossDefeated) {
       bus.emit('open-prestige');
       return;
     }
+    // het hart gaat pas open met alle zegels
+    if (this.sealCount < CONFIG.kernSeals) {
+      bus.emit('message', `${TEXT.kernSealed} ${this.sealCount}/${CONFIG.kernSeals}.`, true);
+      return;
+    }
     this.startBoss();
+  }
+
+  // Een baas laten opklimmen naast een object (het hart of een altaar)
+  spawnBoss(near, key, text) {
+    if (this.boss?.alive || this.depth.active) return;
+    const spot = [[0, 2], [2, 0], [0, -2], [-2, 0], [1, 1], [1, -1], [-1, 1]].map(([dx, dy]) => ({ gx: near.gx + dx, gy: near.gy + dy }))
+      .find((p) => this.island.get(p.gx, p.gy) && !this.objects.some((o) => o.gx === p.gx && o.gy === p.gy))
+      || { gx: near.gx, gy: near.gy + 1 };
+    this.boss = new Boss(this, spot.gx, spot.gy, key);
+    this.night.enemies.push(this.boss);
+    bus.emit('sfx', 'roar');
+    bus.emit('message', text, true);
+    bus.emit('boss-start', { name: this.boss.name });
+    bus.emit('boss-hp', this.boss.hp, this.boss.maxHp);
   }
 
   startBoss() {
     const kern = this.objects.find((o) => o.type === 'kern');
-    if (!kern) return;
-    // de Hoeder klimt naast het hart omhoog
-    const spot = [[0, 2], [2, 0], [0, -2], [-2, 0], [1, 1]].map(([dx, dy]) => ({ gx: kern.gx + dx, gy: kern.gy + dy }))
-      .find((p) => this.island.get(p.gx, p.gy)) || { gx: kern.gx, gy: kern.gy + 1 };
-    this.boss = new Boss(this, spot.gx, spot.gy);
-    this.night.enemies.push(this.boss);
-    bus.emit('sfx', 'roar');
-    bus.emit('message', TEXT.bossStart, true);
-    bus.emit('boss-start', { name: CONFIG.boss.name });
-    bus.emit('boss-hp', this.boss.hp, this.boss.maxHp);
+    if (kern) this.spawnBoss(kern, 'hoeder', TEXT.bossStart);
+  }
+
+  summonGuardian(altar) {
+    const first = !this.flags.seals[altar.boss];
+    this.spawnBoss(altar, altar.boss, `${altar.def.name}. ${first ? TEXT.guardianFirst : TEXT.guardianAgain}`);
+  }
+
+  onPortal() {
+    if (this.depth.active) {
+      this.depth.stop('stop');
+      return;
+    }
+    if (!this.flags.bossDefeated) {
+      bus.emit('message', TEXT.portalClosed, true);
+      return;
+    }
+    if (this.boss?.alive) return;
+    this.depth.start();
+  }
+
+  onGuardianDefeated(boss) {
+    const def = CONFIG.bewakers[boss.key];
+    const first = !this.flags.seals[boss.key];
+    this.flags.seals[boss.key] = true;
+    this.stats.guardianKills = (this.stats.guardianKills || 0) + 1;
+    bus.emit('boss-end');
+    this.cameras.main.shake(700, 0.008);
+    const p = this.player.sprite;
+    let i = 0;
+    for (const [k, n] of Object.entries(def.reward)) {
+      this.inventory.add(k, n);
+      this.collect(k, n);
+      bus.emit('float', { wx: p.x, wy: p.y - 120 - i * 26, text: `+${n} ${CONFIG.items[k].name.toLowerCase()}`, color: '#ffd98a' });
+      i++;
+    }
+    if (Math.random() < def.heartChance) {
+      this.inventory.add('leegtehart', 1);
+      bus.emit('message', TEXT.heartDrop, true);
+    }
+    this.skills.gain('vechten', 80);
+    if (first) bus.emit('message', `${TEXT.sealGained} ${this.sealCount}/${CONFIG.kernSeals}.`, true);
+    this.objectives.check();
+    this.saveNow();
+  }
+
+  // ---------- machines en aambeeld ----------
+
+  collectMachine(m) {
+    const n = m.stored;
+    if (!n) return;
+    this.inventory.add(m.def.item, n);
+    this.collect(m.def.item, n);
+    m.stored = 0;
+    m.draw();
+    bus.emit('float', { wx: m.sprite.x, wy: m.topY, text: `+${n} ${CONFIG.items[m.def.item].name.toLowerCase()}`, color: '#e8d6b8' });
+    this.saveNow();
+  }
+
+  upgradeMachine(m) {
+    if (m.tier >= CONFIG.machines.maxTier) return;
+    if (!pay(this.inventory, machineUpgradeCost(m))) return;
+    m.tier++;
+    m.draw();
+    this.skills.gain('bouwen', CONFIG.skills.bouwen.xpObject);
+    bus.emit('sfx', 'craft');
+    bus.emit('message', `${m.def.name} ${TEXT.machineUpgraded} ${m.tier}.`, true);
+    this.objectives.check();
+    this.saveNow();
+  }
+
+  // Factor van versterken (+1 = 10%, enz.)
+  upgradeMult(slot) {
+    return 1 + (this.upgrades[slot] || 0) * CONFIG.upgrades.per[slot];
+  }
+
+  upgradeGear(slot) {
+    const level = (this.upgrades[slot] || 0) + 1;
+    if (level > CONFIG.upgrades.max) return;
+    if ((this.tools[slot] || 0) === 0) return;
+    if (!pay(this.inventory, gearUpgradeCost(level))) return;
+    this.upgrades[slot] = level;
+    bus.emit('sfx', 'craft');
+    bus.emit('message', `${CONFIG.tools[slot][this.tools[slot]]} +${level}. ${TEXT.gearUpgraded}`, true);
+    this.objectives.check();
+    this.saveNow();
   }
 
   onBossDefeated(boss) {
+    if (boss.key && boss.key !== 'hoeder') {
+      this.onGuardianDefeated(boss);
+      return;
+    }
     this.flags.bossDefeated = true;
     this.stats.bossKills = (this.stats.bossKills || 0) + 1;
     bus.emit('boss-end');
     this.cameras.main.shake(1200, 0.01);
     this.cameras.main.flash(900, 220, 200, 255);
-    for (const [k, n] of Object.entries(CONFIG.boss.reward)) this.inventory.add(k, n);
+    for (const [k, n] of Object.entries(CONFIG.boss.reward)) { this.inventory.add(k, n); this.collect(k, n); }
     this.skills.gain('vechten', 200);
     this.saveNow();
     this.time.delayedCall(1800, () => {
@@ -732,6 +865,7 @@ export class GameScene extends Phaser.Scene {
       inventory: this.inventory.toJSON(),
       chest: this.chestStore.toJSON(),
       tools: this.tools,
+      upgrades: this.upgrades,
       skills: this.skills.toJSON(),
       time: this.dayNight.toJSON(),
       crumble: this.crumble.serialize(),

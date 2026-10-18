@@ -33,7 +33,15 @@ const LIST = [
   { id: 'sterrenstof', progress: (g) => [g.stats.sterrenstof || 0, 4] },
   { id: 'skill5', progress: (g) => [Math.max(...['hakken', 'delven', 'bouwen'].map((s) => g.skills.level(s))), 5] },
   { id: 'kern', done: (g) => !!g.flags.discovered?.kern },
+  { id: 'zwavelklif', done: (g) => !!g.flags.discovered?.zwavelklif || !!g.flags.discovered?.paddenbos || !!g.flags.discovered?.ijsrots },
+  { id: 'harnas', done: (g) => (g.tools.armor || 0) >= 1 },
+  { id: 'bewaker', done: (g) => (g.stats.guardianKills || 0) >= 1 },
+  { id: 'aambeeld', done: (g) => Object.values(g.upgrades || {}).some((v) => v >= 1) },
+  { id: 'machine', done: (g) => g.countObjects('machine') >= 1 },
+  { id: 'zegels', progress: (g) => [g.sealCount, 4] },
   { id: 'hoeder', done: (g) => !!g.flags.bossDefeated },
+  { id: 'diepte5', progress: (g) => [g.stats.bestDepth || 0, 5] },
+  { id: 'diepte20', progress: (g) => [g.stats.bestDepth || 0, 20] },
   { id: 'cyclus', done: () => false },
 ];
 

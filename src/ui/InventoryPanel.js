@@ -69,7 +69,8 @@ export class InventoryPanel {
         const tier = game.tools[k];
         const cy = y + 16 * S;
         list.add(sc.add.image(px + pad + 13 * S, cy, `icon_${k}${tier}`).setDisplaySize(28 * S, 28 * S));
-        list.add(sc.add.text(px + pad + 36 * S, cy, CONFIG.tools[k][tier], textStyle(S, 15)).setOrigin(0, 0.5));
+        const plus = game.upgrades?.[k] ? ` +${game.upgrades[k]}` : '';
+        list.add(sc.add.text(px + pad + 36 * S, cy, CONFIG.tools[k][tier] + plus, textStyle(S, 15)).setOrigin(0, 0.5));
         y += 40 * S;
       }
     }

@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 11,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 12,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
@@ -26,14 +26,14 @@ export const CONFIG = {
 
   // Lijsten per gereedschapsniveau: [zonder, hout, steen, roest]
   tree: {
-    hitsPerYield: [4, 3, 2, 2],   // slagen per opbrengst (skill Hakken maakt elke slag sterker)
-    woodPerYield: [1, 1, 2, 3],   // wrakhout per opbrengst
+    hitsPerYield: [4, 3, 2, 2, 1.6, 1.2],   // slagen per opbrengst (skill Hakken maakt elke slag sterker)
+    woodPerYield: [1, 1, 2, 3, 4, 5],       // wrakhout per opbrengst
     radius: 0.3,
   },
 
   generator: {
-    hitsPerYield: [0, 4, 3, 2],   // 0 = kan niet zonder houweel
-    puinPerYield: [0, 1, 2, 2],
+    hitsPerYield: [0, 4, 3, 2, 1.6, 1.2],   // 0 = kan niet zonder houweel
+    puinPerYield: [0, 1, 2, 2, 3, 4],
     regrowMs: 1500,            // hoe snel er een nieuwe steen groeit
     radius: 0.34,
   },
@@ -86,14 +86,62 @@ export const CONFIG = {
       ],
     },
     {
-      id: 'kern', name: 'De Kern', kind: 'ruin', offset: [10, 10], note: 4,
-      arrive: 'De Kern. Hier begon het. Hier eindigt het, hoe dan ook.',
+      id: 'kern', name: 'De Kern', kind: 'ruin', offset: [10, 10], note: 4, ring: 1,
+      arrive: 'De Kern. Hier begon het. Vier zegels houden het hart dicht.',
       layout: [
         '..###..',
         '.#####.',
         '###N###',
         '###X###',
         '#######',
+        '.###O#.',
+        '..###..',
+      ],
+    },
+    // ring 2: verder weg, zwaarder, met een bewaker per eiland
+    {
+      id: 'zwavelklif', name: 'Het Zwavelklif', kind: 'sulfur', offset: [21, -2], note: 6, ring: 2, boss: 'zwavel',
+      arrive: 'Het Zwavelklif. Het stinkt naar rotte eieren en slechte ideeën.',
+      layout: [
+        '.###.',
+        '##Z##',
+        '#ZAN#',
+        '##Z##',
+        '.###.',
+      ],
+    },
+    {
+      id: 'paddenbos', name: 'Het Paddenbos', kind: 'mycelium', offset: [-2, 21], note: 7, ring: 2, boss: 'padde',
+      arrive: 'Het Paddenbos. De paddenstoelen zijn groter dan jij. En ze kijken.',
+      layout: [
+        '.###.',
+        '#M#M#',
+        '##A##',
+        '#MN##',
+        '.###.',
+      ],
+    },
+    {
+      id: 'ijsrots', name: 'De IJsrots', kind: 'snow', offset: [-13, 4], note: 8, ring: 2, boss: 'ijs',
+      arrive: 'De IJsrots. Koud. Zelfs de leegte rilt hier.',
+      layout: [
+        '.###.',
+        '##I##',
+        '#IAN#',
+        '##I##',
+        '.###.',
+      ],
+    },
+    // ring 3: het verste en zwaarste
+    {
+      id: 'echokloof', name: 'De Echokloof', kind: 'sculk', offset: [22, 21], note: 9, ring: 3, boss: 'echo',
+      arrive: 'De Echokloof. Elke stap die je zet, hoor je twee keer. De tweede keer niet van jou.',
+      layout: [
+        '..###..',
+        '.##E##.',
+        '##E#E##',
+        '###A##N',
+        '##E#E##',
         '.#####.',
         '..###..',
       ],
@@ -102,15 +150,30 @@ export const CONFIG = {
 
   // Grondstof-aders op de verre eilanden. hits per houweel-niveau (0 = kan niet)
   nodes: {
-    wrak:        { name: 'Wrakhoop',     item: 'roest',         amount: [1, 2], hits: [0, 4, 3, 2, 2], regrowMs: 2500 },
-    kristalader: { name: 'Kristalader',  item: 'leegtekristal', amount: [1, 1], hits: [0, 0, 6, 4, 3], regrowMs: 4500 },
-    sterrenader: { name: 'Sterrenader',  item: 'sterrenstof',   amount: [1, 1], hits: [0, 0, 0, 6, 5], regrowMs: 5500 },
+    wrak:        { name: 'Wrakhoop',     item: 'roest',         amount: [1, 2], hits: [0, 4, 3, 2, 2, 1.5], regrowMs: 2500 },
+    kristalader: { name: 'Kristalader',  item: 'leegtekristal', amount: [1, 1], hits: [0, 0, 6, 4, 3, 2], regrowMs: 4500 },
+    sterrenader: { name: 'Sterrenader',  item: 'sterrenstof',   amount: [1, 1], hits: [0, 0, 0, 6, 5, 4], regrowMs: 5500 },
+    zwavelader:  { name: 'Zwavelader',   item: 'zwavel',        amount: [1, 2], hits: [0, 0, 0, 5, 4, 3], regrowMs: 4000 },
+    paddenstoel: { name: 'Reuzenpaddenstoel', item: 'wrakhout', amount: [3, 6], hits: [0, 0, 0, 3, 2, 2], regrowMs: 3000 },
+    ijsader:     { name: 'IJsader',      item: 'sterrenstof',   amount: [1, 2], hits: [0, 0, 0, 0, 5, 4], regrowMs: 5000 },
+    zielenader:  { name: 'Zielenader',   item: 'zielenkristal', amount: [1, 1], hits: [0, 0, 0, 0, 7, 5], regrowMs: 7000 },
+  },
+
+  // Zegels: zoveel bewakers moet je verslaan voor het hart opengaat
+  kernSeals: 4,
+
+  // Bewakers op ring 2 en 3. Steeds opnieuw op te roepen bij hun altaar.
+  bewakers: {
+    zwavel: { name: 'De Zwavelvreter', hp: 450, damage: 3, tint: 0xfff080, scale: 1.3, reward: { zwavel: 12, zielenkristal: 2 }, heartChance: 0.2 },
+    padde:  { name: 'De Sporenmoeder', hp: 600, damage: 3, tint: 0xd8a0ff, scale: 1.35, reward: { wrakhout: 60, zwavel: 6, zielenkristal: 2 }, heartChance: 0.25 },
+    ijs:    { name: 'De Vrieskoning', hp: 800, damage: 4, tint: 0xa8e0ff, scale: 1.4, reward: { sterrenstof: 12, zielenkristal: 3 }, heartChance: 0.3 },
+    echo:   { name: 'De Echo', hp: 1300, damage: 5, tint: 0x60ffd8, scale: 1.55, reward: { zielenkristal: 8, leegtekristal: 10 }, heartChance: 0.6 },
   },
 
   boss: {
     name: 'De Hoeder van de Kern',
-    hp: 300,
-    damage: 2,              // bij aanraking
+    hp: 1500,
+    damage: 4,              // bij aanraking
     speed: 0.7,
     radius: 0.55,
     attackMs: 1800,
@@ -123,9 +186,53 @@ export const CONFIG = {
     boltEveryMs: 2600,             // alleen fase 2
     boltDamage: 2,
     phase2At: 0.5,
-    reward: { sterrenstof: 10, leegtekristal: 6 },
+    reward: { sterrenstof: 15, leegtekristal: 10, zielenkristal: 10, leegtehart: 2 },
     cycleGrowth: 0.3,              // per prestige-cyclus sterker
   },
+
+  // ---------- automatisering ----------
+
+  // Machines maken iets zolang het spel open is. Niveau 1 t/m 5: sneller en meer opslag.
+  machines: {
+    maxTier: 5,
+    speed: [0, 1, 1.35, 1.8, 2.4, 3.2],
+    storage: [0, 1, 1.5, 2.2, 3.2, 5],
+    types: {
+      zaagmolen:   { name: 'Zaagmolen',   item: 'wrakhout',      everyMs: 8000,  store: 30, glow: '#d89a50' },
+      steenmaler:  { name: 'Steenmaler',  item: 'puin',          everyMs: 11000, store: 30, glow: '#c8c8c8' },
+      roestvanger: { name: 'Roestvanger', item: 'roest',         everyMs: 16000, store: 20, glow: '#e07a40' },
+      kristalpers: { name: 'Kristalpers', item: 'leegtekristal', everyMs: 40000, store: 12, glow: '#b48cff' },
+      zwavelpomp:  { name: 'Zwavelpomp',  item: 'zwavel',        everyMs: 24000, store: 16, glow: '#f0d830' },
+      sterrenzeef: { name: 'Sterrenzeef', item: 'sterrenstof',   everyMs: 50000, store: 10, glow: '#fff4c0' },
+    },
+  },
+
+  // ---------- versterken op het aambeeld ----------
+
+  upgrades: {
+    max: 10,
+    per: { axe: 0.1, pickaxe: 0.1, weapon: 0.12, armor: 0.02 },   // per +1
+  },
+
+  // ---------- de Diepte: eindeloze golven bij de Kern ----------
+
+  depth: {
+    crawlers: [3, 1],        // 3 + 1 per diepte
+    brutesEvery: 3,          // elke 3 dieptes een brute extra
+    strength: 0.7,           // wezens zijn zo sterk als nacht 2 + diepte * dit
+    breakMs: 4000,           // adempauze tussen golven
+  },
+
+  // ---------- cyclusregels: elke nieuwe cyclus één ----------
+
+  cycleMods: [
+    { id: 'woest',  name: 'Woeste nachten',   text: '50% meer nachtwezens, +15% schade', mod: { 'enemy.count': 0.5, damage: 0.15 } },
+    { id: 'honger', name: 'Hongerige leegte', text: 'Randen brokkelen sneller af, ankers reiken verder', mod: { 'crumble.speed': 0.6, anchor: 0.25 } },
+    { id: 'rijk',   name: 'Rijk wrak',        text: 'Veel meer drijvend wrak en buit', mod: { 'drift.rate': 0.6, 'drift.loot': 0.5 } },
+    { id: 'gul',    name: 'Gulle bomen',      text: '+1 wrakhout per opbrengst, één hartje minder', mod: { 'yield.wrakhout': 1, hp: -2 } },
+    { id: 'dun',    name: 'Dunne lucht',      text: 'Twee hartjes minder, +35% schade', mod: { hp: -4, damage: 0.35 } },
+    { id: 'diep',   name: 'Diepe aders',      text: 'Meer opbrengst uit generator en aders', mod: { 'yield.puin': 1, 'yield.roest': 0.5, 'yield.leegtekristal': 0.3 } },
+  ],
 
   // ---------- prestige ----------
 
@@ -145,9 +252,10 @@ export const CONFIG = {
   workbench: { radius: 0.34 },
 
   tools: {
-    axe:     ['Handen', 'Houten bijl', 'Stenen bijl', 'Roestige bijl'],
-    pickaxe: ['Geen houweel', 'Houten houweel', 'Stenen houweel', 'Roestig houweel'],
-    weapon:  ['Vuisten', 'Houten knuppel', 'Puinhamer', 'Roestzwaard', 'Leegtezwaard', 'Sterrenzwaard'],
+    axe:     ['Handen', 'Houten bijl', 'Stenen bijl', 'Roestige bijl', 'Kristallen bijl', 'Zielenbijl'],
+    pickaxe: ['Geen houweel', 'Houten houweel', 'Stenen houweel', 'Roestig houweel', 'Kristallen houweel', 'Zielenhouweel'],
+    weapon:  ['Vuisten', 'Houten knuppel', 'Puinhamer', 'Roestzwaard', 'Leegtezwaard', 'Sterrenzwaard', 'Zielenzwaard'],
+    armor:   ['Geen harnas', 'Houten harnas', 'Roestharnas', 'Kristalharnas', 'Sterrenharnas', 'Zielenharnas'],
   },
 
   // ---------- dag, nacht en vechten ----------
@@ -162,7 +270,8 @@ export const CONFIG = {
   },
 
   combat: {
-    weaponDamage: [1, 2, 3, 5, 8, 13],   // per wapenniveau
+    weaponDamage: [1, 2, 3, 5, 8, 13, 20],   // per wapenniveau
+    armorReduction: [0, 0.1, 0.2, 0.32, 0.45, 0.58],   // minder schade per harnasniveau
     reach: 1.0,                      // tegels, vanaf de rand van het wezen
     baseHp: 10,                      // levens (2 per hartje)
     regenPerSec: 0.25,               // overdag
@@ -244,8 +353,8 @@ export const CONFIG = {
         { recipe: 'houtblok' },
         { mod: { 'xp.hakken': 0.1 }, text: '+10% Hakken-xp' },
         { mod: { 'yield.wrakhout': 0.25 }, text: '25% kans op extra wrakhout' },
-        { mod: { 'drift.rate': 0.15 }, text: '+15% drijvend wrak' },
-        { mod: { 'double.hakken': 0.05 }, text: '+5% kans op dubbel hout' },
+        { recipe: 'zaagmolen' },
+        { mod: { 'double.hakken': 0.05, 'drift.rate': 0.15 }, text: '+5% dubbel hout, +15% drijvend wrak' },
         { mod: { 'yield.wrakhout': 0.5 }, text: '50% kans op extra wrakhout' },
         { mod: { 'xp.hakken': 0.2 }, text: '+20% Hakken-xp' },
         { mod: { 'yield.wrakhout': 1 }, text: '+1 wrakhout per opbrengst' },
@@ -254,8 +363,8 @@ export const CONFIG = {
         { recipe: 'bakstenen' },
         { mod: { 'xp.delven': 0.1 }, text: '+10% Delven-xp' },
         { mod: { 'yield.puin': 0.25 }, text: '25% kans op extra puin' },
-        { mod: { anchor: 0.1 }, text: '+10% ankerbereik' },
-        { mod: { 'double.delven': 0.05 }, text: '+5% kans op dubbele opbrengst' },
+        { recipe: 'steenmaler' },
+        { mod: { 'double.delven': 0.05, anchor: 0.1 }, text: '+5% dubbele opbrengst, +10% ankerbereik' },
         { mod: { 'yield.puin': 0.5 }, text: '50% kans op extra puin' },
         { mod: { 'xp.delven': 0.2 }, text: '+20% Delven-xp' },
         { mod: { 'yield.puin': 1 }, text: '+1 puin per opbrengst' },
@@ -263,7 +372,7 @@ export const CONFIG = {
       roest: [
         { mod: { 'drift.loot': 0.25 }, text: '25% kans op extra buit uit wrak' },
         { recipe: 'ijzerblok' },
-        { mod: { anchor: 0.1 }, text: '+10% ankerbereik' },
+        { recipe: 'roestvanger' },
         { mod: { 'drift.rate': 0.2 }, text: '+20% drijvend wrak' },
         { mod: { 'yield.roest': 0.5 }, text: '50% kans op extra roest' },
         { mod: { damage: 0.05 }, text: '+5% schade' },
@@ -274,7 +383,7 @@ export const CONFIG = {
         { recipe: 'amethistblok' },
         { mod: { hp: 2 }, text: '+1 hartje' },
         { recipe: 'lichtblok' },
-        { mod: { damage: 0.1 }, text: '+10% schade' },
+        { recipe: 'kristalpers' },
         { mod: { 'xp.vechten': 0.2 }, text: '+20% Vechten-xp' },
         { recipe: 'obsidiaanblok' },
         { mod: { hp: 4 }, text: '+2 hartjes' },
@@ -284,11 +393,31 @@ export const CONFIG = {
         { recipe: 'kwartsblok' },
         { mod: { 'yield.sterrenstof': 0.25 }, text: '25% kans op extra sterrenstof' },
         { mod: { 'xp.delven': 0.15, 'xp.hakken': 0.15 }, text: '+15% Hakken- en Delven-xp' },
-        { mod: { anchor: 0.2 }, text: '+20% ankerbereik' },
+        { recipe: 'sterrenzeef' },
         { mod: { 'yield.sterrenstof': 0.5 }, text: '50% kans op extra sterrenstof' },
         { mod: { damage: 0.15 }, text: '+15% schade' },
         { mod: { hp: 4 }, text: '+2 hartjes' },
         { mod: { 'yield.sterrenstof': 1 }, text: '+1 sterrenstof per opbrengst' },
+      ],
+      zwavel: [
+        { mod: { 'yield.zwavel': 0.25 }, text: '25% kans op extra zwavel' },
+        { recipe: 'zwavelpomp' },
+        { mod: { 'xp.delven': 0.1 }, text: '+10% Delven-xp' },
+        { mod: { 'yield.zwavel': 0.5 }, text: '50% kans op extra zwavel' },
+        { mod: { damage: 0.1 }, text: '+10% schade' },
+        { mod: { 'yield.zwavel': 1 }, text: '+1 zwavel per opbrengst' },
+        { mod: { 'crumble.speed': -0.2 }, text: 'Randen brokkelen 20% trager af' },
+        { mod: { 'yield.zwavel': 1, 'yield.puin': 1 }, text: '+1 zwavel en puin per opbrengst' },
+      ],
+      zielenkristal: [
+        { mod: { hp: 2 }, text: '+1 hartje' },
+        { mod: { damage: 0.1 }, text: '+10% schade' },
+        { mod: { 'yield.zielenkristal': 0.2 }, text: '20% kans op extra zielenkristal' },
+        { mod: { hp: 4 }, text: '+2 hartjes' },
+        { mod: { 'xp.vechten': 0.25 }, text: '+25% Vechten-xp' },
+        { mod: { damage: 0.2 }, text: '+20% schade' },
+        { mod: { 'yield.zielenkristal': 0.5 }, text: '50% kans op extra zielenkristal' },
+        { mod: { hp: 6, damage: 0.25 }, text: '+3 hartjes en +25% schade' },
       ],
       wezens: [
         { mod: { damage: 0.05 }, text: '+5% schade' },
@@ -303,6 +432,7 @@ export const CONFIG = {
     },
     // nachtwezens tellen langzamer op: eigen drempels
     thresholdsWezens: [10, 40, 120, 300, 750, 2000, 5000, 15000],
+    thresholdsZielen: [5, 20, 60, 150, 400, 1000, 2500, 6000],
   },
 
   // Drijvend wrak dat langs het eiland zweeft
@@ -353,6 +483,9 @@ export const CONFIG = {
     roest:          { name: 'Roest',          resource: true },
     leegtekristal:  { name: 'Leegtekristal',  resource: true },
     sterrenstof:    { name: 'Sterrenstof',    resource: true },
+    zwavel:         { name: 'Zwavel',         resource: true },
+    zielenkristal:  { name: 'Zielenkristal',  resource: true },
+    leegtehart:     { name: 'Leegtehart',     resource: true },
     vlonder:        { name: 'Vlonder',        place: 'tile', tile: 'plank' },
     puinblok:       { name: 'Puinblok',       place: 'tile', tile: 'stone' },
     werkbank:       { name: 'Werkbank',       place: 'object' },
@@ -371,6 +504,13 @@ export const CONFIG = {
     kwartsblok:     { name: 'Kwartsblok',     place: 'tile', tile: 'quartzblock' },
     obsidiaanblok:  { name: 'Obsidiaanblok',  place: 'tile', tile: 'obsidianblock' },
     lichtblok:      { name: 'Lichtblok',      place: 'tile', tile: 'glow' },
+    aambeeld:       { name: 'Aambeeld',       place: 'object' },
+    zaagmolen:      { name: 'Zaagmolen',      place: 'object' },
+    steenmaler:     { name: 'Steenmaler',     place: 'object' },
+    roestvanger:    { name: 'Roestvanger',    place: 'object' },
+    kristalpers:    { name: 'Kristalpers',    place: 'object' },
+    zwavelpomp:     { name: 'Zwavelpomp',     place: 'object' },
+    sterrenzeef:    { name: 'Sterrenzeef',    place: 'object' },
   },
 
   // at: 'hand' = in de rugzak, 'werkbank' = bij een werkbank
@@ -398,7 +538,24 @@ export const CONFIG = {
     { id: 'brug',           at: 'werkbank', cost: { wrakhout: 2, roest: 1 },         gives: { item: 'brug', amount: 2 } },
     { id: 'sterrenbrug',    at: 'werkbank', cost: { sterrenstof: 2, roest: 2 },      gives: { item: 'sterrenbrug', amount: 1 } },
     { id: 'wapen5',         at: 'werkbank', cost: { sterrenstof: 5, leegtekristal: 4 }, gives: { tool: 'weapon', tier: 5 } },
+    { id: 'bijl4',          at: 'werkbank', cost: { leegtekristal: 8, sterrenstof: 2, roest: 6 },  gives: { tool: 'axe', tier: 4 } },
+    { id: 'houweel4',       at: 'werkbank', cost: { leegtekristal: 8, sterrenstof: 2, roest: 6 },  gives: { tool: 'pickaxe', tier: 4 } },
+    { id: 'bijl5',          at: 'werkbank', cost: { zielenkristal: 6, leegtekristal: 10, zwavel: 6 }, gives: { tool: 'axe', tier: 5 } },
+    { id: 'houweel5',       at: 'werkbank', cost: { zielenkristal: 6, leegtekristal: 10, zwavel: 6 }, gives: { tool: 'pickaxe', tier: 5 } },
+    { id: 'wapen6',         at: 'werkbank', cost: { zielenkristal: 10, sterrenstof: 8, leegtehart: 1 }, gives: { tool: 'weapon', tier: 6 } },
+    { id: 'harnas1',        at: 'werkbank', cost: { wrakhout: 12 },                                 gives: { tool: 'armor', tier: 1 } },
+    { id: 'harnas2',        at: 'werkbank', cost: { roest: 15, puin: 10 },                          gives: { tool: 'armor', tier: 2 } },
+    { id: 'harnas3',        at: 'werkbank', cost: { leegtekristal: 12, roest: 10 },                 gives: { tool: 'armor', tier: 3 } },
+    { id: 'harnas4',        at: 'werkbank', cost: { sterrenstof: 10, leegtekristal: 10 },           gives: { tool: 'armor', tier: 4 } },
+    { id: 'harnas5',        at: 'werkbank', cost: { zielenkristal: 12, leegtehart: 1 },             gives: { tool: 'armor', tier: 5 } },
+    { id: 'aambeeld',       at: 'werkbank', cost: { roest: 20, puin: 30, leegtekristal: 4 },        gives: { item: 'aambeeld', amount: 1 } },
     // ontgrendeld via collecties
+    { id: 'zaagmolen',     at: 'werkbank', cost: { wrakhout: 60, roest: 10 },                gives: { item: 'zaagmolen', amount: 1 },   requires: 'wrakhout' },
+    { id: 'steenmaler',    at: 'werkbank', cost: { puin: 60, roest: 10 },                    gives: { item: 'steenmaler', amount: 1 },  requires: 'puin' },
+    { id: 'roestvanger',   at: 'werkbank', cost: { roest: 40, puin: 20 },                    gives: { item: 'roestvanger', amount: 1 }, requires: 'roest' },
+    { id: 'kristalpers',   at: 'werkbank', cost: { leegtekristal: 30, roest: 20 },           gives: { item: 'kristalpers', amount: 1 }, requires: 'leegtekristal' },
+    { id: 'zwavelpomp',    at: 'werkbank', cost: { zwavel: 20, roest: 20 },                  gives: { item: 'zwavelpomp', amount: 1 },  requires: 'zwavel' },
+    { id: 'sterrenzeef',   at: 'werkbank', cost: { sterrenstof: 30, zwavel: 10 },            gives: { item: 'sterrenzeef', amount: 1 }, requires: 'sterrenstof' },
     { id: 'houtblok',      at: 'werkbank', cost: { wrakhout: 3 },                  gives: { item: 'houtblok', amount: 1 },      requires: 'wrakhout' },
     { id: 'bakstenen',     at: 'werkbank', cost: { puin: 4 },                      gives: { item: 'bakstenen', amount: 1 },     requires: 'puin' },
     { id: 'ijzerblok',     at: 'werkbank', cost: { roest: 6 },                     gives: { item: 'ijzerblok', amount: 1 },     requires: 'roest' },

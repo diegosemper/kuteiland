@@ -33,7 +33,8 @@ export class Night {
   // Plan wanneer welke wezens komen. elapsed: hoeveel van de nacht al voorbij is (bij laden).
   start(n, elapsed = 0) {
     const E = CONFIG.enemies;
-    const crawlers = Math.round(E.perNight.base + E.perNight.extra * (n - 1));
+    const more = 1 + this.game.mods.get('enemy.count');
+    const crawlers = Math.round((E.perNight.base + E.perNight.extra * (n - 1)) * more);
     const brutes = n >= E.brutesFrom ? Math.floor((n - E.brutesFrom) / 2) + 1 : 0;
     const window = CONFIG.dayNight.nightMs * E.spawnSpread;
     const kinds = [...Array(crawlers).fill('crawler'), ...Array(brutes).fill('brute')]
@@ -54,8 +55,8 @@ export class Night {
   end() {
     this.queue = [];
     // de Hoeder trekt zich niets aan van de zon
-    for (const e of this.enemies) if (e.kind !== 'boss') e.vanish(this.fx);
-    this.enemies = this.enemies.filter((e) => e.kind === 'boss');
+    for (const e of this.enemies) if (e.kind !== 'boss' && !e.depth) e.vanish(this.fx);
+    this.enemies = this.enemies.filter((e) => e.kind === 'boss' || e.depth);
     for (const o of this.game.objects) o.healFull?.();
     // kristallen die nog liggen, komen vanzelf naar je toe
     for (const p of this.pickups) p.gx = this.game.player.gx, p.gy = this.game.player.gy;
@@ -182,6 +183,8 @@ export class Night {
       if (o.type === 'anchor' || o.type === 'note') list.push({ x: o.sprite.x, y: o.lightY, r: 0.7 });
       if (o.type === 'node' && o.node !== 'wrak') list.push({ x: o.sprite.x, y: o.lightY, r: 1.1 });
       if (o.type === 'kern') list.push({ x: o.sprite.x, y: o.lightY, r: 3.2 });
+      if (o.type === 'altar' || o.type === 'portal') list.push({ x: o.sprite.x, y: o.lightY, r: 1.6 });
+      if (o.type === 'machine') list.push({ x: o.sprite.x, y: o.hitY, r: 0.9 });
     }
     for (const p of this.pickups) list.push({ x: p.sprite.x, y: p.sprite.y, r: 0.6 });
     for (const t of g.island.glowTiles()) list.push({ x: t.x, y: t.y, r: 2.2 });
@@ -208,6 +211,12 @@ export class Night {
     g.stats.kills = (g.stats.kills || 0) + 1;
     g.collect('wezens', 1);
     if (byPlayer) g.skills.gain('vechten', CONFIG.skills.vechten.xpKill);
+    // zeldzaam: een leegtehart
+    const heartChance = e.kind === 'brute' ? 0.03 : 0.005;
+    if (Math.random() < heartChance) {
+      g.inventory.add('leegtehart', 1);
+      bus.emit('message', TEXT.heartDrop, true);
+    }
     const [min, max] = e.def.crystals;
     if (Math.random() < e.def.crystalChance) {
       const n = Math.max(1, min + Math.floor(Math.random() * (max - min + 1)));

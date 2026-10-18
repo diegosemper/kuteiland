@@ -2,9 +2,40 @@
 // zodat speler, wezens, bouwen en routes niet hoeven te weten op welk eiland iets ligt.
 import { CONFIG } from '../config.js';
 import { Island, layoutFromConfig } from './Island.js';
+import { getMeta } from '../systems/Meta.js';
+import { mulberry32 } from '../rng.js';
+
+// De verre eilanden voor deze cyclus. Cyclus 1 is altijd hetzelfde; daarna wisselen eilanden
+// binnen hun ring van plek en liggen sommige gespiegeld. De Kern blijft in het midden.
+export function islandDefs() {
+  const cycle = getMeta().cycle;
+  if (cycle <= 1) return CONFIG.islands;
+  const rnd = mulberry32(cycle * 7919);
+  const defs = CONFIG.islands.map((d) => ({ ...d }));
+  for (const ring of [1, 2]) {
+    const group = defs.filter((d) => (d.ring || 1) === ring && d.id !== 'kern');
+    const offsets = group.map((d) => d.offset);
+    for (let i = offsets.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [offsets[i], offsets[j]] = [offsets[j], offsets[i]];
+    }
+    group.forEach((d, i) => { d.offset = offsets[i]; });
+  }
+  for (const d of defs) {
+    if (d.id === 'kern' || rnd() < 0.5) continue;
+    // spiegelen over de diagonaal
+    const rows = d.layout.length, cols = Math.max(...d.layout.map((r) => r.length));
+    d.layout = Array.from({ length: cols }, (_, x) => Array.from({ length: rows }, (_, y) => d.layout[y][x] || '.').join(''));
+  }
+  return defs;
+}
 
 const NEIGHBOURS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-const OBJECT_CHARS = { W: { type: 'node', node: 'wrak' }, K: { type: 'node', node: 'kristalader' }, S: { type: 'node', node: 'sterrenader' }, X: { type: 'kern' } };
+const OBJECT_CHARS = {
+  W: { type: 'node', node: 'wrak' }, K: { type: 'node', node: 'kristalader' }, S: { type: 'node', node: 'sterrenader' },
+  Z: { type: 'node', node: 'zwavelader' }, M: { type: 'node', node: 'paddenstoel' }, I: { type: 'node', node: 'ijsader' },
+  E: { type: 'node', node: 'zielenader' }, X: { type: 'kern' }, O: { type: 'portal' },
+};
 
 // Tegels en objecten van een ver eiland uit CONFIG.islands
 export function remoteLayout(def) {
@@ -18,6 +49,7 @@ export function remoteLayout(def) {
       tiles.push([gx, gy, def.kind]);
       if (OBJECT_CHARS[ch]) objects.push({ ...OBJECT_CHARS[ch], gx, gy });
       if (ch === 'N') objects.push({ type: 'note', note: def.note, gx, gy });
+      if (ch === 'A') objects.push({ type: 'altar', boss: def.boss, gx, gy });
     });
   });
   return { tiles, objects };
@@ -30,7 +62,7 @@ export class World {
     this.islands = [];
     const start = layoutFromConfig();
     this.islands.push(new Island(scene, saved?.home || start.tiles, objectSpots, { id: 'home', name: 'Je eiland' }));
-    CONFIG.islands.forEach((def, i) => {
+    islandDefs().forEach((def, i) => {
       const tiles = saved?.[def.id] || remoteLayout(def).tiles;
       this.islands.push(new Island(scene, tiles, objectSpots, { id: def.id, name: def.name, seed: 100 + i * 17 }));
     });

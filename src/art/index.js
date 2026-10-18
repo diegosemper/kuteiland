@@ -11,6 +11,7 @@ import { generateCreatures } from './creatures.js';
 import { generateDefenses } from './defenses.js';
 import { generateAnchor } from './anchor.js';
 import { generateRemote } from './remote.js';
+import { generateEndgame } from './endgame.js';
 
 let noise = null;
 export function getNoise() {
@@ -27,6 +28,7 @@ export function generateTextures(scene) {
   generateDefenses(scene);
   generateAnchor(scene);
   generateRemote(scene);
+  generateEndgame(scene);
   generateCharacter(scene);
   generateIcons(scene);
 }
