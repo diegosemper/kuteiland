@@ -4,7 +4,7 @@ import { Source } from './Source.js';
 import { Chest } from './Chest.js';
 import { Workbench } from './Workbench.js';
 import { Generator } from './Generator.js';
-import { Wall, Lamp, Tower } from './Defenses.js';
+import { Wall, Lamp, Tower, Trap } from './Defenses.js';
 import { Grave } from './Grave.js';
 import { Anchor } from './Anchor.js';
 import { ResourceNode, Note, KernCore } from './Remote.js';
@@ -21,6 +21,8 @@ export const ITEM_TO_OBJECT = {
   anker: { type: 'anchor' },
   aambeeld: { type: 'anvil' },
   roestmagneet: { type: 'source', kind: 'magneet' },
+  spijkerval: { type: 'trap', kind: 'spikes' },
+  zwavelmijn: { type: 'trap', kind: 'mine' },
   kristalboor: { type: 'source', kind: 'boor' },
   zwavelketel: { type: 'source', kind: 'ketel' },
   sterrenantenne: { type: 'source', kind: 'antenne' },
@@ -44,6 +46,7 @@ export function itemForObject(o) {
   if (o.type === 'lamp') return o.crystal ? 'kristallamp' : 'lantaarn';
   if (o.type === 'machine') return o.machine;
   if (o.type === 'altar') return `altaar_${o.boss}`;
+  if (o.type === 'trap') return o.kind === 'mine' ? 'zwavelmijn' : 'spijkerval';
   if (o.type === 'source') return Object.keys(ITEM_TO_OBJECT).find((k) => ITEM_TO_OBJECT[k].kind === o.kind) || null;
   return Object.keys(ITEM_TO_OBJECT).find((k) => ITEM_TO_OBJECT[k].type === o.type) || null;
 }
@@ -54,9 +57,10 @@ export function createObject(scene, data) {
     case 'chest': return new Chest(scene, data.gx, data.gy);
     case 'workbench': return new Workbench(scene, data.gx, data.gy);
     case 'generator': return new Generator(scene, data.gx, data.gy);
-    case 'wall': return new Wall(scene, data.gx, data.gy);
+    case 'wall': return new Wall(scene, data.gx, data.gy, data);
+    case 'trap': return new Trap(scene, data.gx, data.gy, data);
     case 'lamp': return new Lamp(scene, data.gx, data.gy, data);
-    case 'tower': return new Tower(scene, data.gx, data.gy);
+    case 'tower': return new Tower(scene, data.gx, data.gy, data);
     case 'grave': return new Grave(scene, data.gx, data.gy, data);
     case 'anchor': return new Anchor(scene, data.gx, data.gy, data);
     case 'node': return new ResourceNode(scene, data.gx, data.gy, data);

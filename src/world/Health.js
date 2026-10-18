@@ -32,5 +32,18 @@ export function addHealth(obj, scene, maxHp, barY) {
     draw();
   };
 
+  obj.setHp = (n) => {
+    obj.hp = Math.max(1, Math.min(obj.maxHp, n));
+    draw();
+  };
+
+  // overdag: beschadigd = herstellen
+  Object.defineProperty(obj, 'label', {
+    configurable: true,
+    get: () => (obj.hp < obj.maxHp && !scene.dayNight?.isNight ? 'HERSTEL' : null),
+  });
+  const act = obj.act;
+  obj.act = (game) => (obj.hp < obj.maxHp && !game.dayNight.isNight ? { repairDefense: obj } : act.call(obj, game));
+
   obj.healthBar = bar;
 }

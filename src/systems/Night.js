@@ -57,7 +57,6 @@ export class Night {
     // de Hoeder trekt zich niets aan van de zon
     for (const e of this.enemies) if (e.kind !== 'boss' && !e.depth) e.vanish(this.fx);
     this.enemies = this.enemies.filter((e) => e.kind === 'boss' || e.depth);
-    for (const o of this.game.objects) o.healFull?.();
     // kristallen die nog liggen, komen vanzelf naar je toe
     for (const p of this.pickups) p.gx = this.game.player.gx, p.gy = this.game.player.gy;
   }
@@ -79,7 +78,9 @@ export class Night {
     if (far.length) edge = far;
     if (!edge.length) return;
     const t = edge[Math.floor(Math.random() * edge.length)];
-    this.enemies.push(new Enemy(this.game, kind, t.gx, t.gy, this.nightNum || this.game.dayNight.night));
+    const e = new Enemy(this.game, kind, t.gx, t.gy, this.nightNum || this.game.dayNight.night);
+    this.enemies.push(e);
+    return e;
   }
 
   spawnAt(kind, gx, gy) {
@@ -94,7 +95,7 @@ export class Night {
     const { island, objects } = this.game;
     if (!island.get(gx, gy)) return false;
     // gewone objecten blokkeren; verdediging niet (daar slaan ze doorheen)
-    return !objects.some((o) => o.gx === gx && o.gy === gy && !o.defense && o.type !== 'grave');
+    return !objects.some((o) => o.gx === gx && o.gy === gy && !o.defense && o.type !== 'grave' && o.type !== 'trap');
   }
 
   rebuildField() {
@@ -144,7 +145,7 @@ export class Night {
 
   // Botst een wezen op deze plek tegen iets?
   blockedAt(gx, gy, r) {
-    return this.game.objects.find((o) => o.type !== 'grave' && Math.hypot(o.gx - gx, o.gy - gy) < o.radius + r) || null;
+    return this.game.objects.find((o) => o.type !== 'grave' && o.type !== 'trap' && Math.hypot(o.gx - gx, o.gy - gy) < o.radius + r) || null;
   }
 
   hitStructure(o, dmg) {
@@ -222,7 +223,6 @@ export class Night {
       const n = Math.max(1, min + Math.floor(Math.random() * (max - min + 1)));
       for (let i = 0; i < n; i++) this.dropCrystal(e.gx + (Math.random() - 0.5) * 0.4, e.gy + (Math.random() - 0.5) * 0.4);
     }
-    if (!this.enemies.length && !this.queue.length && g.dayNight.isNight && !g.boss?.alive) bus.emit('message', TEXT.nightCleared);
   }
 
   dropCrystal(gx, gy) {
@@ -286,6 +286,35 @@ export class Night {
     }
   }
 
+  // ---------- vallen ----------
+
+  triggerTraps(time) {
+    const g = this.game;
+    for (const t of g.objects.filter((o) => o.type === 'trap')) {
+      if (t.kind === 'spikes') {
+        if (t.broken || time < t.nextAt) continue;
+        const hit = this.enemies.filter((e) => e.alive && e.kind !== 'boss' && Math.hypot(e.gx - t.gx, e.gy - t.gy) <= t.def.range);
+        if (!hit.length) continue;
+        t.nextAt = time + t.def.everyMs;
+        t.charges--;
+        t.draw();
+        g.tweens.add({ targets: t.sprite, y: { from: t.sprite.y - 4, to: t.sprite.y }, duration: 120 });
+        bus.emit('sfx', 'enemyHit');
+        for (const e of hit) this.damageEnemy(e, t.def.damage, false);
+      } else if (t.kind === 'mine') {
+        if (!this.enemies.some((e) => e.alive && Math.hypot(e.gx - t.gx, e.gy - t.gy) <= t.def.trigger)) continue;
+        // boem
+        this.fx.explode(40, t.sprite.x, t.hitY);
+        g.cameras.main.shake(260, 0.01);
+        bus.emit('sfx', 'slam');
+        for (const e of [...this.enemies]) {
+          if (e.alive && Math.hypot(e.gx - t.gx, e.gy - t.gy) <= t.def.blast) this.damageEnemy(e, e.kind === 'boss' ? t.def.damage / 3 : t.def.damage, false);
+        }
+        g.removeObject(t);
+      }
+    }
+  }
+
   // ---------- elke frame ----------
 
   update(time, dt) {
@@ -319,6 +348,7 @@ export class Night {
         }
       }
       this.fireTowers(time);
+      this.triggerTraps(time);
     }
     this.collectPickups();
   }

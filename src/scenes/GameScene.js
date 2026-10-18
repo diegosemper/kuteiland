@@ -26,6 +26,7 @@ import { DayNight } from '../systems/DayNight.js';
 import { Night } from '../systems/Night.js';
 import { Crumble } from '../systems/Crumble.js';
 import { toolPerks } from '../systems/Perks.js';
+import { Siege } from '../systems/Siege.js';
 import { loadGame, saveGame, clearSave } from '../systems/save.js';
 
 const AUTO_WALK_MS = 4000;
@@ -118,7 +119,9 @@ export class GameScene extends Phaser.Scene {
     this.autoGrab = null;
     this.dayNight = new DayNight(save?.time);
     this.night = new Night(this);
-    if (this.dayNight.isNight) this.night.start(this.dayNight.night, this.dayNight.t - CONFIG.dayNight.dayMs);
+    this.siege = new Siege(this);
+    // halverwege de nacht geladen: meteen weer vechten
+    if (this.dayNight.isNight) this.time.delayedCall(800, () => this.siege.resume(this.dayNight.night));
     this.crumble = new Crumble(this, save?.crumble);
     this.anchorRing = this.add.graphics().setDepth(-4000);
     this.objectives = new Objectives(this, this.flags.objectiveId ?? this.flags.objective ?? 0);
@@ -345,7 +348,8 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.dayNight.update(dt);
+    this.dayNight.update(this.siege.clockStep(dt));
+    this.siege.update(time, dt);
     this.night.update(time, dt);
     this.audio.update(this.dayNight.darkness);
     this.crumble.update(time, dt);
@@ -357,6 +361,12 @@ export class GameScene extends Phaser.Scene {
     }
     if (this.dead) {
       this.marker.setVisible(false);
+      return;
+    }
+
+    if (this.siege.prep) {
+      this.marker.setVisible(false);
+      this.player.update(dt, { x: 0, y: 0 }, this);
       return;
     }
 
@@ -482,6 +492,7 @@ export class GameScene extends Phaser.Scene {
     if (result.attack) this.attackEnemy(result.attack);
     if (result.reclaim) this.reclaimGrave(target);
     if (result.repair) this.crumble.repair(result.repair);
+    if (result.repairDefense) this.repairDefense(result.repairDefense);
     if (result.readNote) this.readNote(result.readNote);
     if (result.kern) this.onKern();
     if (result.summon) this.summonGuardian(result.summon);
@@ -940,8 +951,29 @@ export class GameScene extends Phaser.Scene {
   }
 
   onNightStart(n) {
-    bus.emit('message', n === 1 ? TEXT.nightFirst : TEXT.nightLabel + ' ' + n + '. ' + pick(TEXT.night), true);
-    this.night.start(n);
+    this.night.nightNum = n;
+    this.night.queue = [];
+    this.siege.startNight(n);
+  }
+
+  // Overdag een kapot gebouw of val herstellen. Hoe kapotter, hoe duurder.
+  repairDefense(o) {
+    const base = CONFIG.siege.repair[o.type];
+    if (!base) return;
+    const missing = o.type === 'trap' ? o.missing : 1 - o.hp / o.maxHp;
+    const cost = Object.fromEntries(Object.entries(base).map(([k, n]) => [k, Math.max(1, Math.ceil(n * missing))]));
+    if (!pay(this.inventory, cost)) {
+      const list = Object.entries(cost).map(([k, n]) => `${n} ${CONFIG.items[k].name.toLowerCase()}`).join(', ');
+      bus.emit('message', `${TEXT.repairNeeds} ${list}.`, true);
+      return;
+    }
+    o.healFull();
+    o.draw?.();
+    bus.emit('sfx', 'place');
+    this.skills.gain('bouwen', CONFIG.skills.bouwen.xpObject / 2);
+    this.stats.repairs = (this.stats.repairs || 0) + 1;
+    bus.emit('float', { wx: o.sprite.x, wy: o.topY, text: TEXT.repaired, color: '#b8e0a0' });
+    this.saveNow();
   }
 
   onDayStart(d) {

@@ -14,7 +14,7 @@ alle balansgetallen in `config.js`, soepel op een telefoon in portretstand.
 - **Altaren** om zelf bazen op te roepen: vier bewakers, dan de Hoeder, daarna de Diepte-poort en een nieuwe cyclus.
 - Doelen na 'skill5' herschreven voor de nieuwe opbouw.
 
-## Fase B: de nacht als spel
+## Fase B: de nacht als spel ✅ klaar (v17)
 - Stap 5 uit het minigameplan: 15 seconden bouwen (top-down), dan het gevecht met golven vanaf de randen.
 - Muren, torens en lampen tellen mee; beschadigde gebouwen moet je overdag repareren.
 

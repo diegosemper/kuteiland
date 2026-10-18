@@ -1,7 +1,7 @@
 // Service worker: zorgt dat het spel installeerbaar is en offline blijft werken.
 // Strategie: eerst het netwerk (zodat updates meteen binnenkomen), bij geen verbinding de cache.
 // Verhoog CACHE bij grote wijzigingen om oude bestanden op te ruimen.
-const CACHE = 'kuteiland-v16';
+const CACHE = 'kuteiland-v17';
 
 const CORE = [
   './',
@@ -53,6 +53,7 @@ const CORE = [
   './src/systems/Objectives.js',
   './src/systems/Pathfinding.js',
   './src/systems/Perks.js',
+  './src/systems/Siege.js',
   './src/systems/Skills.js',
   './src/systems/Upgrades.js',
   './src/systems/save.js',
@@ -74,6 +75,7 @@ const CORE = [
   './src/ui/ObjectiveHud.js',
   './src/ui/Panel.js',
   './src/ui/PrestigePanel.js',
+  './src/ui/SiegeHud.js',
   './src/ui/SkillXpBar.js',
   './src/ui/SkillsPanel.js',
   './src/ui/StoryPanel.js',

@@ -49,7 +49,30 @@ function drawGrave(ctx) {
   ]);
 }
 
+export const TRAP = { w: 110, h: 70, ox: 55, oy: 40 };
+
+function drawSpikes(ctx) {
+  const P = iso(TRAP.ox, TRAP.oy);
+  const boxes = [{ u0: -0.34, u1: 0.34, v0: -0.34, v1: 0.34, z0: 0, z1: 4, faces: all('planks') }];
+  for (const u of [-0.2, 0, 0.2]) for (const v of [-0.2, 0, 0.2]) {
+    boxes.push({ u0: u - 0.03, u1: u + 0.03, v0: v - 0.03, v1: v + 0.03, z0: 4, z1: 16, faces: all('iron') });
+  }
+  drawBoxes(ctx, P, boxes);
+}
+
+function drawMine(ctx) {
+  const P = iso(TRAP.ox, TRAP.oy);
+  drawBoxes(ctx, P, [
+    boxAt(0, 0, 0, 0.16, 12, { top: 'sulfur', left: 'sulfur_side', right: 'sulfur_side' }),
+    { u0: -0.04, u1: 0.04, v0: -0.04, v1: 0.04, z0: 12, z1: 20, faces: all('iron') },
+  ]);
+}
+
 export function generateDefenses(scene) {
+  canvasTexture(scene, 'trap_spikes', TRAP.w, TRAP.h, drawSpikes);
+  canvasTexture(scene, 'trap_mine', TRAP.w, TRAP.h, drawMine);
+  crisp(scene, 'trap_spikes');
+  crisp(scene, 'trap_mine');
   canvasTexture(scene, 'wall', WALL.w, WALL.h, drawWall);
   canvasTexture(scene, 'lamp_off', LAMP.w, LAMP.h, (ctx) => drawLamp(ctx, 'lantern_off'));
   canvasTexture(scene, 'lamp_on', LAMP.w, LAMP.h, (ctx) => drawLamp(ctx, 'lantern'));

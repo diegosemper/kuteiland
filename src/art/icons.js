@@ -225,6 +225,7 @@ export function generateIcons(scene) {
     ['icon_roestmagneet', 'src_magneet'], ['icon_kristalboor', 'src_boor'], ['icon_zwavelketel', 'src_ketel'],
     ['icon_sterrenantenne', 'src_antenne'], ['icon_zielenlantaarn', 'src_lantaarn'],
     ['icon_hartkern', 'kern'], ['icon_leegtepoort', 'portal'],
+    ['icon_spijkerval', 'trap_spikes'], ['icon_zwavelmijn', 'trap_mine'],
     ...Object.entries(CONFIG.bewakers).map(([id, b]) => [`icon_altaar_${id}`, 'altar', b.tint]),
   ];
   for (const [icon, tex, tint] of fromTexture) {

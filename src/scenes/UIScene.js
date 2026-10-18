@@ -25,6 +25,7 @@ import { PrestigePanel } from '../ui/PrestigePanel.js';
 import { BossBar } from '../ui/BossBar.js';
 import { MachinePanel } from '../ui/MachinePanel.js';
 import { AnvilPanel } from '../ui/AnvilPanel.js';
+import { SiegeHud } from '../ui/SiegeHud.js';
 import { recipeName } from '../systems/Crafting.js';
 import { COLORS, textStyle, makeButton, roundedBox, shade } from '../ui/style.js';
 import { pick } from '../texts.js';
@@ -67,6 +68,7 @@ export class UIScene extends Phaser.Scene {
     this.bossBar = new BossBar(this);
     this.machinePanel = new MachinePanel(this, game);
     this.anvilPanel = new AnvilPanel(this, game);
+    this.siegeHud = new SiegeHud(this, game);
     this.mapButton = this.makeRoundButton(TEXT.mapButton, () => this.openPanel(this.mapPanel));
     this.mapButton.setVisible(!!CONFIG.remoteIslands);
     this.xpBar = new SkillXpBar(this);
@@ -78,6 +80,13 @@ export class UIScene extends Phaser.Scene {
 
     // Eén plek die bepaalt wat een aanraking doet: knop, bouwen, object in de wereld, of joystick
     this.input.on('pointerdown', (pointer, over) => {
+      if (this.gameScene.siege.prep) {
+        if (!over.length) {
+          const p = this.worldPoint(pointer);
+          this.gameScene.siege.tapWorld(p.x, p.y);
+        }
+        return;
+      }
       if (over.length || this.anyPanelOpen()) return;
       if (this.buildBar.active) {
         if (this.tryPlace(pointer)) return;
@@ -118,6 +127,8 @@ export class UIScene extends Phaser.Scene {
       'player-died': (info) => { this.closeAll(); this.joystick.release(); this.action.release(); this.deathScreen.show(info); },
       'respawn': () => this.deathScreen.hide(),
       'minigame-start': () => { this.closeAll(); this.joystick.release(); this.action.release(); },
+      'siege': (st) => this.siegeHud.set(st),
+      'siege-tick': (st) => this.siegeHud.tick(st),
     };
     for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
     let lastPickup = 0;
@@ -202,6 +213,7 @@ export class UIScene extends Phaser.Scene {
     this.nightOverlay.layout(w, h);
     this.hearts.layout(w, h, this.safe);
     this.clock.layout(w, h, this.safe);
+    this.siegeHud.layout(w, h, this.safe);
     // bouwknop schuin boven de actieknop
     const ax = this.action.circle.x, ay = this.action.circle.y;
     this.buildButton.setPosition(ax - this.action.R * 1.05, ay - this.action.R * 1.75);
@@ -220,6 +232,18 @@ export class UIScene extends Phaser.Scene {
     this.panel.toggle();
     this.joystick.release();
     this.action.release();
+  }
+
+  // Bouwfase van de nacht: knoppen voor lopen en slaan weg, de bouwbalk komt ervoor in de plaats
+  setSiegeMode(on) {
+    this.closeAll();
+    this.joystick.release();
+    this.action.release();
+    for (const o of [this.action.circle, this.action.ring, this.action.text]) o.setVisible(!on);
+    this.action.zone.input.enabled = !on;
+    this.buildButton.setVisible(!on);
+    this.buildButton.list[2].input.enabled = !on;
+    this.joystick.setVisible(!on);
   }
 
   onBuildChanged(state) {

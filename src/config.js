@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 16,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 17,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
@@ -297,6 +297,33 @@ export const CONFIG = {
     lamp:   { hp: 15, radius: 0.2, light: 2.4, burnPerSec: 1, slow: 0.5 },
     crystallamp: { hp: 25, radius: 0.2, light: 3.6, burnPerSec: 2, slow: 0.4 },
     tower:  { hp: 30, radius: 0.36, range: 3.6, damage: 2, cooldownMs: 1500, light: 1.2 },
+    spikes: { charges: 12, range: 0.5, damage: 3, everyMs: 700 },    // spijkerval: prikt wat erop staat
+    mine:   { trigger: 0.45, blast: 1.6, damage: 30 },               // zwavelmijn: ontploft één keer
+  },
+
+  // ---------- de nacht als spel ----------
+  siege: {
+    prepMs: 15000,            // bouwfase: de klok staat stil
+    waves: [2, 2],            // golven: 2 + 1 per 2 nachten
+    maxWaves: 6,
+    perWave: [3, 1],          // kruipers per golf: basis + per nacht (+1 per golf)
+    brutesFrom: 3,            // vanaf deze nacht ook brutes
+    spreadMs: 5000,           // een golf kruipt binnen deze tijd omhoog
+    breakMs: 3500,            // adempauze tussen golven
+    // wat je in de bouwfase kunt neerzetten, betaald met grondstoffen (of gratis uit je rugzak)
+    build: [
+      { item: 'muur',        cost: { puin: 5 } },
+      { item: 'lantaarn',    cost: { wrakhout: 5, roest: 2 } },
+      { item: 'spijkerval',  cost: { wrakhout: 4, roest: 3 } },
+      { item: 'zwavelmijn',  cost: { zwavel: 3, puin: 2 } },
+      { item: 'wachttoren',  cost: { wrakhout: 12, puin: 12, roest: 8 } },
+    ],
+    // overleven: [basis, per nacht]
+    reward: { leegtekristal: [2, 1], puin: [4, 2], roest: [2, 1] },
+    // herstellen overdag: volle prijs voor een helemaal kapot gebouw, naar rato minder
+    repair: {
+      wall: { puin: 4 }, lamp: { wrakhout: 3, roest: 1 }, tower: { puin: 6, roest: 4 }, trap: { wrakhout: 2, roest: 2 },
+    },
   },
 
   // Skills: XP per actie, bonus per level. Nodig voor level L+1: base * growth^L
@@ -774,6 +801,8 @@ export const CONFIG = {
     roestmagneet:   { name: 'Roestmagneet',   place: 'object', spot: 'edge' },
     kristalboor:    { name: 'Kristalboor',    place: 'object', spot: 'inner' },
     zwavelketel:    { name: 'Zwavelketel',    place: 'object' },
+    spijkerval:     { name: 'Spijkerval',     place: 'object' },
+    zwavelmijn:     { name: 'Zwavelmijn',     place: 'object' },
     sterrenantenne: { name: 'Sterrenantenne', place: 'object', spot: 'edge' },
     zielenlantaarn: { name: 'Zielenlantaarn', place: 'object', spot: 'inner' },
     altaar_zwavel:  { name: 'Zwavelaltaar',   place: 'object' },
@@ -813,6 +842,8 @@ export const CONFIG = {
     { id: 'wapen4',         at: 'werkbank', cost: { roest: 4, leegtekristal: 6 },    gives: { tool: 'weapon', tier: 4 } },
     { id: 'lantaarn',       at: 'werkbank', cost: { wrakhout: 5, roest: 2 },         gives: { item: 'lantaarn', amount: 1 } },
     { id: 'muur',           at: 'werkbank', cost: { puin: 5 },                       gives: { item: 'muur', amount: 1 } },
+    { id: 'spijkerval',     at: 'werkbank', cost: { wrakhout: 4, roest: 3 },         gives: { item: 'spijkerval', amount: 1 } },
+    { id: 'zwavelmijn',     at: 'werkbank', cost: { zwavel: 3, puin: 2 },            gives: { item: 'zwavelmijn', amount: 2 } },
     { id: 'wachttoren',     at: 'werkbank', cost: { wrakhout: 12, puin: 12, roest: 8 }, gives: { item: 'wachttoren', amount: 1 } },
     { id: 'kristallamp',    at: 'werkbank', cost: { roest: 2, leegtekristal: 3 },    gives: { item: 'kristallamp', amount: 1 } },
     { id: 'anker',          at: 'werkbank', cost: { roest: 8, puin: 6 },             gives: { item: 'anker', amount: 1 } },
