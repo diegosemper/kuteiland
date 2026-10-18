@@ -57,9 +57,9 @@ export class SkillsPanel {
     const list = panel.list;
 
     // tabbladen
-    const tw = (pw - pad * 3) / 2;
+    const tw = (pw - pad * 4) / 3;
     const tabY = panel.gapTop + 20 * S;
-    for (const [i, id, label] of [[0, 'skills', TEXT.tabSkills], [1, 'collecties', TEXT.tabCollections]]) {
+    for (const [i, id, label] of [[0, 'skills', TEXT.tabSkills], [1, 'collecties', TEXT.tabCollections], [2, 'boek', TEXT.tabDiscoveries]]) {
       const x = px + pad + tw / 2 + i * (tw + pad);
       const active = this.tab === id;
       const bg = roundedBox(sc, tw, 34 * S, { fill: active ? 0x2a1f3a : 0x1a1323, alpha: 0.95, edgeAlpha: active ? 0.8 : 0.2, radius: 10 });
@@ -92,6 +92,18 @@ export class SkillsPanel {
           y += 18 * S;
         }
         y += 16 * S;
+      }
+    } else if (this.tab === 'boek') {
+      list.add(sc.add.text(px + pad, y, TEXT.discoveriesIntro, textStyle(S, 12, COLORS.dim, { wordWrap: { width: bw } })));
+      y += 48 * S;
+      for (const d of CONFIG.discoveries) {
+        const known = !!game.flags.discoveries?.[d.id];
+        const src = d.source === 'tree' ? TEXT.treeName : d.source === 'generator' ? CONFIG.items.steengenerator.name : CONFIG.sources[d.source].name;
+        list.add(sc.add.text(px + pad, y, known ? d.name : TEXT.discoveryUnknown, textStyle(S, 15, known ? '#ffd98a' : COLORS.dim, { fontStyle: '700' })));
+        list.add(sc.add.text(px + pw - pad, y + 2 * S, src, textStyle(S, 11, COLORS.dim)).setOrigin(1, 0));
+        y += 22 * S;
+        list.add(sc.add.text(px + pad, y, known ? d.text : d.hint, textStyle(S, 12, known ? COLORS.text : '#d9c2ff', { wordWrap: { width: bw }, fontStyle: known ? 'normal' : 'italic' })));
+        y += 40 * S;
       }
     } else {
       for (const id of COLLECTION_IDS) {

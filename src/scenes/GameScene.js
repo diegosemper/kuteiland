@@ -521,6 +521,9 @@ export class GameScene extends Phaser.Scene {
       const t = this.tools.pickaxe;
       id = M.sources.generator; item = 'puin'; art = ['generator']; name = CONFIG.items.steengenerator.name;
       rate = CONFIG.generator.puinPerYield[t] / CONFIG.generator.hitsPerYield[t];
+    } else if (o.type === 'source') {
+      id = M.sources.source[o.kind]; item = o.def.item; name = o.def.name; art = [o.sprite.texture.key];
+      rate = 0.5;
     } else {
       const [min, max] = o.def.amount;
       id = M.sources.node[o.node]; item = o.def.item; name = o.def.name;
@@ -532,10 +535,45 @@ export class GameScene extends Phaser.Scene {
     const tool = M.tool[id];
     const tier = this.tools[tool] || 0;
     rate *= this.skills.power(skill);
+    // ontdekkingen: wat er naast de bron staat
+    const found = this.discoveriesAt(o);
+    const effects = Object.assign({}, ...found.map((d) => d.effect));
+    if (effects.oreItem) item = effects.oreItem;
+    const fresh = found.filter((d) => !this.flags.discoveries?.[d.id]);
     return {
       id, item, rate, per, tool, tier, perks: toolPerks(tool, tier), toolMult: this.upgradeMult(tool),
-      skill, art, name: name || M.name[id],
+      skill, art, name: name || M.name[id], effects, discoveries: found, fresh,
     };
+  }
+
+  // Welke ontdekkingen gelden voor deze bron? (tegels of objecten direct ernaast)
+  discoveriesAt(o) {
+    const src = o.type === 'source' ? o.kind : o.type;
+    const near = (n) => {
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+        if (!dx && !dy) continue;
+        if (n.tile && this.island.get(o.gx + dx, o.gy + dy)?.kind === n.tile) return true;
+      }
+      if (n.object) {
+        return this.objects.some((x) => x !== o && x.type === n.object
+          && (n.crystal === undefined || !!x.crystal === n.crystal)
+          && Math.max(Math.abs(x.gx - o.gx), Math.abs(x.gy - o.gy)) <= 1);
+      }
+      return false;
+    };
+    return CONFIG.discoveries.filter((d) => d.source === src && near(d.near));
+  }
+
+  // Nieuwe ontdekking vastleggen
+  markDiscoveries(list) {
+    if (!list?.length) return;
+    this.flags.discoveries = { ...this.flags.discoveries };
+    for (const d of list) this.flags.discoveries[d.id] = true;
+    this.objectives.check();
+  }
+
+  get discoveryCount() {
+    return Object.keys(this.flags.discoveries || {}).length;
   }
 
   startMinigame(spec) {
@@ -543,6 +581,7 @@ export class GameScene extends Phaser.Scene {
     if (this.dayNight.isNight) { bus.emit('message', TEXT.mgNoNight, true); return; }
     if (this.boss || this.depth.active) { bus.emit('message', TEXT.mgNoFight, true); return; }
     const key = CONFIG.minigames.built.includes(spec.id) ? spec.id : 'proef';
+    this.markDiscoveries(spec.fresh);
     this.minigame = { spec, key, gained: {} };
     this.autoTarget = null;
     this.autoGrab = null;
@@ -579,6 +618,13 @@ export class GameScene extends Phaser.Scene {
       if (this.minigame) this.minigame.gained[item] = (this.minigame.gained[item] || 0) + n;
     }
     if (res.xp) this.skills.gain(spec.skill, res.xp * CONFIG.skills[spec.skill].xp);
+    // soms zit er een briefje tussen
+    const next = CONFIG.noteFindOrder.find((n) => !this.flags.notes[n]);
+    if (next && this.minigame && !this.minigame.note && Math.random() < CONFIG.noteFindChance) {
+      this.flags.notes[next] = true;
+      this.minigame.note = next;
+      res.note = next;
+    }
     this.objectives.check();
     this.saveNow();
   }
@@ -605,6 +651,12 @@ export class GameScene extends Phaser.Scene {
       }));
     });
     if (!this.dayNight.isNight && this.dayNight.phaseLeftMs < 1500) bus.emit('message', TEXT.mgNightWaits, true);
+    if (mg?.note) {
+      this.time.delayedCall(700, () => {
+        bus.emit('sfx', 'note');
+        bus.emit('open-story', { title: TEXT.notes[mg.note].title, text: TEXT.notes[mg.note].text });
+      });
+    }
   }
 
   // ---------- collecties ----------

@@ -74,9 +74,11 @@ export class GrijphaakScene extends MinigameScene {
 
   spawn(x = null) {
     const { S, W, H, cfg } = this;
-    const total = cfg.kinds.reduce((s, k) => s + k.weight, 0);
+    // lokkristal: kristalscherven komen vaker langs
+    const weight = (k) => k.weight * (k.glow ? (this.spec.effects?.shardMult || 1) : 1);
+    const total = cfg.kinds.reduce((s, k) => s + weight(k), 0);
     let roll = Math.random() * total;
-    const kind = cfg.kinds.find((k) => (roll -= k.weight) < 0) || cfg.kinds[0];
+    const kind = cfg.kinds.find((k) => (roll -= weight(k)) < 0) || cfg.kinds[0];
     const size = 70 * S * kind.scale;
     const y = Phaser.Math.Between(H * 0.2, H * 0.6);
     const img = this.add.image(x ?? -size, y, kind.tex).setDepth(4);
@@ -225,7 +227,10 @@ export class GrijphaakScene extends MinigameScene {
     this.setScore(this.points);
     if (this.streak > 1) this.comboText.setText(`${TEXT.mgStreak} x${this.streak}`);
     const parts = [];
-    for (const [k, n] of Object.entries(w.kind.loot)) {
+    const loot = { ...w.kind.loot };
+    // zware magneet: elke vangst een roestje extra
+    if (this.spec.effects?.lootBonus) loot.roest = (loot.roest || 0) + this.spec.effects.lootBonus;
+    for (const [k, n] of Object.entries(loot)) {
       this.loot[k] = (this.loot[k] || 0) + n;
       parts.push(`+${n} ${CONFIG.items[k].name.toLowerCase()}`);
     }

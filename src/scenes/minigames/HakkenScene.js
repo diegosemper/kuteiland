@@ -218,7 +218,7 @@ export class HakkenScene extends MinigameScene {
   fell() {
     const { S, cfg, gs, spec } = this;
     this.logs++;
-    let n = spec.per + gs.mods.extra(`yield.${spec.item}`);
+    let n = spec.per + gs.mods.extra(`yield.${spec.item}`) + (spec.effects?.perLogBonus || 0);
     const double = Math.random() < gs.skills.doubleChance('hakken');
     if (double) n *= 2;
     this.wood += n;

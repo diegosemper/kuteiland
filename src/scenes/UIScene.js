@@ -68,6 +68,7 @@ export class UIScene extends Phaser.Scene {
     this.machinePanel = new MachinePanel(this, game);
     this.anvilPanel = new AnvilPanel(this, game);
     this.mapButton = this.makeRoundButton(TEXT.mapButton, () => this.openPanel(this.mapPanel));
+    this.mapButton.setVisible(!!CONFIG.remoteIslands);
     this.xpBar = new SkillXpBar(this);
 
     this.bagButton = makeButton(this, 0, 0, 104 * this.S, 40 * this.S, 'RUGZAK', () => this.togglePanel(), 12);
@@ -230,7 +231,7 @@ export class UIScene extends Phaser.Scene {
     this.action.zone.input.enabled = !on;
     this.buildButton.setVisible(!on);
     this.buildButton.list[2].input.enabled = !on;
-    this.mapButton.setVisible(!on);
+    this.mapButton.setVisible(!on && !!CONFIG.remoteIslands);
     this.mapButton.list[2].input.enabled = !on;
     this.joystick.setVisible(!on);
     if (on) this.action.release();

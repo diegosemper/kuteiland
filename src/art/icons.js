@@ -220,4 +220,12 @@ export function generateIcons(scene) {
     canvasTexture(scene, key, S, S, draw);
     crisp(scene, key);
   }
+  // bronnen: verkleinde objecttexture als icoon
+  for (const [icon, tex] of [['icon_roestmagneet', 'src_magneet'], ['icon_kristalboor', 'src_boor']]) {
+    const src = scene.textures.get(tex).getSourceImage();
+    canvasTexture(scene, icon, S, S, (ctx) => {
+      const f = Math.min(S / src.width, S / src.height) * 1.05;
+      ctx.drawImage(src, (S - src.width * f) / 2, S - src.height * f, src.width * f, src.height * f);
+    });
+  }
 }

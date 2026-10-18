@@ -8,6 +8,8 @@ import { mulberry32 } from '../rng.js';
 // De verre eilanden voor deze cyclus. Cyclus 1 is altijd hetzelfde; daarna wisselen eilanden
 // binnen hun ring van plek en liggen sommige gespiegeld. De Kern blijft in het midden.
 export function islandDefs() {
+  // Het Lek: er zijn geen verre eilanden meer. Grondstoffen komen uit bronnen die je zelf bouwt.
+  if (!CONFIG.remoteIslands) return [];
   const cycle = getMeta().cycle;
   if (cycle <= 1) return CONFIG.islands;
   const rnd = mulberry32(cycle * 7919);

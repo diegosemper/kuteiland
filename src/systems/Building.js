@@ -18,6 +18,15 @@ export function drawAnchorRing(g, game, anchor, alpha = 0.5) {
   g.strokeEllipse(s.x, s.y, w, h);
 }
 
+// Sommige dingen moeten op een bepaalde plek staan: aan de rand, of juist er middenin
+export function spotAllowed(island, gx, gy, rule) {
+  if (rule === 'edge') return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => !island.has(gx + dx, gy + dy));
+  if (rule === 'inner') {
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) if (!island.has(gx + dx, gy + dy)) return false;
+  }
+  return true;
+}
+
 export class BuildMode {
   constructor(game) {
     this.game = game;
@@ -65,7 +74,8 @@ export class BuildMode {
     // object: op een vrije tegel, niet waar de speler staat
     return island.sortedTiles().filter((t) =>
       !objects.some((o) => o.gx === t.gx && o.gy === t.gy)
-      && Math.hypot(player.gx - t.gx, player.gy - t.gy) > 0.55);
+      && Math.hypot(player.gx - t.gx, player.gy - t.gy) > 0.55
+      && spotAllowed(island, t.gx, t.gy, def.spot));
   }
 
   redraw() {
@@ -112,7 +122,7 @@ export class BuildMode {
     const def = CONFIG.items[key];
     const valid = def.place === 'tile'
       ? game.island.canAddTile(gx, gy, def.tile)
-      : game.island.has(gx, gy) && !game.objects.some((o) => o.gx === gx && o.gy === gy);
+      : game.island.has(gx, gy) && !game.objects.some((o) => o.gx === gx && o.gy === gy) && spotAllowed(game.island, gx, gy, def.spot);
     if (!valid || !game.inventory.remove(key, 1)) return;
 
     if (def.place === 'tile') {

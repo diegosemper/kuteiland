@@ -1,5 +1,6 @@
 // Maakt een object in de wereld op basis van opgeslagen gegevens ({ type, gx, gy, ... }).
 import { Tree } from './Tree.js';
+import { Source } from './Source.js';
 import { Chest } from './Chest.js';
 import { Workbench } from './Workbench.js';
 import { Generator } from './Generator.js';
@@ -19,6 +20,8 @@ export const ITEM_TO_OBJECT = {
   wachttoren: { type: 'tower' },
   anker: { type: 'anchor' },
   aambeeld: { type: 'anvil' },
+  roestmagneet: { type: 'source', kind: 'magneet' },
+  kristalboor: { type: 'source', kind: 'boor' },
   zaagmolen: { type: 'machine', machine: 'zaagmolen' },
   steenmaler: { type: 'machine', machine: 'steenmaler' },
   roestvanger: { type: 'machine', machine: 'roestvanger' },
@@ -31,6 +34,7 @@ export const ITEM_TO_OBJECT = {
 export function itemForObject(o) {
   if (o.type === 'lamp') return o.crystal ? 'kristallamp' : 'lantaarn';
   if (o.type === 'machine') return o.machine;
+  if (o.type === 'source') return Object.keys(ITEM_TO_OBJECT).find((k) => ITEM_TO_OBJECT[k].kind === o.kind) || null;
   return Object.keys(ITEM_TO_OBJECT).find((k) => ITEM_TO_OBJECT[k].type === o.type) || null;
 }
 
@@ -52,6 +56,7 @@ export function createObject(scene, data) {
     case 'portal': return new Portal(scene, data.gx, data.gy);
     case 'anvil': return new Anvil(scene, data.gx, data.gy);
     case 'machine': return new Machine(scene, data.gx, data.gy, data);
+    case 'source': return new Source(scene, data.gx, data.gy, data);
     default: return null;
   }
 }

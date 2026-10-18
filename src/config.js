@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 14,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 15,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
@@ -311,15 +311,16 @@ export const CONFIG = {
     sources: {
       tree: 'hakken',
       generator: 'delven',
+      source: { magneet: 'grijphaak', boor: 'afdaling' },
       node: {
         wrak: 'grijphaak', kristalader: 'afdaling', sterrenader: 'arena', zwavelader: 'delven',
         paddenstoel: 'hakken', ijsader: 'delven', zielenader: 'afdaling',
       },
     },
     // welke zijn al echt gebouwd; de rest draait voorlopig als 'proef'
-    built: ['hakken', 'delven', 'grijphaak'],
+    built: ['hakken', 'delven', 'grijphaak', 'afdaling'],
     skill: { hakken: 'hakken', delven: 'delven', grijphaak: 'delven', afdaling: 'delven', arena: 'vechten' },
-    tool: { hakken: 'axe', delven: 'pickaxe', grijphaak: 'hook', afdaling: 'pickaxe', arena: 'weapon' },
+    tool: { hakken: 'axe', delven: 'pickaxe', grijphaak: 'hook', afdaling: 'armor', arena: 'weapon' },
     name: { hakken: 'Hakken', delven: 'Delven', grijphaak: 'Grijphaak', afdaling: 'Afdaling', arena: 'Arena' },
 
     // Hakken: elke ronde hak je stammen om. Elke stam is taaier dan de vorige.
@@ -394,6 +395,28 @@ export const CONFIG = {
       skyTop: 0x0f0c22, skyBottom: 0x05040c,
     },
 
+    // Afdaling: val door je eigen boorgat de leegte in. Ontwijk, verzamel kristallen,
+    // en druk op TERUG voordat iets je raakt. Geraakt = alles van deze duik kwijt.
+    afdaling: {
+      name: 'Afdaling',
+      fallSpeed: 0.32,        // schermhoogtes per seconde aan het begin
+      fallGrow: 0.012,        // erbij per seconde
+      fallMax: 1.1,
+      follow: 12,             // hoe snel je je vinger volgt
+      spawnEvery: 0.16,       // schermhoogte tussen twee rijen dingen
+      crystal: 0.55,          // kans per rij op een kristal
+      obstacle: 0.45,         // kans per rij op een obstakel (groeit met diepte)
+      obstacleGrow: 0.0004,   // per meter
+      creature: 0.18,         // deel van de obstakels dat een wezen is (beweegt)
+      metersPerScreen: 40,
+      valueEvery: 150,        // elke zoveel meter is een kristal 1 meer waard
+      star: [400, 0.05],      // vanaf zoveel meter: kans dat een kristal sterrenstof is
+      magnetRange: 70,        // pixels x schaal (harnas-perk)
+      hitRadius: 26,
+      xpPer100m: 2,
+      skyTop: 0x120a24, skyBottom: 0x030208,
+    },
+
     proef: {
       name: 'Proef',
       timeMs: 20000,
@@ -424,14 +447,58 @@ export const CONFIG = {
       ],
       hook: [
         { shots: 0, short: '' },
-        { shots: 7, catchMult: 1, speedMult: 1, short: '7 schoten' },
+        { shots: 7, short: '7 schoten' },
         { shots: 9, short: '9 schoten' },
         { catchMult: 1.5, short: 'grote haak, vangt makkelijker' },
         { speedMult: 1.6, pierce: true, short: 'snelle haak, pakt twee in één schot' },
       ],
+      armor: [
+        { shields: 0, short: 'één klap en alles is weg' },
+        { shields: 1, short: 'vangt één klap op' },
+        { magnet: true, short: 'trekt kristallen naar je toe' },
+        { shields: 2, short: 'vangt twee klappen op' },
+        { slowFall: 0.8, short: 'je valt rustiger' },
+        { keepHalf: true, short: 'geraakt? Je houdt de helft' },
+      ],
       weapon: [{ short: '' }],
     },
   },
+
+  // Verre eilanden aan of uit (uit sinds 'Het Lek': alles op je eigen eiland)
+  remoteIslands: false,
+  // kans per minigame-ronde dat je een verhaalbriefje vindt (zolang er nog zijn)
+  noteFindChance: 0.22,
+  noteFindOrder: [2, 3, 4, 6, 7, 8, 9],
+
+  // ---------- bronnen ----------
+  // Bouw ze zelf en zet ze neer. Elke bron opent zijn eigen minigame.
+  // spot: 'edge' = aan de rand van het eiland, 'inner' = alle buren zijn eiland
+  sources: {
+    magneet: { name: 'Roestmagneet', item: 'roest', label: 'TREK', spot: 'edge' },
+    boor:    { name: 'Kristalboor',  item: 'leegtekristal', label: 'BOOR', spot: 'inner' },
+  },
+
+  // ---------- ontdekkingen ----------
+  // Wat je naast een bron zet, verandert wat hij doet. near: tegel (tile) of object (object) binnen 1 tegel.
+  // effect wordt in de minigame gebruikt; hint staat in het boek zolang je hem nog niet hebt.
+  discoveries: [
+    { id: 'lichtboom',   source: 'tree',      near: { object: 'lamp' },           name: 'Lichtboom',
+      hint: 'De boom groeit scheef. Naar iets dat brandt.', effect: { perLogBonus: 1 }, text: 'Hakken: +1 hout per stam' },
+    { id: 'ijzersteen',  source: 'generator', near: { tile: 'ironblock' },        name: 'IJzersteen',
+      hint: 'Steen die te lang naast metaal ligt, gaat erop lijken.', effect: { oreItem: 'roest' }, text: 'Delven: aders geven roest in plaats van puin' },
+    { id: 'kristalsteen', source: 'generator', near: { tile: 'amethystblock' },   name: 'Kristalsteen',
+      hint: 'Een generator die naar paars staart, droomt paars.', effect: { rareMult: 3 }, text: 'Delven: zeldzame vondsten 3x zo vaak' },
+    { id: 'houtvuur',    source: 'generator', near: { tile: 'logs' },             name: 'Houtgestookt',
+      hint: 'Warmte maakt steen zacht. Hout maakt warmte.', effect: { timeBonus: 15000 }, text: 'Delven: 15 seconden langer' },
+    { id: 'zwaremagneet', source: 'magneet',  near: { tile: 'ironblock' },        name: 'Zware magneet',
+      hint: 'Een magneet trekt harder als hij iets heeft om tegen te leunen.', effect: { lootBonus: 1 }, text: 'Grijphaak: +1 roest per vangst' },
+    { id: 'lokkristal',  source: 'magneet',   near: { object: 'lamp', crystal: true }, name: 'Lokkristal',
+      hint: 'Kristal roept kristal. Zet er een licht bij dat erop lijkt.', effect: { shardMult: 4 }, text: 'Grijphaak: kristalscherven 4x zo vaak' },
+    { id: 'obsidiaanboor', source: 'boor',    near: { tile: 'obsidianblock' },    name: 'Obsidiaanboor',
+      hint: 'De boor wil dieper. Geef hem iets dat uit de diepte komt.', effect: { valueMult: 2, dangerMult: 1.35 }, text: 'Afdaling: kristallen dubbel waard, maar gevaarlijker' },
+    { id: 'kwartsboor',  source: 'boor',      near: { tile: 'quartzblock' },      name: 'Kwartsboor',
+      hint: 'Wit kwarts vangt sterrenlicht. Ook onder de grond.', effect: { starMult: 4 }, text: 'Afdaling: sterrenstof 4x zo vaak' },
+  ],
 
   skills: {
     hakken: {
@@ -635,6 +702,8 @@ export const CONFIG = {
     kwartsblok:     { name: 'Kwartsblok',     place: 'tile', tile: 'quartzblock' },
     obsidiaanblok:  { name: 'Obsidiaanblok',  place: 'tile', tile: 'obsidianblock' },
     lichtblok:      { name: 'Lichtblok',      place: 'tile', tile: 'glow' },
+    roestmagneet:   { name: 'Roestmagneet',   place: 'object', spot: 'edge' },
+    kristalboor:    { name: 'Kristalboor',    place: 'object', spot: 'inner' },
     aambeeld:       { name: 'Aambeeld',       place: 'object' },
     zaagmolen:      { name: 'Zaagmolen',      place: 'object' },
     steenmaler:     { name: 'Steenmaler',     place: 'object' },
@@ -656,6 +725,7 @@ export const CONFIG = {
     { id: 'haak1',          at: 'werkbank', cost: { wrakhout: 12, puin: 8 }, gives: { tool: 'hook', tier: 1 } },
     { id: 'houweel2',       at: 'werkbank', cost: { wrakhout: 6, puin: 12 },  gives: { tool: 'pickaxe', tier: 2 } },
     { id: 'bijl2',          at: 'werkbank', cost: { wrakhout: 6, puin: 12 },  gives: { tool: 'axe', tier: 2 } },
+    { id: 'roestmagneet',   at: 'werkbank', cost: { wrakhout: 10, puin: 14 },   gives: { item: 'roestmagneet', amount: 1 } },
     { id: 'haak2',          at: 'werkbank', cost: { wrakhout: 8, roest: 14 }, gives: { tool: 'hook', tier: 2 } },
     { id: 'houweel3',       at: 'werkbank', cost: { wrakhout: 8, puin: 10, roest: 14 }, gives: { tool: 'pickaxe', tier: 3 } },
     { id: 'bijl3',          at: 'werkbank', cost: { wrakhout: 8, puin: 10, roest: 14 }, gives: { tool: 'axe', tier: 3 } },
@@ -668,9 +738,8 @@ export const CONFIG = {
     { id: 'wachttoren',     at: 'werkbank', cost: { wrakhout: 12, puin: 12, roest: 8 }, gives: { item: 'wachttoren', amount: 1 } },
     { id: 'kristallamp',    at: 'werkbank', cost: { roest: 2, leegtekristal: 3 },    gives: { item: 'kristallamp', amount: 1 } },
     { id: 'anker',          at: 'werkbank', cost: { roest: 8, puin: 6 },             gives: { item: 'anker', amount: 1 } },
-    { id: 'brug',           at: 'werkbank', cost: { wrakhout: 4, roest: 2 },         gives: { item: 'brug', amount: 2 } },
+    { id: 'kristalboor',    at: 'werkbank', cost: { wrakhout: 10, puin: 16, roest: 20 }, gives: { item: 'kristalboor', amount: 1 } },
     { id: 'haak3',          at: 'werkbank', cost: { leegtekristal: 6, roest: 12 },   gives: { tool: 'hook', tier: 3 } },
-    { id: 'sterrenbrug',    at: 'werkbank', cost: { sterrenstof: 2, roest: 2 },      gives: { item: 'sterrenbrug', amount: 1 } },
     { id: 'wapen5',         at: 'werkbank', cost: { sterrenstof: 5, leegtekristal: 4 }, gives: { tool: 'weapon', tier: 5 } },
     { id: 'bijl4',          at: 'werkbank', cost: { leegtekristal: 8, sterrenstof: 2, roest: 6 },  gives: { tool: 'axe', tier: 4 } },
     { id: 'houweel4',       at: 'werkbank', cost: { leegtekristal: 8, sterrenstof: 2, roest: 6 },  gives: { tool: 'pickaxe', tier: 4 } },

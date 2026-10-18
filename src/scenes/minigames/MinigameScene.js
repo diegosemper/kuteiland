@@ -181,6 +181,13 @@ export class MinigameScene extends Phaser.Scene {
         })).setOrigin(0.5, 0), 18]);
       } else parts[parts.length - 1][1] = 18;
     }
+    for (const d of this.spec.discoveries || []) {
+      const fresh = (this.spec.fresh || []).includes(d);
+      parts.push([this.add.text(W / 2, 0, `${fresh ? TEXT.discoveryNew : '◆'} ${d.name}: ${d.text}`, textStyle(S, 12, fresh ? '#ffd98a' : '#d9c2ff', {
+        align: 'center', wordWrap: { width: pw - 40 * S }, fontStyle: '700',
+      })).setOrigin(0.5, 0), 6]);
+    }
+    if (this.spec.discoveries?.length) parts[parts.length - 1][1] = 18;
     const bestRow = this.add.text(W / 2 + 16 * S, 0, `${TEXT.mgBest} ${best}`, textStyle(S, 14, COLORS.dim)).setOrigin(0.5, 0);
     parts.push([bestRow, 24]);
     const go = shade(this.add.text(W / 2, 0, TEXT.mgTapToStart, textStyle(S, 16, '#ffd98a', { fontStyle: '800' })).setOrigin(0.5, 0), S);
@@ -283,6 +290,11 @@ export class MinigameScene extends Phaser.Scene {
       y += 22 * S;
     }
     if (res.line) c.add(this.add.text(W / 2, y, res.line, textStyle(S, 12, COLORS.dim, { align: 'center' })).setOrigin(0.5, 0));
+    if (res.note) {
+      const t = this.add.text(W / 2, y + 26 * S, TEXT.noteFound, textStyle(S, 14, '#ffd98a', { fontStyle: '800', align: 'center' })).setOrigin(0.5, 0);
+      c.add(t);
+      this.tweens.add({ targets: t, alpha: 0.5, duration: 500, yoyo: true, repeat: -1 });
+    }
 
     // knoppen
     const bw = (pw - 52 * S) / 2;

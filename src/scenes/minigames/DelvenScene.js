@@ -58,7 +58,8 @@ export class DelvenScene extends MinigameScene {
     this.blocks = 0;
     this.maxRow = 0;
     this.nextTapAt = 0;
-    this.timeLeft = cfg.timeMs;
+    this.timeMax = cfg.timeMs + (this.spec.effects?.timeBonus || 0);
+    this.timeLeft = this.timeMax;
     this.crackAlpha = perks.seeCracks ? 0.95
       : Math.min(0.95, cfg.crackAlpha + this.gs.skills.level('delven') * cfg.crackPerLevel);
     this.ensureRows(this.visibleRows + 4);
@@ -97,7 +98,8 @@ export class DelvenScene extends MinigameScene {
       const cell = { r, c, kind, face: faceName, hp, maxHp: hp, unstable: false, dug: false };
 
       if (kind !== 'dirt') {
-        const rare = cfg.rare.find(([, from, chance]) => r >= from && Math.random() < chance);
+        const rareMult = this.spec.effects?.rareMult || 1;
+        const rare = cfg.rare.find(([item, from, chance]) => item !== this.spec.item && r >= from && Math.random() < chance * rareMult);
         if (rare) {
           Object.assign(cell, { kind: 'rare', item: rare[0], face: rare[3] });
           cell.hp = cell.maxHp = hp + 1;
@@ -290,7 +292,7 @@ export class DelvenScene extends MinigameScene {
   update(time, delta) {
     if (!this.started || this.ended) return;
     this.timeLeft -= Math.min(delta, 50);
-    this.drawTime(Math.max(0, this.timeLeft / this.cfg.timeMs));
+    this.drawTime(Math.max(0, this.timeLeft / this.timeMax));
     if (this.timeLeft <= 0) this.end(TEXT.mgDelvenTime);
   }
 

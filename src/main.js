@@ -7,6 +7,7 @@ import { HakkenScene } from './scenes/minigames/HakkenScene.js';
 import { ProefScene } from './scenes/minigames/ProefScene.js';
 import { DelvenScene } from './scenes/minigames/DelvenScene.js';
 import { GrijphaakScene } from './scenes/minigames/GrijphaakScene.js';
+import { AfdalingScene } from './scenes/minigames/AfdalingScene.js';
 
 // Het canvas draait op de echte pixeldichtheid van het scherm (begrensd) en wordt
 // met CSS teruggeschaald, zodat pixel art en tekst scherp blijven op telefoons.
@@ -31,7 +32,7 @@ const game = new Phaser.Game({
   input: { activePointers: 3 },
   // volgorde = tekenvolgorde: achtergrond onder, UI boven
   // minigames als laatste: die liggen over alles heen
-  scene: [BootScene, BackgroundScene, GameScene, UIScene, HakkenScene, DelvenScene, GrijphaakScene, ProefScene],
+  scene: [BootScene, BackgroundScene, GameScene, UIScene, HakkenScene, DelvenScene, GrijphaakScene, AfdalingScene, ProefScene],
 });
 
 // Voor testen: ?debug in de URL maakt het spel bereikbaar via window.kuteiland
