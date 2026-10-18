@@ -23,10 +23,17 @@ export function recipeUnlock(r) {
 }
 
 // owned: gereedschap heb je al (of beter); locked: collectie nog niet ver genoeg
+// Voorwaarden die geen collectie zijn
+const NEEDS = {
+  zegels: (game) => game.sealCount >= CONFIG.kernSeals,
+  hoeder: (game) => !!game.flags.bossDefeated,
+};
+
 export function recipeState(game, r) {
   const owned = !!r.gives.tool && game.tools[r.gives.tool] >= r.gives.tier;
-  const unlock = recipeUnlock(r);
-  const locked = !!unlock && game.collectionTier(unlock.collection) < unlock.tier;
+  let unlock = recipeUnlock(r);
+  let locked = !!unlock && game.collectionTier(unlock.collection) < unlock.tier;
+  if (r.needs && !NEEDS[r.needs](game)) { locked = true; unlock = { needs: r.needs }; }
   const affordable = Object.entries(r.cost).every(([k, n]) => game.inventory.has(k, n));
   return { owned, affordable, locked, unlock, canCraft: affordable && !owned && !locked };
 }

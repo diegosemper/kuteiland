@@ -22,6 +22,15 @@ export const ITEM_TO_OBJECT = {
   aambeeld: { type: 'anvil' },
   roestmagneet: { type: 'source', kind: 'magneet' },
   kristalboor: { type: 'source', kind: 'boor' },
+  zwavelketel: { type: 'source', kind: 'ketel' },
+  sterrenantenne: { type: 'source', kind: 'antenne' },
+  zielenlantaarn: { type: 'source', kind: 'lantaarn' },
+  altaar_zwavel: { type: 'altar', boss: 'zwavel' },
+  altaar_padde: { type: 'altar', boss: 'padde' },
+  altaar_ijs: { type: 'altar', boss: 'ijs' },
+  altaar_echo: { type: 'altar', boss: 'echo' },
+  hartkern: { type: 'kern' },
+  leegtepoort: { type: 'portal' },
   zaagmolen: { type: 'machine', machine: 'zaagmolen' },
   steenmaler: { type: 'machine', machine: 'steenmaler' },
   roestvanger: { type: 'machine', machine: 'roestvanger' },
@@ -34,6 +43,7 @@ export const ITEM_TO_OBJECT = {
 export function itemForObject(o) {
   if (o.type === 'lamp') return o.crystal ? 'kristallamp' : 'lantaarn';
   if (o.type === 'machine') return o.machine;
+  if (o.type === 'altar') return `altaar_${o.boss}`;
   if (o.type === 'source') return Object.keys(ITEM_TO_OBJECT).find((k) => ITEM_TO_OBJECT[k].kind === o.kind) || null;
   return Object.keys(ITEM_TO_OBJECT).find((k) => ITEM_TO_OBJECT[k].type === o.type) || null;
 }

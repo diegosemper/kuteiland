@@ -1,9 +1,13 @@
 // Een bron die je zelf bouwt: roestmagneet of kristalboor. Tikken opent zijn minigame.
 import { CONFIG } from '../config.js';
-import { MAGNET, DRILL } from '../art/structures.js';
+import { MAGNET, DRILL, KETTLE, ANTENNA, SOULLAMP } from '../art/structures.js';
 import { gridToScreen } from '../iso.js';
 
-const ART = { magneet: ['src_magneet', MAGNET], boor: ['src_boor', DRILL] };
+const ART = {
+  magneet: ['src_magneet', MAGNET], boor: ['src_boor', DRILL], ketel: ['src_ketel', KETTLE],
+  antenne: ['src_antenne', ANTENNA], lantaarn: ['src_lantaarn', SOULLAMP],
+};
+const GLOW = { magneet: 0xe08a50, boor: 0xb48cff, ketel: 0xfff060, antenne: 0xfff0b0, lantaarn: 0x40ffd0 };
 
 export class Source {
   constructor(scene, gx, gy, data) {
@@ -24,7 +28,7 @@ export class Source {
     this.lightY = s.y - 30;
     this.hitArea = new Phaser.Geom.Rectangle(s.x - 50, s.y - A.oy, 100, A.oy + 20);
     // een zacht schijnsel, zodat je ziet dat hij werkt
-    const tint = this.kind === 'boor' ? 0xb48cff : 0xe08a50;
+    const tint = GLOW[this.kind];
     this.glow = scene.add.image(s.x, s.y - 20, 'glow').setTint(tint).setAlpha(0.2).setScale(0.7, 0.4).setDepth(s.y - 1);
     scene.tweens.add({ targets: this.glow, alpha: 0.08, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     if (this.kind === 'magneet') {

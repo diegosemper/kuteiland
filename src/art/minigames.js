@@ -4,7 +4,7 @@ import { face, crisp } from './blocks.js';
 import { mulberry32 } from '../rng.js';
 
 const FLAT = ['grass_top', 'dirt', 'stone', 'deepslate', 'cobble', 'rust_ore', 'deepslate_amethyst',
-  'star_ore', 'soul_ore', 'sulfur_ore', 'ice_ore', 'obsidian'];
+  'star_ore', 'soul_ore', 'sulfur_ore', 'ice_ore', 'obsidian', 'iron', 'sulfur', 'quartz', 'sculk', 'soul_crystal'];
 
 function flat(scene, name) {
   canvasTexture(scene, `flat_${name}`, 64, 64, (ctx) => {
@@ -90,9 +90,32 @@ function shard(scene) {
   crisp(scene, 'mg_shard');
 }
 
+function star(scene) {
+  const P = [
+    '....#....',
+    '....#....',
+    '...#w#...',
+    '####w####',
+    '.#wwwww#.',
+    '..#www#..',
+    '..#w#w#..',
+    '.#w#.#w#.',
+    '.#.....#.',
+  ];
+  canvasTexture(scene, 'mg_star', 36, 36, (ctx) => {
+    P.forEach((row, y) => [...row].forEach((ch, x) => {
+      if (ch === '.') return;
+      ctx.fillStyle = ch === 'w' ? '#ffffff' : '#f8e090';
+      ctx.fillRect(x * 4, y * 4, 4, 4);
+    }));
+  });
+  crisp(scene, 'mg_star');
+}
+
 export function generateMinigameArt(scene) {
   for (const n of FLAT) flat(scene, n);
   crack(scene);
   hook(scene);
   shard(scene);
+  star(scene);
 }

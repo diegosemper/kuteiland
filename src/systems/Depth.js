@@ -41,7 +41,7 @@ export class Depth {
 
   // Randtegels van het Kern-eiland: daar kruipen ze omhoog
   spawnTiles() {
-    const kern = this.game.island.byId('kern');
+    const kern = this.game.island.byId('kern') || this.game.island.home;
     if (!kern) return [];
     const dist = kern.edgeDistances();
     const taken = new Set(this.game.objects.map((o) => key(o.gx, o.gy)));

@@ -6,6 +6,7 @@ const ROMAN = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
 
 // "Wrakhout II nodig" voor een recept op slot
 export function lockedLabel(unlock) {
+  if (unlock.needs) return TEXT.recipeNeeds[unlock.needs];
   const name = unlock.collection === 'wezens' ? TEXT.collectionKills : CONFIG.items[unlock.collection].name;
   return `${name} ${ROMAN[unlock.tier]}`;
 }

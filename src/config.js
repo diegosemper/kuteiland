@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 15,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 16,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
@@ -311,17 +311,17 @@ export const CONFIG = {
     sources: {
       tree: 'hakken',
       generator: 'delven',
-      source: { magneet: 'grijphaak', boor: 'afdaling' },
+      source: { magneet: 'grijphaak', boor: 'afdaling', ketel: 'koken', antenne: 'sterrenvangst', lantaarn: 'arena' },
       node: {
         wrak: 'grijphaak', kristalader: 'afdaling', sterrenader: 'arena', zwavelader: 'delven',
         paddenstoel: 'hakken', ijsader: 'delven', zielenader: 'afdaling',
       },
     },
     // welke zijn al echt gebouwd; de rest draait voorlopig als 'proef'
-    built: ['hakken', 'delven', 'grijphaak', 'afdaling'],
-    skill: { hakken: 'hakken', delven: 'delven', grijphaak: 'delven', afdaling: 'delven', arena: 'vechten' },
-    tool: { hakken: 'axe', delven: 'pickaxe', grijphaak: 'hook', afdaling: 'armor', arena: 'weapon' },
-    name: { hakken: 'Hakken', delven: 'Delven', grijphaak: 'Grijphaak', afdaling: 'Afdaling', arena: 'Arena' },
+    built: ['hakken', 'delven', 'grijphaak', 'afdaling', 'koken', 'sterrenvangst', 'arena'],
+    skill: { hakken: 'hakken', delven: 'delven', grijphaak: 'delven', afdaling: 'delven', arena: 'vechten', koken: 'bouwen', sterrenvangst: 'delven' },
+    tool: { hakken: 'axe', delven: 'pickaxe', grijphaak: 'hook', afdaling: 'armor', arena: 'weapon', koken: null, sterrenvangst: null },
+    name: { hakken: 'Hakken', delven: 'Delven', grijphaak: 'Grijphaak', afdaling: 'Afdaling', arena: 'Arena', koken: 'Koken', sterrenvangst: 'Sterrenvangst' },
 
     // Hakken: elke ronde hak je stammen om. Elke stam is taaier dan de vorige.
     hakken: {
@@ -417,6 +417,64 @@ export const CONFIG = {
       skyTop: 0x120a24, skyBottom: 0x030208,
     },
 
+    // Koken: houd de ketel op de goede temperatuur. Vinger erop = vuur, loslaten = afkoelen.
+    // Elke volle brouwsel in de groene zone levert zwavel op. Te heet = overkoken (leven kwijt).
+    koken: {
+      name: 'Koken',
+      timeMs: 45000,
+      lives: 3,
+      heatAcc: 1.5,           // hoe hard het vuur opstookt (per s²)
+      coolAcc: 1.1,           // hoe hard het afkoelt
+      maxVel: 0.55,
+      damping: 0.6,
+      zone: 0.2,              // hoogte van de groene zone
+      zonePerLevel: 0.002,    // skill Bouwen: zone groter
+      zoneSpeed: 0.18,        // hoe snel de zone beweegt (groeit met de tijd)
+      zoneSpeedGrow: 0.006,
+      brewMs: 2400,           // zo lang in het groen voor één brouwsel
+      clumpEvery: [5000, 9000],  // roestklont valt erin: plots kouder
+      clumpDrop: 0.22,
+      xpPerBrew: 2,
+      skyTop: 0x1f1a08, skyBottom: 0x070502,
+    },
+
+    // Sterrenvangst: sterren vallen van alle kanten naar je antenne. Draai de schotel ernaar toe.
+    // Meteoren moet je juist niet vangen.
+    sterrenvangst: {
+      name: 'Sterrenvangst',
+      timeMs: 45000,
+      lives: 3,
+      arc: 0.5,               // halve breedte van de schotel (radialen)
+      arcPerLevel: 0.004,     // skill Delven: schotel breder
+      speed: 150,             // pixels per seconde (x schaal)
+      speedGrow: 3,
+      spawnMs: [650, 1000],
+      gold: 0.1,              // kans op een gouden ster (3 waard)
+      meteor: 0.18,           // kans op een meteoor (groeit)
+      meteorGrow: 0.004,
+      starsPerUnit: 5,        // zoveel sterren = 1 sterrenstof
+      xpPerStar: 0.5,
+      skyTop: 0x0a0c26, skyBottom: 0x020208,
+    },
+
+    // Arena: wezens komen van alle kanten op je af. Tik ze om te slaan. Elk wezen laat een ziel achter.
+    arena: {
+      name: 'Arena',
+      timeMs: 75000,
+      lives: 3,
+      speed: 55,              // pixels per seconde (x schaal)
+      speedGrow: 4,           // per golf
+      hpBase: 2,
+      hpPerWave: 1.6,
+      perWave: [3, 2],        // wezens per golf: basis + per golf
+      bruteEvery: 3,          // elke zoveel golven een grote
+      bruteHp: 6,             // x gewone hp
+      soulsPerUnit: 4,        // zoveel zielen = 1 zielenkristal
+      tapRadius: 48,
+      xpPerKill: 1,
+      skyTop: 0x06201c, skyBottom: 0x020807,
+    },
+
     proef: {
       name: 'Proef',
       timeMs: 20000,
@@ -460,7 +518,15 @@ export const CONFIG = {
         { slowFall: 0.8, short: 'je valt rustiger' },
         { keepHalf: true, short: 'geraakt? Je houdt de helft' },
       ],
-      weapon: [{ short: '' }],
+      weapon: [
+        { damage: 1, short: 'kracht 1' },
+        { damage: 2, short: 'kracht 2' },
+        { damage: 3, short: 'kracht 3' },
+        { damage: 5, cleave: true, short: 'kracht 5, raakt ook wat ernaast staat' },
+        { damage: 8, short: 'kracht 8' },
+        { damage: 13, shockwave: true, short: 'kracht 13, elke 10 doden een schokgolf' },
+        { damage: 20, lifesteal: true, short: 'kracht 20, elke 15 doden een leven terug' },
+      ],
     },
   },
 
@@ -476,6 +542,9 @@ export const CONFIG = {
   sources: {
     magneet: { name: 'Roestmagneet', item: 'roest', label: 'TREK', spot: 'edge' },
     boor:    { name: 'Kristalboor',  item: 'leegtekristal', label: 'BOOR', spot: 'inner' },
+    ketel:   { name: 'Zwavelketel',  item: 'zwavel', label: 'KOOK' },
+    antenne: { name: 'Sterrenantenne', item: 'sterrenstof', label: 'VANG', spot: 'edge' },
+    lantaarn: { name: 'Zielenlantaarn', item: 'zielenkristal', label: 'VECHT', spot: 'inner' },
   },
 
   // ---------- ontdekkingen ----------
@@ -704,6 +773,15 @@ export const CONFIG = {
     lichtblok:      { name: 'Lichtblok',      place: 'tile', tile: 'glow' },
     roestmagneet:   { name: 'Roestmagneet',   place: 'object', spot: 'edge' },
     kristalboor:    { name: 'Kristalboor',    place: 'object', spot: 'inner' },
+    zwavelketel:    { name: 'Zwavelketel',    place: 'object' },
+    sterrenantenne: { name: 'Sterrenantenne', place: 'object', spot: 'edge' },
+    zielenlantaarn: { name: 'Zielenlantaarn', place: 'object', spot: 'inner' },
+    altaar_zwavel:  { name: 'Zwavelaltaar',   place: 'object' },
+    altaar_padde:   { name: 'Sporenaltaar',   place: 'object' },
+    altaar_ijs:     { name: 'IJsaltaar',      place: 'object' },
+    altaar_echo:    { name: 'Echo-altaar',    place: 'object' },
+    hartkern:       { name: 'Hartkern',       place: 'object' },
+    leegtepoort:    { name: 'Leegtepoort',    place: 'object' },
     aambeeld:       { name: 'Aambeeld',       place: 'object' },
     zaagmolen:      { name: 'Zaagmolen',      place: 'object' },
     steenmaler:     { name: 'Steenmaler',     place: 'object' },
@@ -738,6 +816,15 @@ export const CONFIG = {
     { id: 'wachttoren',     at: 'werkbank', cost: { wrakhout: 12, puin: 12, roest: 8 }, gives: { item: 'wachttoren', amount: 1 } },
     { id: 'kristallamp',    at: 'werkbank', cost: { roest: 2, leegtekristal: 3 },    gives: { item: 'kristallamp', amount: 1 } },
     { id: 'anker',          at: 'werkbank', cost: { roest: 8, puin: 6 },             gives: { item: 'anker', amount: 1 } },
+    { id: 'zwavelketel',    at: 'werkbank', cost: { puin: 20, roest: 12, wrakhout: 10 },          gives: { item: 'zwavelketel', amount: 1 } },
+    { id: 'sterrenantenne', at: 'werkbank', cost: { roest: 20, leegtekristal: 10, puin: 10 },     gives: { item: 'sterrenantenne', amount: 1 } },
+    { id: 'zielenlantaarn', at: 'werkbank', cost: { leegtekristal: 20, sterrenstof: 10, zwavel: 10 }, gives: { item: 'zielenlantaarn', amount: 1 } },
+    { id: 'altaar_zwavel',  at: 'werkbank', cost: { zwavel: 15, puin: 20 },                       gives: { item: 'altaar_zwavel', amount: 1 } },
+    { id: 'altaar_padde',   at: 'werkbank', cost: { wrakhout: 60, zwavel: 12, leegtekristal: 6 }, gives: { item: 'altaar_padde', amount: 1 } },
+    { id: 'altaar_ijs',     at: 'werkbank', cost: { sterrenstof: 14, leegtekristal: 12 },         gives: { item: 'altaar_ijs', amount: 1 } },
+    { id: 'altaar_echo',    at: 'werkbank', cost: { zielenkristal: 8, sterrenstof: 10, zwavel: 10 }, gives: { item: 'altaar_echo', amount: 1 } },
+    { id: 'hartkern',       at: 'werkbank', cost: { zielenkristal: 10, leegtekristal: 20, sterrenstof: 10 }, gives: { item: 'hartkern', amount: 1 }, needs: 'zegels' },
+    { id: 'leegtepoort',    at: 'werkbank', cost: { zielenkristal: 6, leegtekristal: 15 },        gives: { item: 'leegtepoort', amount: 1 }, needs: 'hoeder' },
     { id: 'kristalboor',    at: 'werkbank', cost: { wrakhout: 10, puin: 16, roest: 20 }, gives: { item: 'kristalboor', amount: 1 } },
     { id: 'haak3',          at: 'werkbank', cost: { leegtekristal: 6, roest: 12 },   gives: { tool: 'hook', tier: 3 } },
     { id: 'wapen5',         at: 'werkbank', cost: { sterrenstof: 5, leegtekristal: 4 }, gives: { tool: 'weapon', tier: 5 } },

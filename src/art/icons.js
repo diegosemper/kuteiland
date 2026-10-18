@@ -221,11 +221,24 @@ export function generateIcons(scene) {
     crisp(scene, key);
   }
   // bronnen: verkleinde objecttexture als icoon
-  for (const [icon, tex] of [['icon_roestmagneet', 'src_magneet'], ['icon_kristalboor', 'src_boor']]) {
+  const fromTexture = [
+    ['icon_roestmagneet', 'src_magneet'], ['icon_kristalboor', 'src_boor'], ['icon_zwavelketel', 'src_ketel'],
+    ['icon_sterrenantenne', 'src_antenne'], ['icon_zielenlantaarn', 'src_lantaarn'],
+    ['icon_hartkern', 'kern'], ['icon_leegtepoort', 'portal'],
+    ...Object.entries(CONFIG.bewakers).map(([id, b]) => [`icon_altaar_${id}`, 'altar', b.tint]),
+  ];
+  for (const [icon, tex, tint] of fromTexture) {
+    if (!scene.textures.exists(tex)) continue;
     const src = scene.textures.get(tex).getSourceImage();
     canvasTexture(scene, icon, S, S, (ctx) => {
       const f = Math.min(S / src.width, S / src.height) * 1.05;
       ctx.drawImage(src, (S - src.width * f) / 2, S - src.height * f, src.width * f, src.height * f);
+      if (tint !== undefined) {
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fillStyle = `#${tint.toString(16).padStart(6, '0')}`;
+        ctx.globalAlpha = 0.4;
+        ctx.fillRect(0, 0, S, S);
+      }
     });
   }
 }

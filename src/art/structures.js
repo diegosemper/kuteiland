@@ -76,11 +76,58 @@ function drawDrill(ctx) {
   ]);
 }
 
+// Zwavelketel: ijzeren pot op kasseien, vol borrelende zwavel
+export const KETTLE = { w: 120, h: 120, ox: 60, oy: 92 };
+
+function drawKettle(ctx) {
+  const P = iso(KETTLE.ox, KETTLE.oy);
+  const iron = all('iron');
+  const A = 0.32, W = 0.07, h0 = 10, h1 = 46;
+  drawBoxes(ctx, P, [
+    boxAt(0, 0, 0, 0.36, h0, all('cobble')),
+    { u0: -A + W, u1: A - W, v0: -A + W, v1: A - W, z0: h0, z1: h1 - 6, faces: { top: 'sulfur', left: 'sulfur_side', right: 'sulfur_side' } },
+    { u0: -A, u1: A, v0: -A, v1: -A + W, z0: h0, z1: h1, faces: iron },
+    { u0: -A, u1: -A + W, v0: -A, v1: A, z0: h0, z1: h1, faces: iron },
+    { u0: A - W, u1: A, v0: -A, v1: A, z0: h0, z1: h1, faces: iron },
+    { u0: -A, u1: A, v0: A - W, v1: A, z0: h0, z1: h1, faces: iron },
+  ]);
+}
+
+// Sterrenantenne: lange ijzeren paal met een kwarts schotel bovenop
+export const ANTENNA = { w: 130, h: 210, ox: 65, oy: 180 };
+
+function drawAntenna(ctx) {
+  const P = iso(ANTENNA.ox, ANTENNA.oy);
+  const H = 2.1 * TH;
+  drawBoxes(ctx, P, [
+    boxAt(0, 0, 0, 0.3, 12, all('iron')),
+    { u0: -0.05, u1: 0.05, v0: -0.05, v1: 0.05, z0: 12, z1: H, faces: all('iron') },
+    { u0: -0.36, u1: 0.36, v0: -0.36, v1: 0.36, z0: H, z1: H + 6, faces: all('quartz') },
+    { u0: -0.08, u1: 0.08, v0: -0.08, v1: 0.08, z0: H + 6, z1: H + 18, faces: all('star_ore') },
+  ]);
+}
+
+// Zielenlantaarn: obsidiaan zuil met sculk en een zielenkristal in de top
+export const SOULLAMP = { w: 110, h: 180, ox: 55, oy: 150 };
+
+function drawSoulLamp(ctx) {
+  const P = iso(SOULLAMP.ox, SOULLAMP.oy);
+  const H = 1.5 * TH;
+  drawBoxes(ctx, P, [
+    boxAt(0, 0, 0, 0.36, 14, all('obsidian')),
+    { u0: -0.16, u1: 0.16, v0: -0.16, v1: 0.16, z0: 14, z1: H, faces: { top: 'sculk', left: 'sculk_side', right: 'sculk_side' } },
+    { u0: -0.2, u1: 0.2, v0: -0.2, v1: 0.2, z0: H, z1: H + 26, faces: all('soul_crystal') },
+    { u0: -0.24, u1: 0.24, v0: -0.24, v1: 0.24, z0: H + 26, z1: H + 32, faces: all('obsidian') },
+  ]);
+}
+
 export function generateStructures(scene) {
   canvasTexture(scene, 'src_magneet', MAGNET.w, MAGNET.h, drawMagnet);
   canvasTexture(scene, 'src_boor', DRILL.w, DRILL.h, drawDrill);
-  crisp(scene, 'src_magneet');
-  crisp(scene, 'src_boor');
+  canvasTexture(scene, 'src_ketel', KETTLE.w, KETTLE.h, drawKettle);
+  canvasTexture(scene, 'src_antenne', ANTENNA.w, ANTENNA.h, drawAntenna);
+  canvasTexture(scene, 'src_lantaarn', SOULLAMP.w, SOULLAMP.h, drawSoulLamp);
+  for (const k of ['src_magneet', 'src_boor', 'src_ketel', 'src_antenne', 'src_lantaarn']) crisp(scene, k);
   canvasTexture(scene, 'workbench', WORKBENCH.w, WORKBENCH.h, drawWorkbench);
   canvasTexture(scene, 'generator', GENERATOR.w, GENERATOR.h, drawGenerator);
   canvasTexture(scene, 'gen_stone', GEN_STONE.w, GEN_STONE.h, drawGenStone);
