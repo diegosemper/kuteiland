@@ -55,24 +55,26 @@ export class ChestPanel {
       anchor: 'bottom',
     });
     const { c, px, py, pw, ph, pad } = panel;
+    const list = panel.list;
     let y = panel.y;
 
-    const section = (label, list, source, target, btnLabel, emptyText) => {
-      c.add(sc.add.text(px + pad, y, label, textStyle(S, 11, COLORS.dim, { fontStyle: '700', letterSpacing: 1.5 * S })));
+    const section = (label, keys, source, target, btnLabel, emptyText) => {
+      list.add(sc.add.text(px + pad, y, label, textStyle(S, 11, COLORS.dim, { fontStyle: '700', letterSpacing: 1.5 * S })));
       y += 20 * S;
-      if (!list.length) {
-        c.add(sc.add.text(px + pad, y + 8 * S, emptyText, textStyle(S, 14, COLORS.dim)));
+      if (!keys.length) {
+        list.add(sc.add.text(px + pad, y + 8 * S, emptyText, textStyle(S, 14, COLORS.dim)));
         y += rowH;
       }
-      for (const k of list) {
+      for (const k of keys) {
         y += itemRow(sc, panel, k, source.get(k), y,
-          (bx, by) => makeButton(sc, bx, by, 84 * S, 32 * S, btnLabel, () => this.move(source, target, k), 11));
+          (bx, by) => makeButton(sc, bx, by, 84 * S, 32 * S, btnLabel, (lbl, p) => { if (panel.inView(p.y)) this.move(source, target, k); }, 11));
       }
       y += 10 * S;
     };
 
     section(TEXT.chestCarried, carried, this.inventory, this.chest, TEXT.chestStore, TEXT.chestNothingCarried);
     section(TEXT.chestStored, stored, this.chest, this.inventory, TEXT.chestTake, TEXT.chestEmpty);
+    panel.setContentEnd(y);
 
     const bw = (pw - pad * 3) / 2;
     const by = py + ph - pad - 22 * S;

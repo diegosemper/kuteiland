@@ -19,8 +19,10 @@ export class CraftPanel {
   rebuild() {
     if (!this.isOpen) return;
     const old = this.container;
+    this.scrollY = this.panel?.list?.y || 0;
     this.container = null;
     this.open();
+    if (this.panel?.list) { this.panel.list.y = this.scrollY; this.panel.setContentEnd(this.contentEnd); }
     this.scene.time.delayedCall(0, () => old.destroy());
   }
 
@@ -38,6 +40,7 @@ export class CraftPanel {
       anchor: 'bottom',
     });
     const { c, px, py, pw, ph, pad } = panel;
+    this.panel = panel;
     let y = panel.y;
 
     for (const r of recipes) {
@@ -53,6 +56,8 @@ export class CraftPanel {
       });
     }
 
+    this.contentEnd = y;
+    panel.setContentEnd(y);
     c.add(makeButton(sc, px + pw / 2, py + ph - pad - 22 * S, pw - pad * 2, 44 * S, TEXT.close, () => this.close()));
     this.container = c;
   }

@@ -45,17 +45,18 @@ export class InventoryPanel {
       + (tools.length ? 36 * S + tools.length * 40 * S : 0)
       + 36 * S + hand.length * 50 * S + (hasBench ? 0 : 24 * S)
       + 210 * S;
-    const panel = createPanel(sc, { title: TEXT.bagTitle, height, onBackdrop: () => this.close() });
+    const panel = createPanel(sc, { title: TEXT.bagTitle, height, onBackdrop: () => this.close(), footer: 140 });
     const { c, px, py, pw, ph, pad } = panel;
+    const list = panel.list;
     let y = panel.y;
 
     const label = (text) => {
-      c.add(sc.add.text(px + pad, y, text, textStyle(S, 11, COLORS.dim, { fontStyle: '700', letterSpacing: 1.5 * S })));
+      list.add(sc.add.text(px + pad, y, text, textStyle(S, 11, COLORS.dim, { fontStyle: '700', letterSpacing: 1.5 * S })));
       y += 20 * S;
     };
 
     if (!owned.length) {
-      c.add(sc.add.text(px + pad, y + 8 * S, TEXT.bagEmpty, textStyle(S, 14, COLORS.dim, { wordWrap: { width: pw - pad * 2 } })));
+      list.add(sc.add.text(px + pad, y + 8 * S, TEXT.bagEmpty, textStyle(S, 14, COLORS.dim, { wordWrap: { width: pw - pad * 2 } })));
       y += 40 * S;
     }
     for (const k of owned) y += itemRow(sc, panel, k, this.inventory.get(k), y);
@@ -66,8 +67,8 @@ export class InventoryPanel {
       for (const k of tools) {
         const tier = game.tools[k];
         const cy = y + 16 * S;
-        c.add(sc.add.image(px + pad + 13 * S, cy, `icon_${k}${tier}`).setDisplaySize(28 * S, 28 * S));
-        c.add(sc.add.text(px + pad + 36 * S, cy, CONFIG.tools[k][tier], textStyle(S, 15)).setOrigin(0, 0.5));
+        list.add(sc.add.image(px + pad + 13 * S, cy, `icon_${k}${tier}`).setDisplaySize(28 * S, 28 * S));
+        list.add(sc.add.text(px + pad + 36 * S, cy, CONFIG.tools[k][tier], textStyle(S, 15)).setOrigin(0, 0.5));
         y += 40 * S;
       }
     }
@@ -87,8 +88,10 @@ export class InventoryPanel {
       });
     }
     if (!hasBench) {
-      c.add(sc.add.text(px + pad, y + 4 * S, TEXT.moreAtBench, textStyle(S, 12, COLORS.dim)));
+      list.add(sc.add.text(px + pad, y + 4 * S, TEXT.moreAtBench, textStyle(S, 12, COLORS.dim)));
+      y += 24 * S;
     }
+    panel.setContentEnd(y);
 
     const bw = (pw - pad * 3) / 2;
     const by = py + ph - pad - 22 * S;

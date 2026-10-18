@@ -43,10 +43,18 @@ export function makeButton(scene, x, y, w, h, label, onTap, size = 13) {
   const text = scene.add.text(0, 0, label, textStyle(S, size, COLORS.text, { fontStyle: '600' })).setOrigin(0.5);
   const zone = scene.add.zone(0, 0, w, h).setInteractive({ useHandCursor: true });
   const c = scene.add.container(x, y, [bg, text, zone]);
-  zone.on('pointerdown', () => {
+  let down = null;
+  zone.on('pointerdown', (p) => {
+    down = { x: p.x, y: p.y };
     scene.tweens.add({ targets: c, scale: 0.95, duration: 60, yoyo: true });
-    onTap(text);
   });
+  zone.on('pointerup', (p) => {
+    if (!down) return;
+    const moved = Math.hypot(p.x - down.x, p.y - down.y);
+    down = null;
+    if (moved < 12 * S) onTap(text, p);
+  });
+  zone.on('pointerout', () => { down = null; });
   c.label = text;
   return c;
 }

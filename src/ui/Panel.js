@@ -3,7 +3,8 @@ import { CONFIG } from '../config.js';
 import { COLORS, textStyle, storyStyle, roundedBox } from './style.js';
 
 // anchor 'bottom': paneel onderin, zodat de wereld erboven zichtbaar blijft
-export function createPanel(scene, { title, subtitle, height, onBackdrop, anchor = 'center' }) {
+// footer: ruimte onderin voor knoppen; alles daarboven scrollt als het niet past
+export function createPanel(scene, { title, subtitle, height, onBackdrop, anchor = 'center', footer = 70 }) {
   const S = scene.S;
   const { width: w, height: h } = scene.scale;
   const safe = scene.safe;
@@ -37,13 +38,70 @@ export function createPanel(scene, { title, subtitle, height, onBackdrop, anchor
   c.add(line);
   y += 14 * S;
 
-  return { c, px, py, pw, ph, pad, y };
+  const panel = { c, px, py, pw, ph, pad, y };
+  addScroll(scene, panel, y - 6 * S, py + ph - footer * S);
+  return panel;
+}
+
+// Scrollbare lijst: rijen gaan in panel.list; slepen of het muiswiel schuift hem.
+function addScroll(scene, panel, top, bottom) {
+  const S = scene.S;
+  const { c, px, pw } = panel;
+  const list = scene.add.container(0, 0);
+  c.add(list);
+  const shape = scene.make.graphics({ add: false });
+  shape.fillStyle(0xffffff);
+  shape.fillRect(px, top, pw, bottom - top);
+  list.setMask(shape.createGeometryMask());
+
+  let minY = 0;
+  let drag = null;
+  const clamp = (v) => Math.max(minY, Math.min(0, v));
+  let hint = null;
+  const updateHint = () => hint?.setVisible(minY < 0 && list.y > minY + 2);
+  const onDown = (p) => {
+    if (p.x >= px && p.x <= px + pw && p.y >= top && p.y <= bottom) drag = { y: p.y, start: list.y };
+  };
+  const onMove = (p) => {
+    if (!drag || !p.isDown) return;
+    list.y = clamp(drag.start + (p.y - drag.y));
+    updateHint();
+  };
+  const onUp = () => { drag = null; };
+  const onWheel = (p, over, dx, dy) => { list.y = clamp(list.y - dy); updateHint(); };
+  scene.input.on('pointerdown', onDown);
+  scene.input.on('pointermove', onMove);
+  scene.input.on('pointerup', onUp);
+  scene.input.on('wheel', onWheel);
+  c.once('destroy', () => {
+    scene.input.off('pointerdown', onDown);
+    scene.input.off('pointermove', onMove);
+    scene.input.off('pointerup', onUp);
+    scene.input.off('wheel', onWheel);
+    shape.destroy();
+  });
+
+  // pijltje als er meer onder zit
+  hint = scene.add.text(px + pw / 2, bottom - 2 * S, '▾', textStyle(S, 16, COLORS.dim)).setOrigin(0.5, 1).setVisible(false);
+  c.add(hint);
+  scene.tweens.add({ targets: hint, y: hint.y + 4 * S, duration: 600, yoyo: true, repeat: -1 });
+
+  panel.list = list;
+  // na het vullen: hoe hoog is de inhoud (eindpunt y in schermcoördinaten)
+  panel.setContentEnd = (endY) => {
+    minY = Math.min(0, bottom - endY - 10 * S);
+    list.y = clamp(list.y);
+    updateHint();
+  };
+  // is een punt op het scherm zichtbaar in de lijst? (knoppen buiten beeld doen niks)
+  panel.inView = (y) => y >= top && y <= bottom;
 }
 
 // Een recept: icoon, naam, kosten (rood als je te weinig hebt) en een MAAK-knop. Geeft de hoogte terug.
 export function recipeRow(scene, panel, y, { icon, name, cost, inventory, state, onMake, makeButton, labels }) {
   const S = scene.S;
-  const { c, px, pw, pad } = panel;
+  const { px, pw, pad } = panel;
+  const c = panel.list || panel.c;
   const cy = y + 22 * S;
   const dim = state.owned ? 0.45 : 1;
   c.add(scene.add.image(px + pad + 15 * S, cy, icon).setDisplaySize(32 * S, 32 * S).setAlpha(dim));
@@ -64,7 +122,9 @@ export function recipeRow(scene, panel, y, { icon, name, cost, inventory, state,
   if (state.owned) {
     c.add(scene.add.text(bx, cy, labels.owned, textStyle(S, 11, COLORS.dim, { fontStyle: '700' })).setOrigin(0.5));
   } else {
-    const b = makeButton(scene, bx, cy, 84 * S, 34 * S, labels.make, () => { if (state.canCraft) onMake(); }, 12);
+    const b = makeButton(scene, bx, cy, 84 * S, 34 * S, labels.make, (lbl, p) => {
+      if (state.canCraft && (!panel.inView || panel.inView(p.y))) onMake();
+    }, 12);
     b.setAlpha(state.canCraft ? 1 : 0.4);
     c.add(b);
   }
@@ -75,7 +135,8 @@ export function recipeRow(scene, panel, y, { icon, name, cost, inventory, state,
 export function itemRow(scene, panel, key, count, y, button) {
   const S = scene.S;
   const def = CONFIG.items[key];
-  const { c, px, pw, pad } = panel;
+  const { px, pw, pad } = panel;
+  const c = panel.list || panel.c;
   const cy = y + 16 * S;
   c.add(scene.add.image(px + pad + 13 * S, cy, `icon_${key}`).setDisplaySize(28 * S, 28 * S));
   c.add(scene.add.text(px + pad + 36 * S, cy, def.name, textStyle(S, 15)).setOrigin(0, 0.5));
