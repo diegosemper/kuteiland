@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 13,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 14,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
@@ -150,7 +150,7 @@ export const CONFIG = {
 
   // Grondstof-aders op de verre eilanden. hits per houweel-niveau (0 = kan niet)
   nodes: {
-    wrak:        { name: 'Wrakhoop',     item: 'roest',         amount: [1, 2], hits: [0, 4, 3, 2, 2, 1.5], regrowMs: 2500 },
+    wrak:        { name: 'Wrakhoop',     item: 'roest',         amount: [1, 2], hits: [0, 4, 3, 2, 2, 1.5], regrowMs: 2500, tool: 'hook' },
     kristalader: { name: 'Kristalader',  item: 'leegtekristal', amount: [1, 1], hits: [0, 0, 6, 4, 3, 2], regrowMs: 4500 },
     sterrenader: { name: 'Sterrenader',  item: 'sterrenstof',   amount: [1, 1], hits: [0, 0, 0, 6, 5, 4], regrowMs: 5500 },
     zwavelader:  { name: 'Zwavelader',   item: 'zwavel',        amount: [1, 2], hits: [0, 0, 0, 5, 4, 3], regrowMs: 4000 },
@@ -256,6 +256,7 @@ export const CONFIG = {
     pickaxe: ['Geen houweel', 'Houten houweel', 'Stenen houweel', 'Roestig houweel', 'Kristallen houweel', 'Zielenhouweel'],
     weapon:  ['Vuisten', 'Houten knuppel', 'Puinhamer', 'Roestzwaard', 'Leegtezwaard', 'Sterrenzwaard', 'Zielenzwaard'],
     armor:   ['Geen harnas', 'Houten harnas', 'Roestharnas', 'Kristalharnas', 'Sterrenharnas', 'Zielenharnas'],
+    hook:    ['Geen grijphaak', 'Touwhaak', 'Roesthaak', 'Kristalhaak', 'Sterrenhaak'],
   },
 
   // ---------- dag, nacht en vechten ----------
@@ -303,8 +304,8 @@ export const CONFIG = {
   skillCurve: { base: 10, exp: 1.7, max: 50 },
   // Per level een kleine bonus; elke 10 levels een mijlpaal (mod = blijvende bonus, zie Mods.js)
   // ---------- minigames ----------
-  // Bronnen starten een minigame; de score bepaalt de opbrengst.
-  // rate = grondstof per punt, afgeleid van de oude tabellen (opbrengst / slagen) per gereedschapsniveau.
+  // Bronnen starten een minigame. Hoe goed je speelt bepaalt de opbrengst;
+  // je gereedschap bepaalt hoe makkelijk het is (zie perks hieronder).
   minigames: {
     // welke minigame hoort bij welke bron
     sources: {
@@ -316,28 +317,83 @@ export const CONFIG = {
       },
     },
     // welke zijn al echt gebouwd; de rest draait voorlopig als 'proef'
-    built: ['hakken'],
+    built: ['hakken', 'delven', 'grijphaak'],
     skill: { hakken: 'hakken', delven: 'delven', grijphaak: 'delven', afdaling: 'delven', arena: 'vechten' },
+    tool: { hakken: 'axe', delven: 'pickaxe', grijphaak: 'hook', afdaling: 'pickaxe', arena: 'weapon' },
     name: { hakken: 'Hakken', delven: 'Delven', grijphaak: 'Grijphaak', afdaling: 'Afdaling', arena: 'Arena' },
 
+    // Hakken: elke ronde hak je stammen om. Elke stam is taaier dan de vorige.
     hakken: {
       name: 'Hakken',
-      timeMs: 60000,          // langer duurt een ronde niet
-      lives: 3,               // zo vaak mis = over
-      zone: 0.2,              // goede zone als deel van de balk
-      zonePerLevel: 0.004,    // skill Hakken: zone breder per level
-      zoneMax: 0.42,
-      perfect: 0.3,           // perfecte kern als deel van de zone (dubbele punten)
+      timeMs: 45000,
+      zone: 0.17,             // goede zone als deel van de balk
+      zonePerLevel: 0.003,    // skill Hakken: zone breder per level
+      zoneMax: 0.36,
+      perfect: 0.28,          // gouden kern als deel van de zone (dubbele kracht)
       speed: 0.6,             // balklengtes per seconde
-      speedPerCombo: 0.045,
+      speedPerCombo: 0.05,
       speedMax: 2.4,
-      comboStep: 5,           // elke 5 combo: +1 punt per slag
+      comboStep: 5,           // elke 5 raak op rij: +1 kracht per slag
       tapCooldownMs: 110,
-      yieldMult: 2.2,         // punten x rate x dit = hout
-      hitsPerYield: 4,        // voor de +x-mijlpalen: één 'opbrengst' per zoveel raak
+      logHp: 8,               // eerste stam
+      logHpGrow: 5,           // elke volgende stam zoveel taaier
+      perLog: 2,              // hout per omgehakte stam (paddenstoel: zie nodes.amount)
       xpPerHit: 1,
       skyTop: 0x1d1430, skyBottom: 0x0a060f,
     },
+
+    // Delven: graaf van boven naar beneden. Gebarsten stenen storten in als je eronder graaft.
+    delven: {
+      name: 'Delven',
+      timeMs: 60000,
+      cols: 7,
+      lives: 3,
+      tapCooldownMs: 70,
+      hpDirt: 1,
+      hpStone: 2,
+      hpDeep: 3,              // diepsteen vanaf deepFrom
+      deepFrom: 12,
+      hpPerRows: 10,          // elke zoveel rijen +1 hardheid
+      ore: 0.13,              // kans op een ader van de hoofdgrondstof
+      orePerRow: 0.004,
+      unstable: 0.07,         // kans op een gebarsten steen
+      unstablePerRow: 0.005,
+      unstableMax: 0.22,
+      collapseMs: 650,        // zo lang wiebelt hij voor hij valt
+      crackAlpha: 0.3,        // hoe goed je barsten ziet zonder skill
+      crackPerLevel: 0.02,    // skill Delven: barsten beter zichtbaar
+      // zeldzame vondsten: [grondstof, vanaf rij, kans, blok]
+      rare: [
+        ['roest', 6, 0.035, 'rust_ore'],
+        ['leegtekristal', 14, 0.022, 'deepslate_amethyst'],
+        ['sterrenstof', 22, 0.014, 'star_ore'],
+        ['zielenkristal', 32, 0.008, 'soul_ore'],
+      ],
+      scoreRow: 5, scoreOre: 10, scoreRare: 40,
+      xpPerBlock: 0.5,
+      skyTop: 0x15101c, skyBottom: 0x07050a,
+    },
+
+    // Grijphaak: wrakstukken drijven voorbij. Mik, schiet, binnenhalen. Klein en snel = meer buit.
+    grijphaak: {
+      name: 'Grijphaak',
+      timeMs: 50000,
+      spawnMs: [700, 1300],
+      hookSpeed: 950,         // pixels per seconde (x schaal)
+      catchRadius: 30,        // basis, x perk
+      reelMs: 550,
+      // soorten wrak: grootte, snelheid (schermbreedtes per seconde), buit en kans
+      kinds: [
+        { tex: 'drift_crate',  scale: 1.5, speed: [0.10, 0.16], loot: { roest: 1, puin: 1 }, points: 1, weight: 4 },
+        { tex: 'drift_scrap',  scale: 1.1, speed: [0.16, 0.26], loot: { roest: 2 },          points: 2, weight: 4 },
+        { tex: 'drift_branch', scale: 1.0, speed: [0.18, 0.28], loot: { wrakhout: 2 },       points: 1, weight: 2 },
+        { tex: 'drift_scrap',  scale: 0.6, speed: [0.32, 0.46], loot: { roest: 4 },          points: 4, weight: 2 },
+        { tex: 'mg_shard',     scale: 0.8, speed: [0.40, 0.55], loot: { leegtekristal: 1 },  points: 6, weight: 0.6, glow: 0xb48cff },
+      ],
+      xpPerCatch: 1,
+      skyTop: 0x0f0c22, skyBottom: 0x05040c,
+    },
+
     proef: {
       name: 'Proef',
       timeMs: 20000,
@@ -345,6 +401,35 @@ export const CONFIG = {
       lifeMs: 1300,
       yieldMult: 1.6,
       xpPerHit: 1,
+    },
+
+    // Wat elk gereedschapsniveau doet in zijn minigame. Effecten stapelen: een hoger niveau
+    // houdt alles van de niveaus eronder. 'short' staat op het startscherm en bij de werkbank.
+    perks: {
+      axe: [
+        { lives: 2, damage: 1, short: '2 levens' },
+        { lives: 3, damage: 2, short: '3 levens, kracht 2' },
+        { damage: 3, zoneMult: 1.35, short: 'kracht 3, brede zone' },
+        { damage: 4, slowInZone: 0.45, short: 'kracht 4, pijl plakt in het groen' },
+        { damage: 5, perfectMult: 2, short: 'kracht 5, gouden zone x2' },
+        { damage: 7, forgive: 1, short: 'kracht 7, eerste misser vergeven' },
+      ],
+      pickaxe: [
+        { damage: 0, short: '' },
+        { damage: 1, short: 'kracht 1' },
+        { damage: 2, short: 'kracht 2' },
+        { damage: 2, seeCracks: true, short: 'je ziet elke barst' },
+        { damage: 3, pierce: true, short: 'kracht 3, slaat door naar het blok eronder' },
+        { damage: 4, shield: 1, short: 'kracht 4, eerste instorting tegengehouden' },
+      ],
+      hook: [
+        { shots: 0, short: '' },
+        { shots: 7, catchMult: 1, speedMult: 1, short: '7 schoten' },
+        { shots: 9, short: '9 schoten' },
+        { catchMult: 1.5, short: 'grote haak, vangt makkelijker' },
+        { speedMult: 1.6, pierce: true, short: 'snelle haak, pakt twee in één schot' },
+      ],
+      weapon: [{ short: '' }],
     },
   },
 
@@ -562,30 +647,34 @@ export const CONFIG = {
   // at: 'hand' = in de rugzak, 'werkbank' = bij een werkbank
   // gives: { item, amount } of { tool, tier }
   recipes: [
-    { id: 'werkbank',       at: 'hand',     cost: { wrakhout: 4 },           gives: { item: 'werkbank', amount: 1 } },
-    { id: 'houweel1',       at: 'werkbank', cost: { wrakhout: 3 },           gives: { tool: 'pickaxe', tier: 1 } },
-    { id: 'bijl1',          at: 'werkbank', cost: { wrakhout: 3 },           gives: { tool: 'axe', tier: 1 } },
-    { id: 'vlonder',        at: 'werkbank', cost: { wrakhout: 2 },           gives: { item: 'vlonder', amount: 1 } },
-    { id: 'steengenerator', at: 'werkbank', cost: { wrakhout: 8 },           gives: { item: 'steengenerator', amount: 1 } },
+    { id: 'werkbank',       at: 'hand',     cost: { wrakhout: 5 },           gives: { item: 'werkbank', amount: 1 } },
+    { id: 'bijl1',          at: 'werkbank', cost: { wrakhout: 8 },           gives: { tool: 'axe', tier: 1 } },
+    { id: 'houweel1',       at: 'werkbank', cost: { wrakhout: 10 },          gives: { tool: 'pickaxe', tier: 1 } },
+    { id: 'vlonder',        at: 'werkbank', cost: { wrakhout: 3 },           gives: { item: 'vlonder', amount: 1 } },
+    { id: 'steengenerator', at: 'werkbank', cost: { wrakhout: 14 },          gives: { item: 'steengenerator', amount: 1 } },
     { id: 'puinblok',       at: 'werkbank', cost: { puin: 3 },               gives: { item: 'puinblok', amount: 1 } },
-    { id: 'houweel2',       at: 'werkbank', cost: { wrakhout: 2, puin: 5 },  gives: { tool: 'pickaxe', tier: 2 } },
-    { id: 'bijl2',          at: 'werkbank', cost: { wrakhout: 2, puin: 5 },  gives: { tool: 'axe', tier: 2 } },
-    { id: 'houweel3',       at: 'werkbank', cost: { wrakhout: 3, puin: 4, roest: 6 }, gives: { tool: 'pickaxe', tier: 3 } },
-    { id: 'bijl3',          at: 'werkbank', cost: { wrakhout: 3, puin: 4, roest: 6 }, gives: { tool: 'axe', tier: 3 } },
-    { id: 'wapen1',         at: 'werkbank', cost: { wrakhout: 4 },                   gives: { tool: 'weapon', tier: 1 } },
-    { id: 'wapen2',         at: 'werkbank', cost: { wrakhout: 2, puin: 6 },          gives: { tool: 'weapon', tier: 2 } },
-    { id: 'wapen3',         at: 'werkbank', cost: { wrakhout: 2, roest: 8 },         gives: { tool: 'weapon', tier: 3 } },
+    { id: 'haak1',          at: 'werkbank', cost: { wrakhout: 12, puin: 8 }, gives: { tool: 'hook', tier: 1 } },
+    { id: 'houweel2',       at: 'werkbank', cost: { wrakhout: 6, puin: 12 },  gives: { tool: 'pickaxe', tier: 2 } },
+    { id: 'bijl2',          at: 'werkbank', cost: { wrakhout: 6, puin: 12 },  gives: { tool: 'axe', tier: 2 } },
+    { id: 'haak2',          at: 'werkbank', cost: { wrakhout: 8, roest: 14 }, gives: { tool: 'hook', tier: 2 } },
+    { id: 'houweel3',       at: 'werkbank', cost: { wrakhout: 8, puin: 10, roest: 14 }, gives: { tool: 'pickaxe', tier: 3 } },
+    { id: 'bijl3',          at: 'werkbank', cost: { wrakhout: 8, puin: 10, roest: 14 }, gives: { tool: 'axe', tier: 3 } },
+    { id: 'wapen1',         at: 'werkbank', cost: { wrakhout: 8 },                   gives: { tool: 'weapon', tier: 1 } },
+    { id: 'wapen2',         at: 'werkbank', cost: { wrakhout: 4, puin: 12 },         gives: { tool: 'weapon', tier: 2 } },
+    { id: 'wapen3',         at: 'werkbank', cost: { wrakhout: 6, roest: 16 },        gives: { tool: 'weapon', tier: 3 } },
     { id: 'wapen4',         at: 'werkbank', cost: { roest: 4, leegtekristal: 6 },    gives: { tool: 'weapon', tier: 4 } },
-    { id: 'lantaarn',       at: 'werkbank', cost: { wrakhout: 3, roest: 1 },         gives: { item: 'lantaarn', amount: 1 } },
-    { id: 'muur',           at: 'werkbank', cost: { puin: 4 },                       gives: { item: 'muur', amount: 1 } },
-    { id: 'wachttoren',     at: 'werkbank', cost: { wrakhout: 6, puin: 6, roest: 4 }, gives: { item: 'wachttoren', amount: 1 } },
+    { id: 'lantaarn',       at: 'werkbank', cost: { wrakhout: 5, roest: 2 },         gives: { item: 'lantaarn', amount: 1 } },
+    { id: 'muur',           at: 'werkbank', cost: { puin: 5 },                       gives: { item: 'muur', amount: 1 } },
+    { id: 'wachttoren',     at: 'werkbank', cost: { wrakhout: 12, puin: 12, roest: 8 }, gives: { item: 'wachttoren', amount: 1 } },
     { id: 'kristallamp',    at: 'werkbank', cost: { roest: 2, leegtekristal: 3 },    gives: { item: 'kristallamp', amount: 1 } },
-    { id: 'anker',          at: 'werkbank', cost: { roest: 5, puin: 3 },             gives: { item: 'anker', amount: 1 } },
-    { id: 'brug',           at: 'werkbank', cost: { wrakhout: 2, roest: 1 },         gives: { item: 'brug', amount: 2 } },
+    { id: 'anker',          at: 'werkbank', cost: { roest: 8, puin: 6 },             gives: { item: 'anker', amount: 1 } },
+    { id: 'brug',           at: 'werkbank', cost: { wrakhout: 4, roest: 2 },         gives: { item: 'brug', amount: 2 } },
+    { id: 'haak3',          at: 'werkbank', cost: { leegtekristal: 6, roest: 12 },   gives: { tool: 'hook', tier: 3 } },
     { id: 'sterrenbrug',    at: 'werkbank', cost: { sterrenstof: 2, roest: 2 },      gives: { item: 'sterrenbrug', amount: 1 } },
     { id: 'wapen5',         at: 'werkbank', cost: { sterrenstof: 5, leegtekristal: 4 }, gives: { tool: 'weapon', tier: 5 } },
     { id: 'bijl4',          at: 'werkbank', cost: { leegtekristal: 8, sterrenstof: 2, roest: 6 },  gives: { tool: 'axe', tier: 4 } },
     { id: 'houweel4',       at: 'werkbank', cost: { leegtekristal: 8, sterrenstof: 2, roest: 6 },  gives: { tool: 'pickaxe', tier: 4 } },
+    { id: 'haak4',          at: 'werkbank', cost: { sterrenstof: 6, leegtekristal: 6, roest: 10 }, gives: { tool: 'hook', tier: 4 } },
     { id: 'bijl5',          at: 'werkbank', cost: { zielenkristal: 6, leegtekristal: 10, zwavel: 6 }, gives: { tool: 'axe', tier: 5 } },
     { id: 'houweel5',       at: 'werkbank', cost: { zielenkristal: 6, leegtekristal: 10, zwavel: 6 }, gives: { tool: 'pickaxe', tier: 5 } },
     { id: 'wapen6',         at: 'werkbank', cost: { zielenkristal: 10, sterrenstof: 8, leegtehart: 1 }, gives: { tool: 'weapon', tier: 6 } },

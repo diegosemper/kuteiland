@@ -25,6 +25,7 @@ import { Mods, tierFor, COLLECTION_IDS } from '../systems/Mods.js';
 import { DayNight } from '../systems/DayNight.js';
 import { Night } from '../systems/Night.js';
 import { Crumble } from '../systems/Crumble.js';
+import { toolPerks } from '../systems/Perks.js';
 import { loadGame, saveGame, clearSave } from '../systems/save.js';
 
 const AUTO_WALK_MS = 4000;
@@ -39,7 +40,7 @@ export class GameScene extends Phaser.Scene {
     this.flags = { ...save?.flags };
     this.stats = { chops: 0, wood: 0, puin: 0, tilesPlaced: 0, ...save?.stats };
     this.stats.crafted = { ...save?.stats?.crafted };
-    this.tools = { axe: 0, pickaxe: 0, weapon: 0, ...save?.tools };
+    this.tools = { axe: 0, pickaxe: 0, weapon: 0, hook: 0, ...save?.tools };
     this.skills = new Skills(save?.skills);
     this.inventory = new Inventory(save?.inventory);
     this.chestStore = new Inventory(save?.chest);
@@ -507,28 +508,34 @@ export class GameScene extends Phaser.Scene {
 
   // ---------- minigames ----------
 
-  // Wat een bron oplevert en welke minigame erbij hoort
+  // Wat een bron oplevert, welke minigame erbij hoort en wat je gereedschap daarin doet
   minigameSpec(o) {
     const M = CONFIG.minigames;
-    let id, item, rate, tool, art, name;
+    let id, item, rate, art, name, per = 1;
     if (o.type === 'tree') {
       const t = this.tools.axe;
-      id = M.sources.tree; item = 'wrakhout'; tool = 'axe'; art = ['tree']; name = TEXT.treeName;
+      id = M.sources.tree; item = 'wrakhout'; art = ['tree']; name = TEXT.treeName;
+      per = M.hakken.perLog;
       rate = CONFIG.tree.woodPerYield[t] / CONFIG.tree.hitsPerYield[t];
     } else if (o.type === 'generator') {
       const t = this.tools.pickaxe;
-      id = M.sources.generator; item = 'puin'; tool = 'pickaxe'; art = ['generator']; name = CONFIG.items.steengenerator.name;
+      id = M.sources.generator; item = 'puin'; art = ['generator']; name = CONFIG.items.steengenerator.name;
       rate = CONFIG.generator.puinPerYield[t] / CONFIG.generator.hitsPerYield[t];
     } else {
-      const t = this.tools.pickaxe;
       const [min, max] = o.def.amount;
-      id = M.sources.node[o.node]; item = o.def.item; tool = 'pickaxe'; name = o.def.name;
+      id = M.sources.node[o.node]; item = o.def.item; name = o.def.name;
       art = [`node_${o.node}_base`, `node_${o.node}_top`];
-      rate = (min + max) / 2 / o.def.hits[t];
+      per = Math.max(1, Math.round((min + max) / 2));
+      rate = (min + max) / 2 / (o.def.hits[this.tools.pickaxe] || 4);
     }
     const skill = M.skill[id];
+    const tool = M.tool[id];
+    const tier = this.tools[tool] || 0;
     rate *= this.skills.power(skill);
-    return { id, item, rate, tool, toolMult: this.upgradeMult(tool), skill, art, name: name || M.name[id] };
+    return {
+      id, item, rate, per, tool, tier, perks: toolPerks(tool, tier), toolMult: this.upgradeMult(tool),
+      skill, art, name: name || M.name[id],
+    };
   }
 
   startMinigame(spec) {
@@ -838,7 +845,7 @@ export class GameScene extends Phaser.Scene {
 
   // Factor van versterken (+1 = 10%, enz.)
   upgradeMult(slot) {
-    return 1 + (this.upgrades[slot] || 0) * CONFIG.upgrades.per[slot];
+    return 1 + (this.upgrades[slot] || 0) * (CONFIG.upgrades.per[slot] || 0);
   }
 
   upgradeGear(slot) {

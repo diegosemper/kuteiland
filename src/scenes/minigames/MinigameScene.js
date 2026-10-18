@@ -6,6 +6,7 @@ import { TEXT } from '../../texts.js';
 import { bus } from '../../bus.js';
 import { getDpr, getSafeArea } from '../../display.js';
 import { COLORS, textStyle, makeButton, roundedBox, shade } from '../../ui/style.js';
+import { perkSummary, perkText } from '../../systems/Perks.js';
 
 export class MinigameScene extends Phaser.Scene {
   init(data) {
@@ -165,7 +166,21 @@ export class MinigameScene extends Phaser.Scene {
     else parts[0][1] = 18;
     parts.push([this.add.text(W / 2, 0, this.howTo, textStyle(S, 15, COLORS.text, {
       align: 'center', wordWrap: { width: pw - 40 * S }, lineSpacing: 4 * S,
-    })).setOrigin(0.5, 0), 22]);
+    })).setOrigin(0.5, 0), 18]);
+    // wat je gereedschap hier doet, en wat het volgende niveau brengt
+    const { tool, tier } = this.spec;
+    if (tool && this.mgId !== 'proef' && CONFIG.minigames.perks[tool]?.length > 1) {
+      const toolName = CONFIG.tools[tool]?.[tier] || '';
+      parts.push([this.add.text(W / 2, 0, `${toolName}: ${perkSummary(tool, tier)}`, textStyle(S, 12, '#b8e0a0', {
+        align: 'center', wordWrap: { width: pw - 40 * S }, fontStyle: '700',
+      })).setOrigin(0.5, 0), 6]);
+      const next = perkText(tool, tier + 1);
+      if (next) {
+        parts.push([this.add.text(W / 2, 0, `${TEXT.mgNextTool} ${CONFIG.tools[tool][tier + 1]}: ${next}`, textStyle(S, 11, COLORS.dim, {
+          align: 'center', wordWrap: { width: pw - 40 * S },
+        })).setOrigin(0.5, 0), 18]);
+      } else parts[parts.length - 1][1] = 18;
+    }
     const bestRow = this.add.text(W / 2 + 16 * S, 0, `${TEXT.mgBest} ${best}`, textStyle(S, 14, COLORS.dim)).setOrigin(0.5, 0);
     parts.push([bestRow, 24]);
     const go = shade(this.add.text(W / 2, 0, TEXT.mgTapToStart, textStyle(S, 16, '#ffd98a', { fontStyle: '800' })).setOrigin(0.5, 0), S);

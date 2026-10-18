@@ -100,6 +100,18 @@ function chestplate(mat) {
   });
 }
 
+// grijphaak: touw met een haak van het materiaal
+const HOOK_MAT = [0, 1, 3, 4, 5];
+function grapple(tier) {
+  const [m, d, l] = MATERIAL[HOOK_MAT[tier]];
+  return sprite((px) => {
+    const rope = ['#c8a870', '#9a7a48'];
+    for (let i = 0; i < 6; i++) { px(2 + i, 2 + i, rope[i % 2]); px(3 + i, 2 + i, rope[(i + 1) % 2]); }
+    const rows = ['...ll....', '...mm....', '...mm....', 'l..mm...l', 'm..mm...m', 'mm.mm..mm', '.mmmmmmm.', '..ddddd..'];
+    rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') px(x + 6, y + 7, ch === 'm' ? m : ch === 'l' ? l : d); }));
+  });
+}
+
 function heart() {
   return sprite((px) => {
     const rows = ['.kk..kk.', 'kppkkppk', 'kpwpppdk', 'kpppppdk', '.kpppdk.', '..kpdk..', '...kk...'];
@@ -199,6 +211,7 @@ export function generateIcons(scene) {
   for (const type of Object.keys(CONFIG.machines.types)) {
     icons[`icon_${type}`] = miniCube({ top: 'iron', left: `machine_${type}`, right: `machine_${type}` });
   }
+  for (const tier of [1, 2, 3, 4]) icons[`icon_hook${tier}`] = grapple(tier);
   for (const tier of [1, 2, 3, 4, 5]) {
     icons[`icon_axe${tier}`] = axe(tier);
     icons[`icon_pickaxe${tier}`] = pickaxe(tier);

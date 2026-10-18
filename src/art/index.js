@@ -12,6 +12,7 @@ import { generateDefenses } from './defenses.js';
 import { generateAnchor } from './anchor.js';
 import { generateRemote } from './remote.js';
 import { generateEndgame } from './endgame.js';
+import { generateMinigameArt } from './minigames.js';
 
 let noise = null;
 export function getNoise() {
@@ -31,4 +32,5 @@ export function generateTextures(scene) {
   generateEndgame(scene);
   generateCharacter(scene);
   generateIcons(scene);
+  generateMinigameArt(scene);
 }

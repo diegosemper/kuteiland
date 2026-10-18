@@ -114,7 +114,7 @@ function addScroll(scene, panel, top, bottom) {
 }
 
 // Een recept: icoon, naam, kosten (rood als je te weinig hebt) en een MAAK-knop. Geeft de hoogte terug.
-export function recipeRow(scene, panel, y, { icon, name, cost, inventory, state, onMake, makeButton, labels }) {
+export function recipeRow(scene, panel, y, { icon, name, cost, inventory, state, onMake, makeButton, labels, perk }) {
   const S = scene.S;
   const { px, pw, pad } = panel;
   const c = panel.list || panel.c;
@@ -145,6 +145,11 @@ export function recipeRow(scene, panel, y, { icon, name, cost, inventory, state,
     }, 12);
     b.setAlpha(state.canCraft ? 1 : 0.4);
     c.add(b);
+  }
+  if (perk) {
+    c.add(scene.add.text(px + pad + 40 * S, cy + 27 * S, perk, textStyle(S, 11, '#b8e0a0', { wordWrap: { width: pw - pad * 2 - 140 * S } }))
+      .setOrigin(0, 0.5).setAlpha(dim));
+    return 66 * S;
   }
   return 50 * S;
 }

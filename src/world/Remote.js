@@ -33,7 +33,8 @@ export class ResourceNode {
   }
 
   act(game) {
-    if (!this.def.hits[game.tools.pickaxe]) return { message: `${this.def.name}: ${TEXT.nodeNeedsTool[this.node]}` };
+    const ok = this.def.tool ? (game.tools[this.def.tool] || 0) >= 1 : !!this.def.hits[game.tools.pickaxe];
+    if (!ok) return { message: `${this.def.name}: ${TEXT.nodeNeedsTool[this.node]}` };
     this.scene.tweens.add({ targets: this.top, x: { from: this.top.x + 2, to: this.top.x }, duration: 140, ease: 'Bounce.easeOut' });
     this.chips.explode(5, this.top.x, this.hitY - 10);
     return { minigame: true };

@@ -21,6 +21,7 @@ const LIST = [
   { id: 'steen', done: (g) => g.tools.pickaxe >= 2 || g.tools.axe >= 2 },
   { id: 'hakken3', progress: (g) => [g.skills.level('hakken'), 3] },
   { id: 'collectie', progress: (g) => [Math.floor(g.stats.collected.wrakhout || 0), 100] },
+  { id: 'grijphaak', done: (g) => (g.tools.hook || 0) >= 1 },
   { id: 'roest', progress: (g) => [g.stats.roest || 0, 6] },
   { id: 'roestgereedschap', done: (g) => g.tools.pickaxe >= 3 || g.tools.axe >= 3 },
   { id: 'toren', done: (g) => g.countObjects('tower') >= 1 },

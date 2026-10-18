@@ -5,6 +5,7 @@ import { makeButton } from './style.js';
 import { createPanel, recipeRow } from './Panel.js';
 import { recipesAt, recipeName, recipeIcon, recipeState } from '../systems/Crafting.js';
 import { lockedLabel } from './labels.js';
+import { perkText, minigameForTool } from '../systems/Perks.js';
 
 export class CraftPanel {
   constructor(scene, game) {
@@ -36,7 +37,7 @@ export class CraftPanel {
     const panel = createPanel(sc, {
       title: TEXT.craftTitle,
       subtitle: TEXT.craftSubtitle,
-      height: recipes.length * 50 * S + 200 * S,
+      height: recipes.length * 56 * S + 200 * S,
       onBackdrop: () => this.close(),
       anchor: 'bottom',
     });
@@ -54,6 +55,8 @@ export class CraftPanel {
         onMake: () => { bus.emit('craft', r.id); this.rebuild(); },
         makeButton,
         labels: { make: TEXT.craftMake, owned: TEXT.craftOwned, locked: lockedLabel },
+        perk: r.gives.tool && minigameForTool(r.gives.tool) && perkText(r.gives.tool, r.gives.tier)
+          ? `${minigameForTool(r.gives.tool)}: ${perkText(r.gives.tool, r.gives.tier)}` : null,
       });
     }
 
