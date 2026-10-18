@@ -1,6 +1,6 @@
 // Actieknop rechtsonder. Het label past zich aan aan wat er voor de speler staat.
 import { CONFIG } from '../config.js';
-import { COLORS, textStyle } from './style.js';
+import { COLORS, textStyle, shade } from './style.js';
 
 export class ActionButton {
   constructor(scene) {
@@ -11,16 +11,17 @@ export class ActionButton {
     this.pointerId = null;
     this.onPress = null;
 
-    this.circle = scene.add.circle(0, 0, this.R, COLORS.button, 0.6)
-      .setStrokeStyle(2 * S, COLORS.accent, 0.5);
-    this.text = scene.add.text(0, 0, '', textStyle(S, 15, COLORS.text, { fontStyle: 'bold' })).setOrigin(0.5);
+    this.circle = scene.add.circle(0, 0, this.R, COLORS.button, 0.7);
+    this.ring = scene.add.circle(0, 0, this.R - 5 * S, 0x000000, 0);
+    this.text = shade(scene.add.text(0, 0, '', textStyle(S, 15, COLORS.text, { fontStyle: '700' })).setOrigin(0.5), S);
     // ruimer raakvlak dan de cirkel, duimen zijn niet precies
     this.zone = scene.add.zone(0, 0, this.R * 2.6, this.R * 2.6).setInteractive();
 
     this.zone.on('pointerdown', (pointer) => {
       this.held = true;
       this.pointerId = pointer.id;
-      this.circle.setScale(0.9);
+      this.circle.setScale(0.92);
+      this.ring.setScale(0.92);
       this.onPress?.();
     });
     const up = (pointer) => {
@@ -37,21 +38,21 @@ export class ActionButton {
     const S = this.scene.S;
     const x = w - safe.right - this.R - 32 * S;
     const y = h - safe.bottom - this.R - 50 * S;
-    this.circle.setPosition(x, y);
-    this.text.setPosition(x, y);
-    this.zone.setPosition(x, y);
+    for (const o of [this.circle, this.ring, this.text, this.zone]) o.setPosition(x, y);
   }
 
   setLabel(label) {
-    this.text.setText(label || '·');
+    const S = this.scene.S;
     const active = !!label;
-    this.text.setAlpha(active ? 1 : 0.5);
-    this.circle.setStrokeStyle(2 * this.scene.S, COLORS.accent, active ? 0.75 : 0.3);
+    this.text.setText(label || '').setAlpha(active ? 1 : 0.5);
+    this.circle.setStrokeStyle(2 * S, COLORS.accent, active ? 0.7 : 0.25);
+    this.ring.setStrokeStyle(1 * S, COLORS.accent, active ? 0.25 : 0.08);
   }
 
   release() {
     this.held = false;
     this.pointerId = null;
     this.circle.setScale(1);
+    this.ring.setScale(1);
   }
 }

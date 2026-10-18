@@ -9,16 +9,17 @@ export class Joystick {
     const S = scene.S;
     this.R = CONFIG.ui.joystickRadius * S;
     this.base = scene.add.circle(0, 0, this.R, 0x000000, 0.25)
-      .setStrokeStyle(2 * S, COLORS.accent, 0.3);
-    this.thumb = scene.add.circle(0, 0, CONFIG.ui.joystickThumb * S, COLORS.accent, 0.3);
+      .setStrokeStyle(1.5 * S, COLORS.accent, 0.3);
+    this.ring = scene.add.circle(0, 0, this.R * 0.55, 0x000000, 0)
+      .setStrokeStyle(1 * S, COLORS.accent, 0.12);
+    this.thumb = scene.add.circle(0, 0, CONFIG.ui.joystickThumb * S, COLORS.accent, 0.28)
+      .setStrokeStyle(1.5 * S, 0xffffff, 0.25);
 
     this.pointerId = null;
-    this.enabled = true;
     this.vector = { x: 0, y: 0 };
     this.center = { x: 0, y: 0 };
     this.home = { x: 0, y: 0 };
 
-    scene.input.on('pointerdown', this.onDown, this);
     scene.input.on('pointermove', this.onMove, this);
     scene.input.on('pointerup', this.onUp, this);
     scene.input.on('pointerupoutside', this.onUp, this);
@@ -33,13 +34,18 @@ export class Joystick {
   place(x, y) {
     this.center = { x, y };
     this.base.setPosition(x, y);
+    this.ring.setPosition(x, y);
     this.thumb.setPosition(x, y);
   }
 
-  onDown(pointer, over) {
-    if (!this.enabled || this.pointerId !== null || over.length) return;
+  // Mag deze aanraking de joystick starten?
+  inZone(pointer) {
     const { width: w, height: h } = this.scene.scale;
-    if (pointer.x > w * 0.55 || pointer.y < h * 0.3) return;
+    return pointer.x <= w * 0.55 && pointer.y >= h * 0.3;
+  }
+
+  start(pointer) {
+    if (this.pointerId !== null) return;
     this.pointerId = pointer.id;
     this.place(pointer.x, pointer.y);
     this.setActive(true);
@@ -47,7 +53,7 @@ export class Joystick {
 
   setActive(active) {
     this.base.setFillStyle(0x000000, active ? 0.4 : 0.25);
-    this.thumb.setFillStyle(COLORS.accent, active ? 0.55 : 0.3);
+    this.thumb.setFillStyle(COLORS.accent, active ? 0.5 : 0.28);
   }
 
   onMove(pointer) {

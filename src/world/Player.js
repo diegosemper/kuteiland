@@ -1,6 +1,9 @@
-// De speler: beweging, botsing en een simpele hak-animatie.
+// De speler: beweging, botsing, loopanimatie en een hak-beweging.
 import { CONFIG } from '../config.js';
 import { gridToScreen, screenVecToGrid } from '../iso.js';
+import { PLAYER } from '../art/character.js';
+
+const FRAME_MS = 105;
 
 export class Player {
   constructor(scene, gx, gy) {
@@ -10,8 +13,8 @@ export class Player {
     this.moving = false;
     this.walkTime = 0;
 
-    this.shadow = scene.add.image(0, 0, 'shadow').setDepth(-5000);
-    this.sprite = scene.add.image(0, 0, 'player').setOrigin(0.5, 1);
+    this.shadow = scene.add.image(0, 0, 'shadow').setScale(0.55).setDepth(-5000);
+    this.sprite = scene.add.image(0, 0, 'player_idle').setOrigin(PLAYER.footX / PLAYER.w, PLAYER.footY / PLAYER.h);
     this.sync();
   }
 
@@ -37,7 +40,10 @@ export class Player {
 
       if (move.x < -0.1) this.sprite.flipX = true;
       else if (move.x > 0.1) this.sprite.flipX = false;
-      this.walkTime += dt;
+      this.walkTime += dt * (0.6 + 0.4 * mag);
+      this.sprite.setTexture(`player_walk${Math.floor(this.walkTime / FRAME_MS) % PLAYER.walkFrames}`);
+    } else {
+      this.sprite.setTexture('player_idle');
     }
 
     this.sync();
@@ -46,13 +52,9 @@ export class Player {
 
   sync() {
     const s = gridToScreen(this.gx, this.gy);
-    const bob = this.moving ? -Math.round(Math.abs(Math.sin(this.walkTime * 0.012)) * 1.5) : 0;
+    const bob = this.moving ? -Math.abs(Math.sin(this.walkTime / FRAME_MS / PLAYER.walkFrames * Math.PI * 2)) * 2 : 0;
     this.sprite.setPosition(s.x, s.y + bob).setDepth(s.y);
     this.shadow.setPosition(s.x, s.y);
-  }
-
-  get screen() {
-    return gridToScreen(this.gx, this.gy);
   }
 
   faceTowards(screenX) {
@@ -64,8 +66,8 @@ export class Player {
     this.sprite.angle = 0;
     this.scene.tweens.add({
       targets: this.sprite,
-      angle: this.sprite.flipX ? -18 : 18,
-      duration: 70,
+      angle: this.sprite.flipX ? -12 : 12,
+      duration: 80,
       yoyo: true,
       ease: 'Quad.easeOut',
     });

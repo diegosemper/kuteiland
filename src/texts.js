@@ -19,11 +19,15 @@ export const TEXT = {
     'Eén stap verder en je bent een anekdote.',
   ],
 
-  chest: [
-    'Een kist. Leeg. Zoals je toekomst.',
-    'Nog steeds leeg.',
-    'Kijken maakt hem niet voller.',
-  ],
+  chestTitle: 'KIST',
+  chestSubtitle: 'Wat hier ligt, overleeft jou.',
+  chestCarried: 'BIJ JE',
+  chestStored: 'IN DE KIST',
+  chestStore: 'OPBERGEN',
+  chestTake: 'PAKKEN',
+  chestStoreAll: 'ALLES OPBERGEN',
+  chestNothingCarried: 'Je zakken zijn leeg.',
+  chestEmpty: 'Leeg. Zoals je toekomst.',
 
   bagTitle: 'RUGZAK',
   bagEmpty: 'Leeg. Zelfs je zakken zijn eenzaam.',

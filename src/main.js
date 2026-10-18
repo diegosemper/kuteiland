@@ -17,8 +17,7 @@ const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   backgroundColor: '#0b0612',
-  pixelArt: true,
-  roundPixels: true,
+  antialias: true,
   scale: {
     mode: Phaser.Scale.NONE,
     width: size.w,
@@ -29,6 +28,9 @@ const game = new Phaser.Game({
   // volgorde = tekenvolgorde: achtergrond onder, UI boven
   scene: [BootScene, BackgroundScene, GameScene, UIScene],
 });
+
+// Voor testen: ?debug in de URL maakt het spel bereikbaar via window.kuteiland
+if (new URLSearchParams(location.search).has('debug')) window.kuteiland = game;
 
 function onResize() {
   const s = canvasSize();

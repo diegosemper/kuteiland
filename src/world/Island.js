@@ -1,7 +1,9 @@
-// Het zwevende eiland: tegels, de rotsklomp eronder en vallend gruis.
+// Het zwevende eiland: grondtegels, de rotsklomp eronder, graspollen, gruis en mist.
 import { CONFIG } from '../config.js';
 import { gridToScreen } from '../iso.js';
 import { mulberry32 } from '../rng.js';
+import { getNoise } from '../art/index.js';
+import { tileTexture, undersideTexture, grassAmount, TILE_TEX } from '../art/terrain.js';
 
 const key = (gx, gy) => `${gx},${gy}`;
 const NEIGHBOURS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -60,49 +62,75 @@ export class Island {
 
   build(rnd) {
     const scene = this.scene;
-    const BD = CONFIG.iso.blockDepth;
-    const dist = this.edgeDistances();
+    const N = getNoise();
     const tiles = [...this.tiles.values()].sort((a, b) => (a.gx + a.gy) - (b.gx + b.gy));
+    const ox = TILE_TEX.cx / TILE_TEX.w, oy = TILE_TEX.cy / TILE_TEX.h;
 
-    let minX = Infinity, maxX = -Infinity, maxY = -Infinity, sumX = 0, sumY = 0;
-
+    let sumX = 0, sumY = 0;
     for (const t of tiles) {
       const s = gridToScreen(t.gx, t.gy);
-      const order = t.gx + t.gy;
-
-      // Bovenlaag
-      scene.add.image(s.x, s.y, `dirt${Math.floor(rnd() * 3)}`)
-        .setOrigin(0.5, 1 / 3)
-        .setDepth(-10000 + order);
-
-      // Rotsklomp eronder: dieper in het midden, ondiep aan de rand
-      const d = dist.get(key(t.gx, t.gy)) || 1;
-      const layers = d * 3 - 1 + Math.floor(rnd() * 2);
-      for (let k = 1; k <= layers; k++) {
-        const v = Math.round(255 * Math.max(0.3, 1 - k * 0.09));
-        scene.add.image(s.x, s.y + k * BD, `rock${Math.floor(rnd() * 2)}`)
-          .setOrigin(0.5, 1 / 3)
-          .setTint(Phaser.Display.Color.GetColor(v, v, v))
-          .setDepth(-10000 - k * 100 + order);
-      }
-
-      minX = Math.min(minX, s.x); maxX = Math.max(maxX, s.x);
-      maxY = Math.max(maxY, s.y + layers * BD);
-      sumX += s.x; sumY += s.y;
+      const texKey = `tile_${t.gx}_${t.gy}`;
+      tileTexture(scene, texKey, t.gx, t.gy, N);
+      scene.add.image(s.x, s.y, texKey).setOrigin(ox, oy).setDepth(-10000 + t.gx + t.gy);
+      sumX += s.x;
+      sumY += s.y;
     }
-
     this.center = { x: sumX / tiles.length, y: sumY / tiles.length };
 
+    // Rotsklomp eronder
+    const u = undersideTexture(scene, 'underside', tiles, this.edgeDistances(), N, rnd);
+    scene.add.image(u.x, u.y, 'underside').setOrigin(0).setScale(u.scale).setDepth(-20000);
+    this.bottom = u.maxBottom;
+
+    this.addTufts(tiles, N, rnd);
+
     // Gruis dat langzaam onder het eiland vandaan valt
+    const drops = u.bottoms;
     scene.add.particles(0, 0, 'dust', {
-      emitZone: {
-        type: 'random',
-        source: new Phaser.Geom.Rectangle(minX - 8, maxY - 24, maxX - minX + 16, 20),
+      emitCallback: (p) => {
+        const b = drops[Math.floor(Math.random() * drops.length)];
+        p.x = b.x + (Math.random() - 0.5) * 8;
+        p.y = b.y - 6;
       },
-      speedY: { min: 4, max: 12 },
+      speedY: { min: 10, max: 28 },
       lifespan: 5000,
-      frequency: 260,
+      frequency: 220,
+      scale: { min: 0.4, max: 1 },
       alpha: { start: 0.9, end: 0 },
-    }).setDepth(-20000);
+    }).setDepth(-19990);
+
+    // Mist rond de onderkant
+    const mistY = (this.center.y + this.bottom) / 2 + 40;
+    [[-150, -20500, 0.22, 3.2], [140, -20500, 0.18, 2.6], [10, -19980, 0.1, 3.6]].forEach(([dx, depth, alpha, sc], i) => {
+      const m = scene.add.image(u.centerX + dx, mistY + i * 30, 'mist')
+        .setTint(0x7a5aa8).setAlpha(alpha).setScale(sc, sc * 0.7).setDepth(depth);
+      scene.tweens.add({
+        targets: m, x: m.x + (i % 2 ? -60 : 60), duration: 9000 + i * 2500,
+        yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+      });
+    });
+  }
+
+  addTufts(tiles, N, rnd) {
+    const scene = this.scene;
+    const { tileW: TW, tileH: TH } = CONFIG.iso;
+    const blocked = this.markers.map((m) => gridToScreen(m.gx, m.gy));
+    for (const t of tiles) {
+      const s = gridToScreen(t.gx, t.gy);
+      const n = Math.floor(rnd() * 3);
+      for (let i = 0; i < n; i++) {
+        const lx = (rnd() - 0.5) * TW * 0.7, ly = (rnd() - 0.5) * TH * 0.7;
+        if (Math.abs(lx) / (TW * 0.35) + Math.abs(ly) / (TH * 0.35) > 1) continue;
+        const x = s.x + lx, y = s.y + ly;
+        if (grassAmount(N, x, y) < 0.5) continue;
+        if (blocked.some((b) => Math.hypot(b.x - x, (b.y - y) * 2) < 40)) continue;
+        const tuft = scene.add.image(x, y, 'tuft').setOrigin(0.5, 1).setDepth(y)
+          .setScale(0.8 + rnd() * 0.6).setFlipX(rnd() < 0.5);
+        scene.tweens.add({
+          targets: tuft, angle: { from: -3, to: 3 }, duration: 1600 + rnd() * 1400,
+          yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: rnd() * 1500,
+        });
+      }
+    }
   }
 }

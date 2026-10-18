@@ -1,7 +1,7 @@
 // Service worker: zorgt dat het spel installeerbaar is en offline blijft werken.
 // Strategie: eerst het netwerk (zodat updates meteen binnenkomen), bij geen verbinding de cache.
 // Verhoog CACHE bij grote wijzigingen om oude bestanden op te ruimen.
-const CACHE = 'kuteiland-v1';
+const CACHE = 'kuteiland-v2';
 
 const CORE = [
   './',
@@ -18,7 +18,14 @@ const CORE = [
   './src/display.js',
   './src/bus.js',
   './src/controls.js',
-  './src/art.js',
+  './src/noise.js',
+  './src/art/index.js',
+  './src/art/util.js',
+  './src/art/terrain.js',
+  './src/art/props.js',
+  './src/art/character.js',
+  './src/art/fx.js',
+  './src/art/icons.js',
   './src/scenes/BootScene.js',
   './src/scenes/BackgroundScene.js',
   './src/scenes/GameScene.js',
@@ -33,7 +40,9 @@ const CORE = [
   './src/ui/Joystick.js',
   './src/ui/ActionButton.js',
   './src/ui/Toast.js',
+  './src/ui/Panel.js',
   './src/ui/InventoryPanel.js',
+  './src/ui/ChestPanel.js',
 ];
 
 self.addEventListener('install', (event) => {

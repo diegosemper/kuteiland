@@ -4,13 +4,15 @@
 export const CONFIG = {
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
-    viewTilesWide: 8,   // hoeveel tegels je ongeveer in de breedte ziet (bepaalt de zoom)
+    viewTilesWide: 6.5, // hoeveel tegels je ongeveer in de breedte ziet (bepaalt de zoom)
+    minZoom: 0.45,
+    maxZoom: 1.3,       // verder inzoomen maakt de graphics wazig
   },
 
   iso: {
-    tileW: 32,          // breedte van een tegel in pixels
-    tileH: 16,          // hoogte van de bovenkant van een tegel
-    blockDepth: 8,      // dikte van een blok (de zijkant)
+    tileW: 128,         // breedte van een tegel in wereldpixels
+    tileH: 64,          // hoogte van de bovenkant van een tegel
+    blockDepth: 30,     // dikte van een blok (de zijkant)
   },
 
   player: {

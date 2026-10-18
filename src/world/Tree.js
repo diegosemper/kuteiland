@@ -1,6 +1,6 @@
 // De halfdode boom. Elke paar slagen levert hij wrakhout op.
 import { CONFIG } from '../config.js';
-import { ART } from '../art.js';
+import { TREE } from '../art/props.js';
 import { gridToScreen } from '../iso.js';
 
 export class Tree {
@@ -15,25 +15,39 @@ export class Tree {
 
     const s = gridToScreen(gx, gy);
     this.baseX = s.x;
+    this.shadow = scene.add.image(s.x + 6, s.y + 2, 'shadow').setScale(1.5, 1.2).setAlpha(0.8).setDepth(-5000);
     this.sprite = scene.add.image(s.x, s.y, 'tree')
-      .setOrigin(0.5, ART.treeBaseY / ART.treeH)
+      .setOrigin(TREE.baseX / TREE.w, TREE.baseY / TREE.h)
       .setDepth(s.y);
-    this.topY = s.y - ART.treeBaseY - 2;
+    this.topY = s.y - 330;
+    this.hitY = s.y - 120;
+    // tikvlak: stam en onderste takken, niet de hele kruin
+    this.hitArea = new Phaser.Geom.Rectangle(s.x - 70, s.y - 290, 140, 305);
+
+    // heel zacht wiegen in een wind die er eigenlijk niet zou moeten zijn
+    scene.tweens.add({
+      targets: this.sprite, angle: { from: -0.6, to: 0.6 },
+      duration: 3800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+    });
 
     this.chips = scene.add.particles(0, 0, 'chip', {
       emitting: false,
-      speed: { min: 25, max: 60 },
+      speed: { min: 60, max: 150 },
       angle: { min: 200, max: 340 },
-      gravityY: 180,
-      lifespan: 600,
+      gravityY: 420,
+      rotate: { min: 0, max: 360 },
+      lifespan: 700,
+      scale: { min: 0.8, max: 1.6 },
       alpha: { start: 1, end: 0 },
     }).setDepth(s.y + 1);
 
     this.leaves = scene.add.particles(0, 0, 'leaf', {
       emitting: false,
-      speedX: { min: -12, max: 12 },
-      speedY: { min: 6, max: 14 },
-      lifespan: 2200,
+      speedX: { min: -25, max: 25 },
+      speedY: { min: 15, max: 35 },
+      rotate: { min: 0, max: 360 },
+      lifespan: 3000,
+      scale: { min: 0.9, max: 1.4 },
       alpha: { start: 1, end: 0 },
     }).setDepth(s.y + 1);
   }
@@ -41,20 +55,17 @@ export class Tree {
   // Wordt aangeroepen bij een slag. Geeft eventueel een opbrengst terug.
   act() {
     const { scene, sprite } = this;
-    scene.tweens.killTweensOf(sprite);
-    sprite.x = this.baseX;
     scene.tweens.add({
       targets: sprite,
-      x: this.baseX + 1,
-      duration: 40,
-      yoyo: true,
-      repeat: 2,
-      onComplete: () => { sprite.x = this.baseX; },
+      x: { from: this.baseX + 3, to: this.baseX },
+      duration: 160,
+      ease: 'Bounce.easeOut',
     });
 
-    this.chips.explode(4, this.baseX, sprite.y - 12);
-    if (Math.random() < 0.35) {
-      this.leaves.explode(1, this.baseX + Phaser.Math.Between(-12, 12), sprite.y - 42);
+    this.chips.explode(6, this.baseX - 8, this.hitY + 60);
+    if (Math.random() < 0.5) {
+      this.leaves.explode(1 + Math.floor(Math.random() * 2),
+        this.baseX + Phaser.Math.Between(-90, 10), this.topY + Phaser.Math.Between(30, 110));
     }
 
     this.hits++;

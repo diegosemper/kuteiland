@@ -1,4 +1,4 @@
-import { generateTextures } from '../art.js';
+import { generateTextures } from '../art/index.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
