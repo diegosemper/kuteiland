@@ -187,8 +187,7 @@ export class Crumble {
       g.night.enemies = g.night.enemies.filter((x) => x !== e);
     }
 
-    const texKey = `tile_${gx}_${gy}`;
-    g.island.removeTile(gx, gy, true);
+    g.island.removeTile(gx, gy);
     bus.emit('sfx', 'fall');
     g.stats.tilesLost = (g.stats.tilesLost || 0) + 1;
 
@@ -199,7 +198,6 @@ export class Crumble {
         onComplete: () => s.destroy(),
       });
     }
-    g.time.delayedCall(1700, () => { if (g.textures.exists(texKey) && !g.island.get(gx, gy)) g.textures.remove(texKey); });
     const s = gridToScreen(gx, gy);
     this.dust.explode(20, s.x, s.y + 10);
 

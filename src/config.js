@@ -12,7 +12,7 @@ export const CONFIG = {
   iso: {
     tileW: 128,         // breedte van een tegel in wereldpixels
     tileH: 64,          // hoogte van de bovenkant van een tegel
-    blockDepth: 30,     // dikte van een blok (de zijkant)
+    blockDepth: 64,     // hoogte van een blok (echte kubus: gelijk aan tileH)
   },
 
   player: {

@@ -15,14 +15,14 @@ export class Tree {
 
     const s = gridToScreen(gx, gy);
     this.baseX = s.x;
-    this.shadow = scene.add.image(s.x + 6, s.y + 2, 'shadow').setScale(1.5, 1.2).setAlpha(0.8).setDepth(-5000);
+    this.shadow = scene.add.image(s.x + 6, s.y + 2, 'shadow').setScale(2.4, 2).setAlpha(0.8).setDepth(-5000);
     this.sprite = scene.add.image(s.x, s.y, 'tree')
       .setOrigin(TREE.baseX / TREE.w, TREE.baseY / TREE.h)
       .setDepth(s.y);
-    this.topY = s.y - 330;
-    this.hitY = s.y - 120;
-    // tikvlak: stam en onderste takken, niet de hele kruin
-    this.hitArea = new Phaser.Geom.Rectangle(s.x - 70, s.y - 290, 140, 305);
+    this.topY = s.y - 262;
+    this.hitY = s.y - 80;
+    // tikvlak: stam en onderkant van de kruin
+    this.hitArea = new Phaser.Geom.Rectangle(s.x - 70, s.y - 220, 140, 235);
 
     // heel zacht wiegen in een wind die er eigenlijk niet zou moeten zijn
     scene.tweens.add({

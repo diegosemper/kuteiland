@@ -1,461 +1,66 @@
-// Grond en rots. Alle patronen gebruiken wereldcoördinaten, zodat tegels naadloos op elkaar aansluiten.
+// Het eiland als Minecraft-blokken. Eén texture per bloksoort, gedeeld door alle tegels.
 import { CONFIG } from '../config.js';
-import { gridToScreen, screenToGrid } from '../iso.js';
-import { canvasTexture, hex, mix, mul, smooth, css, putPx, ellipse, mulberry32 } from './util.js';
+import { canvasTexture } from './util.js';
+import { iso, cube, crisp } from './blocks.js';
 
 const { tileW: TW, tileH: TH, blockDepth: BD } = CONFIG.iso;
-const SLOPE = TH / TW;
-const PAD = 3;     // overlap tussen tegels, voorkomt naden
-const EXTRA = 8;   // ruimte voor de rafelige onderrand van de zijkant
+const PAD = 2;
 
 export const TILE_TEX = {
   w: TW + PAD * 2,
-  h: TH + BD + EXTRA + PAD * 2,
+  h: TH + BD + PAD * 2,
   cx: TW / 2 + PAD,
   cy: TH / 2 + PAD,
 };
 
-const C = {
-  grassDark: hex('#28331e'), grassLight: hex('#56623a'), grassDry: hex('#6e6743'),
-  dirtDark: hex('#33271d'), dirtLight: hex('#665240'),
-  soilDark: hex('#22180f'), soilLight: hex('#5a4330'),
-  stone: hex('#77706a'), stoneDark: hex('#3a3633'),
-  rockDark: hex('#1d1719'), rockLight: hex('#6e5f52'),
-  voidTint: hex('#170d2b'), rim: hex('#6f4fb0'),
-  root: '#22170f',
+// Per soort: textuur boven, opzij, hoogte (1 = heel blok) en wat eronder hangt
+export const KINDS = {
+  dirt:       { top: 'grass_top', side: 'grass_side', h: 1, under: 'dirt', deep: 'stone' },
+  plank:      { top: 'planks', side: 'planks', h: 1 },
+  stone:      { top: 'cobble', side: 'cobble', h: 1 },
+  ash:        { top: 'ash_top', side: 'basalt', h: 1, under: 'basalt', deep: 'basalt' },
+  crystal:    { top: 'amethyst', side: 'deepslate_amethyst', h: 1, under: 'deepslate', deep: 'deepslate' },
+  ruin:       { top: 'bricks_glow', side: 'bricks', h: 1, under: 'bricks', deep: 'stone' },
+  bridge:     { top: 'bridge', side: 'planks', h: 0.25 },
+  starbridge: { top: 'starbridge', side: 'quartz', h: 0.25 },
 };
 
-// Vast willekeurig getal 0..1 per geheel coördinatenpaar
+// Natuurlijke grond heeft blokken eronder; gebouwde blokken niet; bruggen zijn dunne platen
+export const NATURAL = ['dirt', 'ash', 'crystal', 'ruin'];
+export const BRIDGES = ['bridge', 'starbridge'];
+
+function drawBlock(ctx, top, side, h) {
+  const height = BD * h;
+  // de bovenkant ligt op het midden van de ruit; de zijkanten hangen eronder
+  const P = iso(TILE_TEX.cx, TILE_TEX.cy + height);
+  const e = 0.505;   // net iets groter: geen naadjes tussen tegels
+  cube(ctx, P, -e, e, -e, e, 0, height, { top, left: side, right: side }, { rows: Math.max(4, Math.round(16 * h)) });
+}
+
+// Texture voor een tegel van deze soort (wordt één keer gemaakt)
+export function blockKey(scene, kind) {
+  const key = `block_${kind}`;
+  if (!scene.textures.exists(key)) {
+    const k = KINDS[kind] || KINDS.dirt;
+    canvasTexture(scene, key, TILE_TEX.w, TILE_TEX.h, (ctx) => drawBlock(ctx, k.top, k.side, k.h));
+    crisp(scene, key);
+  }
+  return key;
+}
+
+// Volle blokken die onder het eiland hangen
+export function underKey(scene, faceName) {
+  const key = `under_${faceName}`;
+  if (!scene.textures.exists(key)) {
+    canvasTexture(scene, key, TILE_TEX.w, TILE_TEX.h, (ctx) => drawBlock(ctx, faceName, faceName, 1));
+    crisp(scene, key);
+  }
+  return key;
+}
+
+// Vast getal 0..1 per tegel
 export function hash2(i, j) {
   let h = Math.imul(i | 0, 374761393) ^ Math.imul(j | 0, 668265263);
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-}
-const frac = (x) => x - Math.floor(x);
-
-// ---------- vlonder (planken) ----------
-
-const WOOD = {
-  dark: hex('#3d2b1c'), light: hex('#7a5a3c'), grey: hex('#5f574d'),
-  gap: hex('#140d08'), nail: hex('#8d8a86'),
-};
-
-function plankTop(N, wx, wy) {
-  const g = screenToGrid(wx, wy);
-  const across = g.gy * 4;                 // vier planken per tegel, liggend langs gx
-  const row = Math.floor(across);
-  const f = across - row;
-  const along = g.gx + (row & 1) * 0.5;    // naden verspringen per rij
-  const seg = Math.floor(along);
-  const segF = along - seg;
-  const h = hash2(row, seg);
-  let col = mix(WOOD.dark, WOOD.light, 0.25 + 0.55 * h);
-  col = mix(col, WOOD.grey, 0.35 * N.noise(g.gx * 1.5 + row * 3.1, row));   // verweerd
-  const grain = N.noise(g.gx * 9 + h * 40, across * 6);
-  col = mul(col, 0.82 + 0.3 * grain);
-  if (f < 0.07 || f > 0.95 || segF < 0.015) return WOOD.gap;
-  if (f < 0.16) col = mul(col, 1.12);       // lichte bovenrand van de plank
-  if (f > 0.84) col = mul(col, 0.8);
-  if (segF > 0.04 && segF < 0.075 && (Math.abs(f - 0.3) < 0.07 || Math.abs(f - 0.7) < 0.07)) return WOOD.nail;
-  return col;
-}
-
-function plankSide(N, wx, wy, depth, left) {
-  const t = depth / BD;
-  const beam = Math.floor(depth / (BD / 2));
-  const bf = (depth % (BD / 2)) / (BD / 2);
-  let col = mix(WOOD.dark, WOOD.light, 0.3 + 0.4 * hash2(beam, Math.floor(wx / 40)));
-  col = mul(col, 0.8 + 0.3 * N.noise(wx * 0.15, depth * 0.6 + beam * 9));
-  if (bf < 0.08) col = WOOD.gap;
-  return mul(col, (left ? 0.95 : 0.6) * (1 - 0.25 * t));
-}
-
-// ---------- puinblok (kasseien) ----------
-
-const STONE = { a: hex('#4f4a46'), b: hex('#8a827a'), mortar: hex('#1c1917'), warm: hex('#6e5f50') };
-
-function cobble(u, v) {
-  const iu = Math.floor(u), iv = Math.floor(v);
-  let d1 = 9, d2 = 9, id = 0, px = 0, py = 0;
-  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-    const cx = iu + dx, cy = iv + dy;
-    const sx = cx + 0.15 + 0.7 * hash2(cx, cy), sy = cy + 0.15 + 0.7 * hash2(cy + 17, cx + 31);
-    const d = Math.hypot(sx - u, sy - v);
-    if (d < d1) { d2 = d1; d1 = d; id = hash2(cx * 7, cy * 13); px = sx; py = sy; }
-    else if (d < d2) d2 = d;
-  }
-  return { d1, d2, id, px, py };
-}
-
-function stoneTop(N, wx, wy) {
-  const g = screenToGrid(wx, wy);
-  const c = cobble(g.gx * 3.2, g.gy * 3.2);
-  if (c.d2 - c.d1 < 0.1) return mul(STONE.mortar, 0.9 + 0.3 * N.noise(wx * 0.5, wy));
-  let col = mix(STONE.a, STONE.b, 0.2 + 0.6 * c.id);
-  col = mix(col, STONE.warm, 0.25 * N.noise(g.gx * 4, g.gy * 4));
-  // bolling: licht linksboven op elke steen
-  const lx = (g.gx * 3.2 - c.px) + (g.gy * 3.2 - c.py);
-  col = mul(col, 1.05 - 0.45 * c.d1 - 0.25 * lx + (N.noise(wx * 0.6, wy * 1.2) - 0.5) * 0.12);
-  // rand van de steen iets donkerder
-  return mul(col, smooth(0.1, 0.22, c.d2 - c.d1) * 0.25 + 0.75);
-}
-
-function stoneSide(N, wx, wy, depth, left) {
-  const t = depth / BD;
-  const course = Math.floor(depth / 10);
-  const cf = (depth % 10) / 10;
-  const brick = Math.floor((wx + course * 13) / 26);
-  const bf = frac((wx + course * 13) / 26);
-  let col = mix(STONE.a, STONE.b, 0.15 + 0.5 * hash2(brick, course));
-  col = mul(col, 0.85 + 0.25 * N.noise(wx * 0.3, depth * 0.3));
-  if (cf < 0.12 || bf < 0.05) col = STONE.mortar;
-  return mul(col, (left ? 0.95 : 0.6) * (1 - 0.3 * t));
-}
-
-export function grassAmount(N, wx, wy) {
-  return smooth(0.42, 0.58, N.fbm(wx * 0.011, wy * 0.022, 4));
-}
-
-function topColor(N, wx, wy) {
-  const grass = grassAmount(N, wx, wy);
-  const mid = N.fbm(wx * 0.05, wy * 0.1, 2);
-  const fine = N.noise(wx * 0.5, wy * 1.0);
-  const dirt = mix(C.dirtDark, C.dirtLight, 0.15 + 0.6 * mid + 0.25 * fine);
-  let grassCol = mix(C.grassDark, C.grassLight, 0.1 + 0.55 * mid + 0.35 * fine);
-  grassCol = mix(grassCol, C.grassDry, 0.55 * smooth(0.45, 0.75, N.noise(wx * 0.018 + 5, wy * 0.036)));
-  const col = mix(dirt, grassCol, grass);
-  // reliëf: licht valt van linksboven
-  const b1 = N.fbm((wx - 1.5) * 0.07, (wy - 1.5) * 0.14, 2);
-  const b2 = N.fbm((wx + 1.5) * 0.07, (wy + 1.5) * 0.14, 2);
-  return mul(col, 0.95 + (b1 - b2) * 2.5 + (fine - 0.5) * 0.08);
-}
-
-function sideColor(N, wx, wy, depth, left) {
-  const t = depth / BD;
-  const strata = N.fbm(wx * 0.025, wy * 0.2, 3);
-  const fine = N.noise(wx * 0.6, wy * 0.6);
-  let col = mix(C.soilDark, C.soilLight, 0.15 + 0.65 * strata + 0.2 * fine);
-
-  // stenen in de aarde
-  const st = N.noise(wx * 0.11 + 31, wy * 0.22 + 7);
-  if (st > 0.7) {
-    const k = smooth(0.7, 0.75, st);
-    const stoneCol = mix(C.stoneDark, C.stone, 0.3 + 0.5 * N.noise(wx * 0.4, wy * 0.4) + 0.3 * (st - 0.7));
-    col = mix(col, stoneCol, k);
-  }
-  // wortels
-  if (Math.abs(N.noise(wx * 0.07 + 13, wy * 0.025) - 0.5) < 0.018) col = mul(col, 0.5);
-
-  // gras dat over de rand hangt
-  const g = grassAmount(N, wx, wy - depth);
-  const lip = g * (3 + N.noise(wx * 0.3, 1.7) * 8);
-  if (depth < lip) {
-    col = mul(mix(C.grassDark, C.grassLight, 0.2 + 0.4 * fine), depth < lip - 1.5 ? 0.85 : 0.6);
-  }
-  return mul(col, (left ? 1.0 : 0.62) * (1 - 0.35 * t));
-}
-
-function decorateTop(ctx, s, N, rnd) {
-  const { cx, cy } = TILE_TEX;
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - TH / 2 - 1);
-  ctx.lineTo(cx + TW / 2 + 1, cy);
-  ctx.lineTo(cx, cy + TH / 2 + 1);
-  ctx.lineTo(cx - TW / 2 - 1, cy);
-  ctx.closePath();
-  ctx.clip();
-
-  const greens = [hex('#3d4a2a'), hex('#56623a'), hex('#6b7448'), hex('#2c3820'), hex('#7a7350')];
-  for (let i = 0; i < 140; i++) {
-    const lx = (rnd() * 2 - 1) * TW / 2;
-    const ly = (rnd() * 2 - 1) * TH / 2;
-    if (Math.abs(lx) / (TW / 2) + Math.abs(ly) / (TH / 2) > 1) continue;
-    const x = cx + lx, y = cy + ly;
-    const g = grassAmount(N, s.x + lx, s.y + ly);
-    if (rnd() < g) {
-      const len = 3 + rnd() * 7;
-      const lean = (rnd() - 0.5) * 5;
-      const col = greens[Math.floor(rnd() * greens.length)];
-      ctx.strokeStyle = css(col, 0.9);
-      ctx.lineWidth = 0.8 + rnd() * 0.6;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.quadraticCurveTo(x + lean * 0.2, y - len * 0.6, x + lean, y - len);
-      ctx.stroke();
-    } else if (rnd() < 0.12) {
-      const r = 1 + rnd() * 2.2;
-      ellipse(ctx, x + 0.8, y + 0.6, r, r * 0.6, 'rgba(10,8,6,0.55)');
-      const sc = mix(hex('#4d4640'), hex('#857c72'), rnd());
-      ellipse(ctx, x, y, r, r * 0.6, css(sc));
-      ellipse(ctx, x - r * 0.3, y - r * 0.2, r * 0.45, r * 0.25, 'rgba(220,210,200,0.35)');
-    }
-  }
-  ctx.restore();
-}
-
-// ---------- as (het Asveld) ----------
-
-const ASH = { dark: hex('#1f1c1c'), light: hex('#5a5552'), ember: hex('#e07030'), soil: hex('#2a2220') };
-
-function ashTop(N, wx, wy) {
-  const n = N.fbm(wx * 0.03, wy * 0.06, 4);
-  const fine = N.noise(wx * 0.6, wy * 1.2);
-  let col = mix(ASH.dark, ASH.light, 0.2 + 0.6 * n + 0.15 * fine);
-  // gloeiende sintels
-  const e = N.noise(wx * 0.25 + 50, wy * 0.5);
-  if (e > 0.86) col = mix(col, ASH.ember, smooth(0.86, 0.95, e));
-  // scheuren met gloed
-  if (Math.abs(N.noise(wx * 0.04 + 9, wy * 0.08) - 0.5) < 0.012) col = mix(hex('#3a1408'), ASH.ember, 0.4);
-  const b1 = N.fbm((wx - 1.5) * 0.07, (wy - 1.5) * 0.14, 2), b2 = N.fbm((wx + 1.5) * 0.07, (wy + 1.5) * 0.14, 2);
-  return mul(col, 0.95 + (b1 - b2) * 2.2);
-}
-
-function ashSide(N, wx, wy, depth, left) {
-  const t = depth / BD;
-  let col = mix(ASH.soil, hex('#4a403a'), 0.2 + 0.6 * N.fbm(wx * 0.03, wy * 0.2, 3));
-  if (N.noise(wx * 0.2 + 3, wy * 0.4) > 0.88) col = mix(col, ASH.ember, 0.5);
-  if (depth < 3) col = mul(ASH.light, 0.6);
-  return mul(col, (left ? 1 : 0.62) * (1 - 0.35 * t));
-}
-
-// ---------- kristal (de Kristalklip) ----------
-
-const CRY = { dark: hex('#17131c'), light: hex('#3e3848'), shard: hex('#9b6bff'), glow: hex('#e2d0ff') };
-
-function crystalTop(N, wx, wy) {
-  const n = N.fbm(wx * 0.04, wy * 0.08, 4);
-  let col = mix(CRY.dark, CRY.light, 0.15 + 0.7 * n + 0.15 * N.noise(wx * 0.7, wy * 1.4));
-  // kristalsplinters die door de steen steken
-  const c = cobble(wx * 0.05, wy * 0.1);
-  if (c.id > 0.82 && c.d1 < 0.22) {
-    col = mix(CRY.shard, CRY.glow, smooth(0.15, 0, c.d1) * 0.7);
-  }
-  const b1 = N.fbm((wx - 1.5) * 0.08, (wy - 1.5) * 0.16, 2), b2 = N.fbm((wx + 1.5) * 0.08, (wy + 1.5) * 0.16, 2);
-  return mul(col, 0.95 + (b1 - b2) * 3);
-}
-
-function crystalSide(N, wx, wy, depth, left) {
-  const t = depth / BD;
-  let col = mix(CRY.dark, CRY.light, 0.1 + 0.6 * N.fbm(wx * 0.04, wy * 0.15, 3));
-  if (Math.abs(N.noise(wx * 0.06 + 21, wy * 0.03) - 0.5) < 0.02) col = mix(col, CRY.shard, 0.8);
-  return mul(col, (left ? 1 : 0.62) * (1 - 0.3 * t));
-}
-
-// ---------- ruïne (de Kern) ----------
-
-const RUIN = { a: hex('#4e5260'), b: hex('#8a8c98'), joint: hex('#16141c'), vein: hex('#b48cff') };
-
-function ruinTop(N, wx, wy) {
-  const g = screenToGrid(wx, wy);
-  // grote plavuizen, half verschoven
-  const u = g.gx * 2, v = g.gy * 2 + (Math.floor(g.gx * 2) & 1) * 0.5;
-  const fu = u - Math.floor(u), fv = v - Math.floor(v);
-  let col = mix(RUIN.a, RUIN.b, 0.2 + 0.5 * hash2(Math.floor(u), Math.floor(v)) + 0.2 * N.noise(wx * 0.3, wy * 0.6));
-  col = mix(col, hex('#3a3a30'), 0.3 * smooth(0.55, 0.8, N.fbm(wx * 0.02, wy * 0.04, 3)));   // mos en vuil
-  if (fu < 0.04 || fv < 0.04) col = RUIN.joint;
-  // gloeiende aders die naar het midden lopen
-  if (Math.abs(N.noise(wx * 0.03 + 77, wy * 0.06) - 0.5) < 0.01) col = mix(col, RUIN.vein, 0.85);
-  return mul(col, 0.92 + (N.noise(wx * 0.9, wy * 1.8) - 0.5) * 0.1);
-}
-
-function ruinSide(N, wx, wy, depth, left) {
-  const t = depth / BD;
-  const course = Math.floor(depth / 15);
-  let col = mix(RUIN.a, RUIN.b, 0.1 + 0.4 * hash2(Math.floor((wx + course * 20) / 40), course));
-  if ((depth % 15) < 1.5 || frac((wx + course * 20) / 40) < 0.03) col = RUIN.joint;
-  return mul(col, (left ? 0.95 : 0.6) * (1 - 0.3 * t));
-}
-
-// ---------- bruggen ----------
-
-const ROPE = hex('#8a7a52');
-const STAR = { a: hex('#c8c0e0'), b: hex('#f0ecff'), glow: hex('#b48cff') };
-
-function bridgeTop(N, wx, wy, star) {
-  const g = screenToGrid(wx, wy);
-  const fx = g.gx - Math.round(g.gx), fy = g.gy - Math.round(g.gy);
-  // touwen langs de randen (in beide richtingen, de brug ligt waar je hem legt)
-  if (Math.abs(Math.abs(fx) - 0.46) < 0.025 || Math.abs(Math.abs(fy) - 0.46) < 0.025) return star ? STAR.glow : ROPE;
-  // planken dwars, met gaten ertussen
-  const p = (g.gx + g.gy) * 3.5;
-  const pf = p - Math.floor(p);
-  if (pf > 0.78) return null;
-  if (Math.abs(fx) > 0.44 || Math.abs(fy) > 0.44) return null;
-  const h = hash2(Math.floor(p), 3);
-  if (star) {
-    let col = mix(STAR.a, STAR.b, 0.3 + 0.5 * h);
-    if (N.noise(wx * 0.5, wy) > 0.9) col = STAR.glow;
-    return col;
-  }
-  let col = mix(WOOD.dark, WOOD.light, 0.2 + 0.5 * h);
-  col = mix(col, WOOD.grey, 0.4 * N.noise(wx * 0.05, wy * 0.1));
-  return mul(col, 0.8 + 0.3 * N.noise(wx * 0.6 + h * 30, wy * 0.2));
-}
-
-function bridgeSide(N, wx, wy, depth, left, star) {
-  if (depth > 5) return null;
-  return mul(star ? STAR.a : WOOD.dark, left ? 0.8 : 0.55);
-}
-
-const KINDS = {
-  dirt:  { top: topColor, side: sideColor, jag: true },
-  plank: { top: plankTop, side: plankSide, jag: false },
-  stone: { top: stoneTop, side: stoneSide, jag: false },
-  ash:   { top: ashTop, side: ashSide, jag: true },
-  crystal: { top: crystalTop, side: crystalSide, jag: true },
-  ruin:  { top: ruinTop, side: ruinSide, jag: false },
-  bridge: { top: (N, x, y) => bridgeTop(N, x, y, false), side: (N, x, y, d, l) => bridgeSide(N, x, y, d, l, false), jag: false },
-  starbridge: { top: (N, x, y) => bridgeTop(N, x, y, true), side: (N, x, y, d, l) => bridgeSide(N, x, y, d, l, true), jag: false },
-};
-
-// Natuurlijke grond heeft een rotsklomp eronder; gebouwde tegels hangen dun, bruggen hebben niks
-export const NATURAL = ['dirt', 'ash', 'crystal', 'ruin'];
-export const BRIDGES = ['bridge', 'starbridge'];
-
-// Eén blok op positie (gx, gy). kind: 'dirt', 'plank' of 'stone'.
-export function tileTexture(scene, key, gx, gy, N, kind = 'dirt') {
-  const K = KINDS[kind] || KINDS.dirt;
-  const s = gridToScreen(gx, gy);
-  const { w, h, cx, cy } = TILE_TEX;
-  canvasTexture(scene, key, w, h, (ctx) => {
-    const img = ctx.createImageData(w, h);
-    const d = img.data;
-    for (let py = 0; py < h; py++) {
-      for (let px = 0; px < w; px++) {
-        const lx = px - cx + 0.5, ly = py - cy + 0.5;
-        const wx = s.x + lx, wy = s.y + ly;
-        let col = null;
-        if (Math.abs(lx) / (TW / 2) + Math.abs(ly) / (TH / 2) <= 1 + 2.5 / (TH / 2)) {
-          col = K.top(N, wx, wy);
-        } else if (ly > 0 && Math.abs(lx) <= TW / 2 + 1) {
-          const edge = lx < 0 ? (lx + TW / 2) * SLOPE : (TW / 2 - lx) * SLOPE;
-          const depth = ly - edge;
-          const jag = K.jag ? (N.noise(wx * 0.15, 3.7) - 0.5) * 8 + (N.noise(wx * 0.6, 9.1) - 0.5) * 3 : 0;
-          if (depth > 0 && depth <= BD + jag) col = K.side(N, wx, wy, depth, lx < 0);
-        }
-        if (col) putPx(d, (py * w + px) * 4, col);
-      }
-    }
-    ctx.putImageData(img, 0, 0);
-    if (kind === 'dirt') decorateTop(ctx, s, N, mulberry32((gx * 73856093) ^ (gy * 19349663)));
-  });
-}
-
-// De rotsklomp onder het hele eiland, als één texture op halve resolutie.
-// Alleen aarde heeft een diepe klomp; gebouwde blokken hangen er dun onder.
-export function undersideTexture(scene, key, tiles, dist, N, rnd) {
-  const R = 0.5;
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, sumX = 0;
-  tiles = tiles.filter((t) => !BRIDGES.includes(t.kind));
-  if (!tiles.length) tiles = [{ gx: 0, gy: 0, kind: 'plank' }];
-  const placed = tiles.map((t) => {
-    const s = gridToScreen(t.gx, t.gy);
-    minX = Math.min(minX, s.x - TW / 2);
-    maxX = Math.max(maxX, s.x + TW / 2);
-    minY = Math.min(minY, s.y);
-    sumX += s.x;
-    const d = dist.get(`${t.gx},${t.gy}`) || 1;
-    const r = hash2(t.gx + 1000, t.gy + 1000);
-    return { s, depth: NATURAL.includes(t.kind || 'dirt') ? 20 + (d - 1) * 60 + r * 35 : 4 + r * 6 };
-  });
-  const centerX = sumX / tiles.length;
-  const halfW = (maxX - minX) / 2;
-
-  const cols = Math.ceil((maxX - minX) * R) + 1;
-  const top = new Float32Array(cols).fill(Infinity);
-  const raw = new Float32Array(cols).fill(-Infinity);
-  const bot = new Float32Array(cols).fill(-Infinity);
-
-  for (let c = 0; c < cols; c++) {
-    const wx = minX + c / R;
-    for (const p of placed) {
-      const dx = Math.abs(wx - p.s.x);
-      if (dx > TW / 2) continue;
-      const edgeY = p.s.y + TH / 2 - dx * SLOPE + BD - 6;
-      raw[c] = Math.max(raw[c], edgeY);
-      bot[c] = Math.max(bot[c], edgeY + p.depth * (1 - (dx / (TW / 2)) ** 2 * 0.6));
-      top[c] = Math.min(top[c], p.s.y);
-    }
-  }
-  // gladstrijken, dan rafelig maken
-  for (let pass = 0; pass < 3; pass++) {
-    const copy = bot.slice();
-    for (let c = 0; c < cols; c++) {
-      if (copy[c] === -Infinity) continue;
-      let sum = 0, n = 0;
-      for (let k = -8; k <= 8; k++) {
-        const v = copy[c + k];
-        if (v !== undefined && v !== -Infinity) { sum += v; n++; }
-      }
-      bot[c] = sum / n;
-    }
-  }
-  let maxBot = 0;
-  for (let c = 0; c < cols; c++) {
-    if (bot[c] === -Infinity) continue;
-    const wx = minX + c / R;
-    let b = bot[c] + (N.fbm(wx * 0.02, 7.7, 3) - 0.5) * 40;
-    const spike = N.noise(wx * 0.08, 3.3);
-    if (spike > 0.66) b += (spike - 0.66) * 280;
-    bot[c] = Math.max(b, raw[c] + 8);
-    maxBot = Math.max(maxBot, bot[c]);
-  }
-
-  const W = cols, H = Math.ceil((maxBot - minY + 4) * R);
-  canvasTexture(scene, key, W, H, (ctx) => {
-    const img = ctx.createImageData(W, H);
-    const d = img.data;
-    for (let c = 0; c < W; c++) {
-      if (bot[c] === -Infinity) continue;
-      const wx = minX + c / R;
-      const xRel = (wx - centerX) / halfW;
-      for (let r = 0; r < H; r++) {
-        const wy = minY + r / R;
-        if (wy < top[c] || wy > bot[c]) continue;
-        const v = (wy - top[c]) / (bot[c] - top[c]);
-        const toBottom = bot[c] - wy;
-
-        let col = mix(C.rockDark, C.rockLight, N.fbm(wx * 0.025, wy * 0.05, 4));
-        if (Math.abs(N.noise(wx * 0.05 + 11, wy * 0.02) - 0.5) < 0.025) col = mul(col, 0.55);
-        col = mix(col, C.soilDark, (1 - smooth(0.0, 0.3, v)) * 0.6);
-        const b1 = N.fbm(wx * 0.04 - 0.08, wy * 0.08 - 0.08, 2);
-        const b2 = N.fbm(wx * 0.04 + 0.08, wy * 0.08 + 0.08, 2);
-        let light = 1 + (b1 - b2) * 3;
-        light *= 1.05 - 0.35 * smooth(-1, 1, xRel);
-        light *= 1 - 0.5 * smooth(0.2, 1, v);
-        col = mul(col, light);
-        col = mix(col, C.voidTint, 0.35 * v);
-        col = mix(col, C.rim, (1 - smooth(0, 14, toBottom)) * 0.4);
-        putPx(d, (r * W + c) * 4, col, Math.round(255 * smooth(0, 3, toBottom)));
-      }
-    }
-    ctx.putImageData(img, 0, 0);
-
-    // hangende wortels
-    ctx.lineCap = 'round';
-    for (let i = 0; i < 18; i++) {
-      const c = Math.floor(rnd() * W);
-      if (bot[c] === -Infinity) continue;
-      let x = c, y = (bot[c] - minY) * R - 3;
-      const len = (20 + rnd() * 70) * R;
-      const steps = 8;
-      let w = 2.4 * R + rnd() * R;
-      ctx.strokeStyle = C.root;
-      for (let k = 0; k < steps; k++) {
-        const nx = x + (rnd() - 0.5) * 3 * R;
-        const ny = y + len / steps;
-        ctx.lineWidth = w;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(nx, ny);
-        ctx.stroke();
-        x = nx; y = ny; w *= 0.82;
-      }
-    }
-  });
-
-  const bottoms = [];
-  for (let c = 0; c < cols; c += 4) if (bot[c] !== -Infinity) bottoms.push({ x: minX + c / R, y: bot[c] });
-  return { x: minX, y: minY, scale: 1 / R, bottoms, maxBottom: maxBot, centerX };
 }

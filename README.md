@@ -45,7 +45,7 @@ icons/                  app-iconen (opnieuw maken: npm run icons)
 src/
   config.js             ALLE balansgetallen en instellingen
   texts.js              alle teksten die de speler ziet
-  art/                  alle graphics, in code getekend
+  art/                  alle graphics in Minecraft-stijl, in code getekend (blocks.js: pixel-texturen en kubussen)
   iso.js                isometrische omrekening
   scenes/               Boot, Background (leegte), Game (wereld), UI (knoppen)
   world/                World (alle eilanden), Island, Player, objecten, Enemy, Boss

@@ -117,8 +117,8 @@ export class World {
     return owner.addTile(gx, gy, kind);
   }
 
-  removeTile(gx, gy, keepTexture) {
-    this.islandAt(gx, gy)?.removeTile(gx, gy, keepTexture);
+  removeTile(gx, gy) {
+    this.islandAt(gx, gy)?.removeTile(gx, gy);
   }
 
   clearTufts(gx, gy) {

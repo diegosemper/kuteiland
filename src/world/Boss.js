@@ -8,6 +8,7 @@ import { gridToScreen } from '../iso.js';
 import { getMeta } from '../systems/Meta.js';
 
 const B = CONFIG.boss;
+const SCALE = 1.6;   // de Hoeder is groot
 const { tileW: TW, tileH: TH } = CONFIG.iso;
 
 export class Boss {
@@ -37,7 +38,7 @@ export class Boss {
     const s = gridToScreen(gx, gy);
     this.shadow = game.add.image(s.x, s.y, 'shadow').setScale(2.4, 2).setDepth(-5000).setAlpha(0);
     this.sprite = game.add.image(s.x, s.y + 120, 'boss0').setOrigin(BOSS.footX / BOSS.w, BOSS.footY / BOSS.h)
-      .setAlpha(0).setDepth(s.y);
+      .setScale(SCALE).setAlpha(0).setDepth(s.y);
     this.hitY = s.y - 110;
     this.topY = s.y - 230;
     this.bar = game.add.graphics().setVisible(false);   // de UI toont een eigen balk
@@ -89,7 +90,7 @@ export class Boss {
     if (!g.dead && toPlayer - this.radius - CONFIG.player.radius <= CONFIG.enemies.attackRange) {
       if (time >= this.attackAt) {
         this.attackAt = time + B.attackMs;
-        g.tweens.add({ targets: this.sprite, scaleX: 1.08, scaleY: 0.94, duration: 120, yoyo: true });
+        g.tweens.add({ targets: this.sprite, scaleX: SCALE * 1.08, scaleY: SCALE * 0.94, duration: 120, yoyo: true });
         g.hurtPlayer(this.damage, this);
       }
     } else if (!g.dead) {
@@ -109,8 +110,8 @@ export class Boss {
     const bob = Math.sin(time / 500) * 4;
     this.sprite.setPosition(s.x, s.y + bob).setDepth(s.y);
     this.shadow.setPosition(s.x, s.y);
-    this.hitY = s.y - 110;
-    this.topY = s.y - 230;
+    this.hitY = s.y - 120;
+    this.topY = s.y - 270;
   }
 
   // Aangekondigde klap: rode cirkel op de grond, dan pijn als je er nog staat
@@ -192,7 +193,7 @@ export class Boss {
     this.bar.destroy();
     fx?.explode(60, this.sprite.x, this.hitY);
     this.game.tweens.add({
-      targets: [this.sprite, this.shadow], alpha: 0, scale: 1.4, duration: 1600,
+      targets: [this.sprite, this.shadow], alpha: 0, scale: SCALE * 1.4, duration: 1600,
       onComplete: () => { this.sprite.destroy(); this.shadow.destroy(); },
     });
   }

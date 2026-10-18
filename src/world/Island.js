@@ -1,9 +1,8 @@
-// Het zwevende eiland: tegels (aarde, vlonder, puinblok), de rotsklomp eronder, graspollen, gruis en mist.
+// Het zwevende eiland: Minecraft-blokken, met lagen aarde en steen eronder, grasplantjes, gruis en mist.
 import { CONFIG } from '../config.js';
 import { gridToScreen } from '../iso.js';
 import { mulberry32 } from '../rng.js';
-import { getNoise } from '../art/index.js';
-import { tileTexture, undersideTexture, grassAmount, TILE_TEX } from '../art/terrain.js';
+import { blockKey, underKey, hash2, KINDS, NATURAL, TILE_TEX } from '../art/terrain.js';
 
 const key = (gx, gy) => `${gx},${gy}`;
 const NEIGHBOURS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -34,10 +33,9 @@ export class Island {
     this.name = opts.name || '';
     this.seed = opts.seed || CONFIG.island.seed;
     this.blockedSpots = blockedSpots;
-    this.N = getNoise();
     this.tiles = new Map();
-    this.undersideVersion = 0;
     this.drops = [];
+    this.undersideSprites = [];
 
     for (const [gx, gy, kind] of tileList) this.tiles.set(key(gx, gy), { gx, gy, kind: kind || 'dirt' });
     for (const t of this.sortedTiles()) this.createTileSprite(t);
@@ -80,9 +78,7 @@ export class Island {
 
   createTileSprite(t) {
     const s = gridToScreen(t.gx, t.gy);
-    const texKey = `tile_${t.gx}_${t.gy}`;
-    tileTexture(this.scene, texKey, t.gx, t.gy, this.N, t.kind);
-    t.sprite = this.scene.add.image(s.x, s.y, texKey)
+    t.sprite = this.scene.add.image(s.x, s.y, blockKey(this.scene, t.kind))
       .setOrigin(TILE_TEX.cx / TILE_TEX.w, TILE_TEX.cy / TILE_TEX.h)
       .setDepth(-10000 + t.gx + t.gy);
     return t.sprite;
@@ -123,14 +119,12 @@ export class Island {
   }
 
   // Tegel verwijderen (afgebrokkeld). De sprite valt al door Crumble; hier alleen opruimen.
-  removeTile(gx, gy, keepTexture = false) {
+  removeTile(gx, gy) {
     const t = this.get(gx, gy);
     if (!t) return;
     this.tiles.delete(key(gx, gy));
     t.tufts?.forEach((s) => s.destroy());
-    const texKey = `tile_${gx}_${gy}`;
     t.sprite?.destroy();
-    if (!keepTexture && this.scene.textures.exists(texKey)) this.scene.textures.remove(texKey);
     this.center = this.computeCenter();
     this.rebuildUnderside();
   }
@@ -180,22 +174,48 @@ export class Island {
     return dist;
   }
 
-  // De rotsklomp eronder opnieuw tekenen (na elke verandering van het eiland)
+  // Blokken onder het eiland: eerst aarde, dieper steen. Midden dieper dan de rand.
   rebuildUnderside() {
     const scene = this.scene;
-    const oldKey = this.undersideKey;
-    this.undersideKey = `underside_${this.id}_${this.undersideVersion++}`;
-    const u = undersideTexture(scene, this.undersideKey, this.sortedTiles(), this.edgeDistances(),
-      this.N, mulberry32(this.seed));
-    if (!this.underside) {
-      this.underside = scene.add.image(u.x, u.y, this.undersideKey).setOrigin(0).setDepth(-20000);
-    }
-    this.underside.setTexture(this.undersideKey).setPosition(u.x, u.y).setScale(u.scale);
-    if (oldKey) scene.textures.remove(oldKey);
-    this.bottom = u.maxBottom;
-    this.undersideCenterX = u.centerX;
+    const BD = CONFIG.iso.blockDepth;
+    for (const sp of this.undersideSprites) sp.destroy();
+    this.undersideSprites = [];
+    const dist = this.edgeDistances();
+    const ox = TILE_TEX.cx / TILE_TEX.w, oy = TILE_TEX.cy / TILE_TEX.h;
+    let maxBottom = -Infinity;
     this.drops.length = 0;
-    this.drops.push(...u.bottoms);
+    // eerst per tegel uitrekenen hoe diep hij hangt
+    const depth = new Map();
+    for (const t of this.tiles.values()) {
+      let layers = 0;
+      if (NATURAL.includes(t.kind)) {
+        const d = dist.get(key(t.gx, t.gy)) || 1;
+        layers = Math.min(5, d * 2 - 2 + (hash2(t.gx + 7, t.gy + 3) < 0.55 ? 1 : 0));
+      }
+      depth.set(key(t.gx, t.gy), layers);
+    }
+    for (const t of this.sortedTiles()) {
+      const k = KINDS[t.kind] || KINDS.dirt;
+      const s = gridToScreen(t.gx, t.gy);
+      const layers = depth.get(key(t.gx, t.gy));
+      const front1 = depth.get(key(t.gx + 1, t.gy)) || 0;
+      const front2 = depth.get(key(t.gx, t.gy + 1)) || 0;
+      for (let i = 1; i <= layers; i++) {
+        // helemaal verstopt achter de buren ervoor: niet tekenen
+        if (front1 >= i && front2 >= i) continue;
+        const v = Math.round(255 * Math.max(0.35, 1 - i * 0.14));
+        const sp = scene.add.image(s.x, s.y + i * BD, underKey(scene, i === 1 ? k.under : k.deep))
+          .setOrigin(ox, oy)
+          .setTint(Phaser.Display.Color.GetColor(v, Math.round(v * 0.94), v))
+          .setDepth(-10000 - i * 100 + t.gx + t.gy);
+        this.undersideSprites.push(sp);
+      }
+      const bottom = s.y + TILE_TEX.h - TILE_TEX.cy + layers * BD - 8;
+      maxBottom = Math.max(maxBottom, bottom);
+      if (layers > 0 || t.kind !== 'bridge') this.drops.push({ x: s.x, y: bottom });
+    }
+    this.bottom = maxBottom;
+    this.undersideCenterX = this.center.x;
   }
 
   addAmbience() {
@@ -240,21 +260,19 @@ export class Island {
 
   addTufts(rnd) {
     const scene = this.scene;
-    const N = this.N;
     const { tileW: TW, tileH: TH } = CONFIG.iso;
     const blocked = (this.blockedSpots || []).map((m) => gridToScreen(m.gx, m.gy));
     for (const t of this.sortedTiles()) {
       if (t.kind !== 'dirt') continue;
       const s = gridToScreen(t.gx, t.gy);
-      const n = Math.floor(rnd() * 3);
+      const n = rnd() < 0.55 ? 1 + Math.floor(rnd() * 2) : 0;
       for (let i = 0; i < n; i++) {
         const lx = (rnd() - 0.5) * TW * 0.7, ly = (rnd() - 0.5) * TH * 0.7;
         if (Math.abs(lx) / (TW * 0.35) + Math.abs(ly) / (TH * 0.35) > 1) continue;
         const x = s.x + lx, y = s.y + ly;
-        if (grassAmount(N, x, y) < 0.5) continue;
         if (blocked.some((b) => Math.hypot(b.x - x, (b.y - y) * 2) < 40)) continue;
         const tuft = scene.add.image(x, y, 'tuft').setOrigin(0.5, 1).setDepth(y)
-          .setScale(0.8 + rnd() * 0.6).setFlipX(rnd() < 0.5);
+          .setScale(0.9 + rnd() * 0.3).setFlipX(rnd() < 0.5);
         t.tufts = t.tufts || [];
         t.tufts.push(tuft);
         scene.tweens.add({

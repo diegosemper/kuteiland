@@ -112,12 +112,12 @@ export class KernCore {
     const s = gridToScreen(gx, gy);
     this.shadow = scene.add.image(s.x, s.y + 6, 'shadow').setScale(2.2, 1.8).setDepth(-5000);
     this.sprite = scene.add.image(s.x, s.y, 'kern').setOrigin(KERN.ox / KERN.w, KERN.oy / KERN.h).setDepth(s.y);
-    this.glow = scene.add.image(s.x, s.y - 120, 'glow').setTint(0x9b6bff).setAlpha(0.5).setScale(2.4).setDepth(s.y - 1);
+    this.glow = scene.add.image(s.x, s.y - 110, 'glow').setTint(0x9b6bff).setAlpha(0.5).setScale(2.4).setDepth(s.y - 1);
     scene.tweens.add({ targets: this.glow, alpha: 0.25, scale: 2.1, duration: 1800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    this.topY = s.y - 200;
-    this.hitY = s.y - 120;
-    this.lightY = s.y - 120;
-    this.hitArea = new Phaser.Geom.Rectangle(s.x - 80, s.y - 200, 160, 220);
+    this.topY = s.y - 160;
+    this.hitY = s.y - 110;
+    this.lightY = s.y - 110;
+    this.hitArea = new Phaser.Geom.Rectangle(s.x - 70, s.y - 150, 140, 170);
   }
 
   get label() {

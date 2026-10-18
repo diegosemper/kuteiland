@@ -30,8 +30,8 @@ export class Enemy {
     this.shadow = game.add.image(s.x, s.y, 'shadow').setScale(kind === 'brute' ? 0.9 : 0.6).setDepth(-5000).setAlpha(0);
     this.sprite = game.add.image(s.x, s.y + 60, `${kind}0`)
       .setOrigin(art.footX / art.w, art.footY / art.h).setAlpha(0).setDepth(s.y);
-    this.hitY = s.y - (kind === 'brute' ? 50 : 22);
-    this.topY = s.y - (kind === 'brute' ? 110 : 60);
+    this.hitY = s.y - (kind === 'brute' ? 70 : 18);
+    this.topY = s.y - (kind === 'brute' ? 140 : 45);
 
     // omhoog kruipen uit de leegte
     game.tweens.add({
@@ -113,8 +113,8 @@ export class Enemy {
     const s = this.screen;
     this.sprite.setPosition(s.x, s.y).setDepth(s.y);
     this.shadow.setPosition(s.x, s.y);
-    this.hitY = s.y - (this.kind === 'brute' ? 50 : 22);
-    this.topY = s.y - (this.kind === 'brute' ? 110 : 60);
+    this.hitY = s.y - (this.kind === 'brute' ? 70 : 18);
+    this.topY = s.y - (this.kind === 'brute' ? 140 : 45);
     if (this.bar.visible) this.drawBar();
   }
 

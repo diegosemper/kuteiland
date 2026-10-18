@@ -16,21 +16,10 @@ export function generateFx(scene, N) {
     ctx.fillRect(-48, -50, 96, 100);
   });
 
-  canvasTexture(scene, 'chip', 7, 4, (ctx) => {
-    ctx.fillStyle = '#6b5440'; ctx.fillRect(0, 0, 7, 4);
-    ctx.fillStyle = '#9a7d5e'; ctx.fillRect(0, 0, 7, 1);
-    ctx.fillStyle = '#3e2f22'; ctx.fillRect(0, 3, 7, 1);
-  });
-  canvasTexture(scene, 'stonechip', 6, 5, (ctx) => {
-    ctx.fillStyle = '#7d766f'; ctx.fillRect(0, 0, 6, 5);
-    ctx.fillStyle = '#a39b93'; ctx.fillRect(0, 0, 6, 1);
-    ctx.fillStyle = '#3e3a37'; ctx.fillRect(0, 4, 6, 1);
-  });
   canvasTexture(scene, 'puff', 24, 24, (ctx) => {
     ctx.fillStyle = radial(ctx, 12, 12, 12, [[0, 'rgba(150,135,125,0.8)'], [1, 'rgba(150,135,125,0)']]);
     ctx.fillRect(0, 0, 24, 24);
   });
-  canvasTexture(scene, 'leaf', 8, 5, (ctx) => ellipse(ctx, 4, 2.5, 3.6, 2, '#55602f', 0.3));
   canvasTexture(scene, 'dust', 8, 8, (ctx) => {
     ctx.fillStyle = radial(ctx, 4, 4, 4, [[0, 'rgba(70,58,52,1)'], [1, 'rgba(70,58,52,0)']]);
     ctx.fillRect(0, 0, 8, 8);
@@ -73,67 +62,60 @@ export function generateFx(scene, N) {
     ctx.fill();
   });
 
-  // hartjes
-  const heart = (ctx, fill, half) => {
-    const path = () => {
-      ctx.beginPath();
-      ctx.moveTo(16, 28);
-      ctx.bezierCurveTo(2, 18, 2, 6, 10, 5);
-      ctx.bezierCurveTo(14, 4, 16, 8, 16, 10);
-      ctx.bezierCurveTo(16, 8, 18, 4, 22, 5);
-      ctx.bezierCurveTo(30, 6, 30, 18, 16, 28);
-      ctx.closePath();
-    };
-    path();
-    ctx.fillStyle = 'rgba(20,10,20,0.75)';
-    ctx.fill();
-    if (fill) {
-      ctx.save();
-      if (half) { ctx.beginPath(); ctx.rect(0, 0, 16, 32); ctx.clip(); }
-      path();
-      const g = ctx.createLinearGradient(0, 4, 0, 28);
-      g.addColorStop(0, '#c0485a');
-      g.addColorStop(1, '#6e1c2c');
-      ctx.fillStyle = g;
-      ctx.fill();
-      ellipse(ctx, 10, 10, 3, 2, 'rgba(255,220,220,0.5)', -0.5);
-      ctx.restore();
-    }
-    path();
-    ctx.strokeStyle = 'rgba(0,0,0,0.8)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+  // pixel-art uit tekstregels, elke pixel wordt een vierkantje van 'size'
+  const pixels = (key, rows, pal, size) => {
+    canvasTexture(scene, key, rows[0].length * size, rows.length * size, (ctx) => {
+      rows.forEach((row, y) => [...row].forEach((ch, x) => {
+        if (!pal[ch]) return;
+        ctx.fillStyle = pal[ch];
+        ctx.fillRect(x * size, y * size, size, size);
+      }));
+    });
+    scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
   };
-  canvasTexture(scene, 'heart_full', 32, 32, (ctx) => heart(ctx, true, false));
-  canvasTexture(scene, 'heart_half', 32, 32, (ctx) => heart(ctx, true, true));
-  canvasTexture(scene, 'heart_empty', 32, 32, (ctx) => heart(ctx, false, false));
 
-  // markering boven het doel
-  canvasTexture(scene, 'marker', 26, 18, (ctx) => {
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    const path = () => { ctx.beginPath(); ctx.moveTo(5, 5); ctx.lineTo(13, 12); ctx.lineTo(21, 5); };
-    path(); ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 6; ctx.stroke();
-    path(); ctx.strokeStyle = '#ece3f7'; ctx.lineWidth = 3; ctx.stroke();
-  });
+  // hartjes zoals in Minecraft
+  const HEART = [
+    '.kk.kk.',
+    'krrkrrk',
+    'krwrrrk',
+    'krrrrrk',
+    '.krrrk.',
+    '..krk..',
+    '...k...',
+  ];
+  const HALF = HEART.map((row) => [...row].map((ch, x) => (x > 3 && ch !== '.' && ch !== 'k' ? 'e' : ch)).join(''));
+  const EMPTY = HEART.map((row) => row.replace(/[rw]/g, 'e'));
+  const heartPal = { k: '#1a0a0e', r: '#c8323c', w: '#ffb0b0', e: '#3a2228' };
+  pixels('heart_full', HEART, heartPal, 4);
+  pixels('heart_half', HALF, heartPal, 4);
+  pixels('heart_empty', EMPTY, heartPal, 4);
 
-  // graspol
-  canvasTexture(scene, 'tuft', 30, 24, (ctx) => {
-    const rnd = mulberry32(9);
-    const cols = ['#3d4a2a', '#56623a', '#6b7448', '#2c3820', '#7a7350'];
-    for (let i = 0; i < 14; i++) {
-      const x = 15 + (rnd() - 0.5) * 10;
-      const lean = (rnd() - 0.5) * 16;
-      const len = 9 + rnd() * 13;
-      ctx.strokeStyle = cols[Math.floor(rnd() * cols.length)];
-      ctx.lineWidth = 1 + rnd() * 0.8;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(x, 24);
-      ctx.quadraticCurveTo(x + lean * 0.2, 24 - len * 0.6, x + lean * 0.6, 24 - len);
-      ctx.stroke();
-    }
-  });
+  // markering boven het doel: een pixel-pijltje
+  pixels('marker', [
+    'kkkkkkk',
+    'kwwwwwk',
+    '.kwwwk.',
+    '..kwk..',
+    '...k...',
+  ], { k: '#1a1220', w: '#ece3f7' }, 3);
+
+  // grasplantje zoals in Minecraft
+  pixels('tuft', [
+    '.......g........',
+    '..g....g...g....',
+    '..g...gG...g..g.',
+    '...g..gG..gG..g.',
+    '...gG.gG..gG.gG.',
+    '.g.gG.gG.gG..gG.',
+    '.gG.gGgG.gG.gG..',
+    '..gG.gGgGgGgG...',
+  ], { g: '#5d8c3b', G: '#41702a' }, 2);
+
+  // houtsplinters en steengruis: vierkante pixels
+  canvasTexture(scene, 'chip', 4, 4, (ctx) => { ctx.fillStyle = '#8a6a40'; ctx.fillRect(0, 0, 4, 4); ctx.fillStyle = '#b8935c'; ctx.fillRect(0, 0, 2, 2); });
+  canvasTexture(scene, 'stonechip', 4, 4, (ctx) => { ctx.fillStyle = '#6e6e6e'; ctx.fillRect(0, 0, 4, 4); ctx.fillStyle = '#9a9a9a'; ctx.fillRect(0, 0, 2, 2); });
+  canvasTexture(scene, 'leaf', 4, 4, (ctx) => { ctx.fillStyle = '#4a7a2f'; ctx.fillRect(0, 0, 4, 4); ctx.fillStyle = '#6a5a2a'; ctx.fillRect(2, 2, 2, 2); });
 
   // mist
   canvasTexture(scene, 'mist', 256, 128, (ctx, w, h) => {
@@ -148,32 +130,24 @@ export function generateFx(scene, N) {
     ctx.putImageData(img, 0, 0);
   });
 
-  // ver eiland (silhouet)
-  canvasTexture(scene, 'farisle', 180, 140, (ctx, w) => {
+  // ver eiland: blokkig silhouet, trapsgewijs smaller naar onder
+  canvasTexture(scene, 'farisle', 180, 140, (ctx) => {
     const rnd = mulberry32(31);
-    const top = 40, cx = w / 2;
-    ctx.beginPath();
-    ctx.moveTo(cx - 70, top);
-    for (let x = -70; x <= 70; x += 7) ctx.lineTo(cx + x, top - 3 - rnd() * 5 + Math.abs(x) * 0.06);
-    for (let x = 70; x >= -70; x -= 7) {
-      const depth = (1 - (x / 72) ** 2) * 80 + rnd() * 14;
-      ctx.lineTo(cx + x, top + depth);
+    const cell = 12;
+    let half = 6;
+    for (let row = 0; row < 9; row++) {
+      const y = 30 + row * cell;
+      const w = Math.max(1, half - Math.floor(row * 0.8 + rnd() * 1.5));
+      const shade = row === 0 ? '#3a2f48' : `rgba(30,22,42,${1 - row * 0.09})`;
+      ctx.fillStyle = shade;
+      for (let k = -w; k < w; k++) if (row === 0 || rnd() > 0.08) ctx.fillRect(90 + k * cell, y, cell, cell);
+      if (row === 0) half = 6;
     }
-    ctx.closePath();
-    const g = ctx.createLinearGradient(0, top - 10, 0, top + 95);
-    g.addColorStop(0, '#3a2f48');
-    g.addColorStop(0.15, '#271f33');
-    g.addColorStop(1, 'rgba(20,14,30,0)');
-    ctx.fillStyle = g;
-    ctx.fill();
-    // dode boom
-    ctx.strokeStyle = '#2a2236';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cx + 15, top - 4); ctx.lineTo(cx + 17, top - 30);
-    ctx.moveTo(cx + 17, top - 22); ctx.lineTo(cx + 26, top - 32);
-    ctx.moveTo(cx + 16, top - 16); ctx.lineTo(cx + 8, top - 26);
-    ctx.stroke();
+    // een dood boompje van blokjes
+    ctx.fillStyle = '#2a2236';
+    ctx.fillRect(110, 6, 6, 24);
+    ctx.fillRect(116, 10, 10, 6);
+    ctx.fillRect(100, 14, 10, 6);
   });
 
   // vignet

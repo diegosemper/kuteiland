@@ -53,9 +53,9 @@ export class Lamp {
     this.radius = this.def.radius;
     this.key = this.crystal ? 'crystallamp' : 'lamp';
     const s = place(this, scene, gx, gy, `${this.key}_off`, LAMP, { shadow: 0.5 });
-    this.topY = s.y - 112;
-    this.hitY = s.y - 70;
-    this.lightY = s.y - 40;
+    this.topY = s.y - 100;
+    this.hitY = s.y - 60;
+    this.lightY = s.y - 62;
     this.hitArea = new Phaser.Geom.Rectangle(s.x - 25, s.y - 125, 50, 135);
     addHealth(this, scene, this.def.hp, s.y - 132);
     this.lit = false;
@@ -86,10 +86,10 @@ export class Tower {
     this.label = null;
     this.radius = CONFIG.defenses.tower.radius;
     const s = place(this, scene, gx, gy, 'tower', TOWER, { shadow: 1.1 });
-    this.topY = s.y - 140;
+    this.topY = s.y - 125;
     this.hitY = s.y - 60;
-    this.aimY = s.y - 112;
-    this.lightY = s.y - 100;
+    this.aimY = s.y - 90;
+    this.lightY = s.y - 90;
     this.hitArea = new Phaser.Geom.Rectangle(s.x - 45, s.y - 150, 90, 170);
     addHealth(this, scene, CONFIG.defenses.tower.hp, s.y - 160);
     this.nextShotAt = 0;
