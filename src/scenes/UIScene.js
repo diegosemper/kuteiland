@@ -116,6 +116,7 @@ export class UIScene extends Phaser.Scene {
       'hurt': () => this.flashHurt(),
       'player-died': (info) => { this.closeAll(); this.joystick.release(); this.action.release(); this.deathScreen.show(info); },
       'respawn': () => this.deathScreen.hide(),
+      'minigame-start': () => { this.closeAll(); this.joystick.release(); this.action.release(); },
     };
     for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
     let lastPickup = 0;

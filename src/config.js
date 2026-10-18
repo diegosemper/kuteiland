@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 12,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 13,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
@@ -302,6 +302,52 @@ export const CONFIG = {
   // Nodig voor level L+1: base * (L+1)^exp. Level 50 kost tientallen uren per skill.
   skillCurve: { base: 10, exp: 1.7, max: 50 },
   // Per level een kleine bonus; elke 10 levels een mijlpaal (mod = blijvende bonus, zie Mods.js)
+  // ---------- minigames ----------
+  // Bronnen starten een minigame; de score bepaalt de opbrengst.
+  // rate = grondstof per punt, afgeleid van de oude tabellen (opbrengst / slagen) per gereedschapsniveau.
+  minigames: {
+    // welke minigame hoort bij welke bron
+    sources: {
+      tree: 'hakken',
+      generator: 'delven',
+      node: {
+        wrak: 'grijphaak', kristalader: 'afdaling', sterrenader: 'arena', zwavelader: 'delven',
+        paddenstoel: 'hakken', ijsader: 'delven', zielenader: 'afdaling',
+      },
+    },
+    // welke zijn al echt gebouwd; de rest draait voorlopig als 'proef'
+    built: ['hakken'],
+    skill: { hakken: 'hakken', delven: 'delven', grijphaak: 'delven', afdaling: 'delven', arena: 'vechten' },
+    name: { hakken: 'Hakken', delven: 'Delven', grijphaak: 'Grijphaak', afdaling: 'Afdaling', arena: 'Arena' },
+
+    hakken: {
+      name: 'Hakken',
+      timeMs: 60000,          // langer duurt een ronde niet
+      lives: 3,               // zo vaak mis = over
+      zone: 0.2,              // goede zone als deel van de balk
+      zonePerLevel: 0.004,    // skill Hakken: zone breder per level
+      zoneMax: 0.42,
+      perfect: 0.3,           // perfecte kern als deel van de zone (dubbele punten)
+      speed: 0.6,             // balklengtes per seconde
+      speedPerCombo: 0.045,
+      speedMax: 2.4,
+      comboStep: 5,           // elke 5 combo: +1 punt per slag
+      tapCooldownMs: 110,
+      yieldMult: 2.2,         // punten x rate x dit = hout
+      hitsPerYield: 4,        // voor de +x-mijlpalen: één 'opbrengst' per zoveel raak
+      xpPerHit: 1,
+      skyTop: 0x1d1430, skyBottom: 0x0a060f,
+    },
+    proef: {
+      name: 'Proef',
+      timeMs: 20000,
+      spawnMs: 650,
+      lifeMs: 1300,
+      yieldMult: 1.6,
+      xpPerHit: 1,
+    },
+  },
+
   skills: {
     hakken: {
       name: 'Hakken', xp: 1, power: 0.04, double: 0.015,       // xp per slag

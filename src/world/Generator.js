@@ -1,4 +1,4 @@
-// De steengenerator: perst leegte tot steen. Delf de steen voor puin; er groeit vanzelf een nieuwe.
+// De steengenerator: perst leegte tot steen. Puin krijg je via de minigame Delven.
 import { CONFIG } from '../config.js';
 import { TEXT, pick } from '../texts.js';
 import { GENERATOR, GEN_STONE } from '../art/structures.js';
@@ -12,8 +12,6 @@ export class Generator {
     this.gx = gx;
     this.gy = gy;
     this.radius = CONFIG.generator.radius;
-    this.hits = 0;
-    this.ready = true;
 
     const s = gridToScreen(gx, gy);
     this.shadow = scene.add.image(s.x + 4, s.y + 6, 'shadow').setScale(1.3, 1.1).setDepth(-5000);
@@ -45,33 +43,11 @@ export class Generator {
   }
 
   act(game) {
-    const tier = game.tools.pickaxe;
-    if (tier === 0) return { message: pick(TEXT.noPickaxe) };
-    if (!this.ready) return null;
-
+    if (game.tools.pickaxe === 0) return { message: pick(TEXT.noPickaxe) };
     const { scene, stone } = this;
     scene.tweens.add({ targets: stone, x: { from: stone.x + 2, to: stone.x }, duration: 140, ease: 'Bounce.easeOut' });
     this.chips.explode(5, stone.x, this.stoneY - 14);
-
-    this.hits += game.skills.power('delven') * game.upgradeMult('pickaxe');
-    const need = CONFIG.generator.hitsPerYield[tier];
-    if (this.hits < need) return { skill: 'delven' };
-
-    // steen breekt, nieuwe groeit
-    this.hits = 0;
-    this.ready = false;
-    this.chips.explode(12, stone.x, this.stoneY - 12);
-    stone.setVisible(false);
-    scene.time.delayedCall(CONFIG.generator.regrowMs, () => {
-      stone.setVisible(true).setScale(1, 0.1).setAlpha(0.3);
-      scene.tweens.add({
-        targets: stone, scaleY: 1, alpha: 1, duration: 350, ease: 'Back.easeOut',
-        onComplete: () => { this.ready = true; },
-      });
-    });
-    const double = Math.random() < game.skills.doubleChance('delven');
-    const amount = CONFIG.generator.puinPerYield[tier] * (double ? 2 : 1) + game.mods.extra('yield.puin');
-    return { skill: 'delven', item: 'puin', amount, double };
+    return { minigame: true };
   }
 
   serialize() {

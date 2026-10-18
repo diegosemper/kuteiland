@@ -4,7 +4,7 @@ import { TEXT } from "../texts.js";
 import { NODE, NOTE, KERN } from '../art/remote.js';
 import { gridToScreen } from '../iso.js';
 
-// Ader of hoop: delven met een houweel, groeit vanzelf terug
+// Ader of hoop: opbrengst via een minigame (welke staat in CONFIG.minigames.sources)
 export class ResourceNode {
   constructor(scene, gx, gy, data) {
     this.scene = scene;
@@ -15,8 +15,6 @@ export class ResourceNode {
     this.gx = gx;
     this.gy = gy;
     this.radius = 0.36;
-    this.hits = 0;
-    this.ready = true;
     const s = gridToScreen(gx, gy);
     const origin = [NODE.ox / NODE.w, NODE.oy / NODE.h];
     this.shadow = scene.add.image(s.x + 4, s.y + 6, 'shadow').setScale(1.2, 1).setDepth(-5000);
@@ -35,26 +33,10 @@ export class ResourceNode {
   }
 
   act(game) {
-    const tier = game.tools.pickaxe;
-    const need = this.def.hits[tier];
-    if (!need) return { message: `${this.def.name}: ${TEXT.nodeNeedsTool[this.node]}` };
-    if (!this.ready) return null;
+    if (!this.def.hits[game.tools.pickaxe]) return { message: `${this.def.name}: ${TEXT.nodeNeedsTool[this.node]}` };
     this.scene.tweens.add({ targets: this.top, x: { from: this.top.x + 2, to: this.top.x }, duration: 140, ease: 'Bounce.easeOut' });
     this.chips.explode(5, this.top.x, this.hitY - 10);
-    this.hits += game.skills.power('delven') * game.upgradeMult('pickaxe');
-    if (this.hits < need) return { skill: 'delven' };
-    this.hits = 0;
-    this.ready = false;
-    this.chips.explode(14, this.top.x, this.hitY - 10);
-    this.top.setVisible(false);
-    this.scene.time.delayedCall(this.def.regrowMs, () => {
-      this.top.setVisible(true).setScale(1, 0.1).setAlpha(0.3);
-      this.scene.tweens.add({ targets: this.top, scaleY: 1, alpha: 1, duration: 400, ease: 'Back.easeOut', onComplete: () => { this.ready = true; } });
-    });
-    const [min, max] = this.def.amount;
-    const double = Math.random() < game.skills.doubleChance('delven');
-    const n = (min + Math.floor(Math.random() * (max - min + 1))) * (double ? 2 : 1) + game.mods.extra(`yield.${this.def.item}`);
-    return { skill: 'delven', item: this.def.item, amount: n, double };
+    return { minigame: true };
   }
 
   serialize() {

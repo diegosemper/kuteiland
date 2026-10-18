@@ -1,4 +1,4 @@
-// De halfdode boom. Elke paar slagen levert hij wrakhout op.
+// De halfdode boom. Hout krijg je via de minigame Hakken.
 import { CONFIG } from '../config.js';
 import { TREE } from '../art/props.js';
 import { gridToScreen } from '../iso.js';
@@ -11,7 +11,6 @@ export class Tree {
     this.gx = gx;
     this.gy = gy;
     this.radius = CONFIG.tree.radius;
-    this.hits = saved?.hits ?? 0;
 
     const s = gridToScreen(gx, gy);
     this.baseX = s.x;
@@ -52,37 +51,19 @@ export class Tree {
     }).setDepth(s.y + 1);
   }
 
-  // Wordt aangeroepen bij een slag. Geeft eventueel een opbrengst terug.
-  act(game) {
-    const tier = game.tools.axe;
-    const { scene, sprite } = this;
-    scene.tweens.add({
-      targets: sprite,
+  // Tik op de boom: een tikje voor het gevoel, daarna begint de minigame.
+  act() {
+    this.scene.tweens.add({
+      targets: this.sprite,
       x: { from: this.baseX + 3, to: this.baseX },
       duration: 160,
       ease: 'Bounce.easeOut',
     });
-
     this.chips.explode(6, this.baseX - 8, this.hitY + 60);
-    if (Math.random() < 0.5) {
-      this.leaves.explode(1 + Math.floor(Math.random() * 2),
-        this.baseX + Phaser.Math.Between(-90, 10), this.topY + Phaser.Math.Between(30, 110));
-    }
-
-    // skill Hakken maakt elke slag sterker; overschot telt mee voor de volgende
-    this.hits += game.skills.power('hakken') * game.upgradeMult('axe');
-    const need = CONFIG.tree.hitsPerYield[tier];
-    const result = { skill: 'hakken' };
-    if (this.hits >= need) {
-      this.hits -= need;
-      const double = Math.random() < game.skills.doubleChance('hakken');
-      const amount = CONFIG.tree.woodPerYield[tier] * (double ? 2 : 1) + game.mods.extra('yield.wrakhout');
-      Object.assign(result, { item: 'wrakhout', amount, double });
-    }
-    return result;
+    return { minigame: true };
   }
 
   serialize() {
-    return { type: this.type, gx: this.gx, gy: this.gy, hits: this.hits };
+    return { type: this.type, gx: this.gx, gy: this.gy };
   }
 }

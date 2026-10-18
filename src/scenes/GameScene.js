@@ -336,6 +336,14 @@ export class GameScene extends Phaser.Scene {
   update(time, delta) {
     const dt = Math.min(delta, 50);
 
+    // tijdens een minigame staat de wereld stil; alleen de dag loopt door, maar niet de nacht in
+    if (this.minigame) {
+      const left = CONFIG.dayNight.dayMs - 1 - this.dayNight.t;
+      if (!this.dayNight.isNight && left > 0) this.dayNight.update(Math.min(dt, left));
+      for (const o of this.objects) if (o.type === 'machine') o.tick(dt);
+      return;
+    }
+
     this.dayNight.update(dt);
     this.night.update(time, dt);
     this.audio.update(this.dayNight.darkness);
@@ -464,22 +472,7 @@ export class GameScene extends Phaser.Scene {
     const result = target.act(this);
     if (!result) return;
 
-    if (result.skill) this.skills.gain(result.skill, CONFIG.skills[result.skill].xp);
-    if (result.item) {
-      this.inventory.add(result.item, result.amount);
-      this.collect(result.item, result.amount);
-      const def = CONFIG.items[result.item];
-      bus.emit('float', {
-        wx: target.sprite.x,
-        wy: target.hitY,
-        text: `+${result.amount} ${def.name.toLowerCase()}${result.double ? ` ${TEXT.doubleDrop}` : ''}`,
-        color: result.double ? '#ffd98a' : '#e8d6b8',
-      });
-      if (result.item === 'wrakhout') this.onWood(result.amount);
-      if (result.item === 'puin') this.stats.puin += result.amount;
-      if (result.item === 'sterrenstof') this.stats.sterrenstof = (this.stats.sterrenstof || 0) + result.amount;
-      if (result.item === 'roest') this.stats.roest = (this.stats.roest || 0) + result.amount;
-    }
+    if (result.minigame) this.startMinigame(this.minigameSpec(target));
     if (result.openChest) {
       this.chest.setOpen(true);
       bus.emit('open-chest');
@@ -499,6 +492,112 @@ export class GameScene extends Phaser.Scene {
       bus.emit('open-anchor', result.openAnchor);
     }
     if (result.message) bus.emit('message', result.message, true);
+  }
+
+  // Grondstof erbij (uit een minigame): inventaris, collectie en statistieken
+  gainItem(item, amount) {
+    if (!amount) return;
+    this.inventory.add(item, amount);
+    this.collect(item, amount);
+    if (item === 'wrakhout') this.onWood(amount);
+    if (item === 'puin') this.stats.puin += amount;
+    if (item === 'sterrenstof') this.stats.sterrenstof = (this.stats.sterrenstof || 0) + amount;
+    if (item === 'roest') this.stats.roest = (this.stats.roest || 0) + amount;
+  }
+
+  // ---------- minigames ----------
+
+  // Wat een bron oplevert en welke minigame erbij hoort
+  minigameSpec(o) {
+    const M = CONFIG.minigames;
+    let id, item, rate, tool, art, name;
+    if (o.type === 'tree') {
+      const t = this.tools.axe;
+      id = M.sources.tree; item = 'wrakhout'; tool = 'axe'; art = ['tree']; name = TEXT.treeName;
+      rate = CONFIG.tree.woodPerYield[t] / CONFIG.tree.hitsPerYield[t];
+    } else if (o.type === 'generator') {
+      const t = this.tools.pickaxe;
+      id = M.sources.generator; item = 'puin'; tool = 'pickaxe'; art = ['generator']; name = CONFIG.items.steengenerator.name;
+      rate = CONFIG.generator.puinPerYield[t] / CONFIG.generator.hitsPerYield[t];
+    } else {
+      const t = this.tools.pickaxe;
+      const [min, max] = o.def.amount;
+      id = M.sources.node[o.node]; item = o.def.item; tool = 'pickaxe'; name = o.def.name;
+      art = [`node_${o.node}_base`, `node_${o.node}_top`];
+      rate = (min + max) / 2 / o.def.hits[t];
+    }
+    const skill = M.skill[id];
+    rate *= this.skills.power(skill);
+    return { id, item, rate, tool, toolMult: this.upgradeMult(tool), skill, art, name: name || M.name[id] };
+  }
+
+  startMinigame(spec) {
+    if (this.minigame || this.dead) return;
+    if (this.dayNight.isNight) { bus.emit('message', TEXT.mgNoNight, true); return; }
+    if (this.boss || this.depth.active) { bus.emit('message', TEXT.mgNoFight, true); return; }
+    const key = CONFIG.minigames.built.includes(spec.id) ? spec.id : 'proef';
+    this.minigame = { spec, key, gained: {} };
+    this.autoTarget = null;
+    this.autoGrab = null;
+    if (this.build.active) this.build.close();
+    controls.move.x = 0;
+    controls.move.y = 0;
+    controls.action = false;
+    controls.actionQueued = false;
+    bus.emit('minigame-start', spec);
+    const cam = this.cameras.main;
+    cam.fadeOut(220, 11, 6, 18);
+    cam.once('camerafadeoutcomplete', () => {
+      this.scene.sleep('UI');
+      this.scene.sleep('Background');
+      cam.setVisible(false);
+      this.scene.launch(`mg-${key}`, { gs: this, spec });
+    });
+  }
+
+  // Mag je na afloop meteen nog een keer? Niet als de nacht al voor de deur staat.
+  canRepeatMinigame() {
+    return !this.dayNight.isNight && this.dayNight.phaseLeftMs > 1500;
+  }
+
+  // Resultaat van een ronde bijschrijven (meteen, ook als je daarna nog een keer speelt)
+  applyMinigame(key, spec, res) {
+    this.stats.highscores = { ...this.stats.highscores };
+    if (res.score > (this.stats.highscores[key] || 0)) this.stats.highscores[key] = res.score;
+    this.stats.minigames = { ...this.stats.minigames };
+    this.stats.minigames[key] = (this.stats.minigames[key] || 0) + 1;
+    for (const [item, n] of Object.entries(res.items)) {
+      if (n <= 0) continue;
+      this.gainItem(item, n);
+      if (this.minigame) this.minigame.gained[item] = (this.minigame.gained[item] || 0) + n;
+    }
+    if (res.xp) this.skills.gain(spec.skill, res.xp * CONFIG.skills[spec.skill].xp);
+    this.objectives.check();
+    this.saveNow();
+  }
+
+  // Terug naar het eiland
+  endMinigame() {
+    const mg = this.minigame;
+    this.minigame = null;
+    controls.actionQueued = false;
+    controls.action = false;
+    this.nextActionAt = this.time.now + 500;
+    this.scene.wake('Background');
+    this.scene.wake('UI');
+    const cam = this.cameras.main;
+    cam.setVisible(true);
+    cam.resetFX();
+    cam.fadeIn(250, 11, 6, 18);
+    bus.emit('minigame-end');
+    // alles wat je verdiende nog even boven je hoofd laten zien
+    const p = this.player.sprite;
+    Object.entries(mg?.gained || {}).forEach(([k, n], i) => {
+      this.time.delayedCall(300 + i * 250, () => bus.emit('float', {
+        wx: p.x, wy: p.y - 120, text: `+${n} ${CONFIG.items[k].name.toLowerCase()}`, color: '#e8d6b8',
+      }));
+    });
+    if (!this.dayNight.isNight && this.dayNight.phaseLeftMs < 1500) bus.emit('message', TEXT.mgNightWaits, true);
   }
 
   // ---------- collecties ----------
