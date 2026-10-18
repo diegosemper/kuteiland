@@ -11,11 +11,13 @@ import { Inventory } from '../systems/Inventory.js';
 import { BuildMode } from '../systems/Building.js';
 import { Objectives } from '../systems/Objectives.js';
 import { craft } from '../systems/Crafting.js';
+import { drawAnchorRing } from '../systems/Building.js';
 import { findPath, findPathNear } from '../systems/Pathfinding.js';
 import { Skills } from '../systems/Skills.js';
 import { Drift } from '../systems/Drift.js';
 import { DayNight } from '../systems/DayNight.js';
 import { Night } from '../systems/Night.js';
+import { Crumble } from '../systems/Crumble.js';
 import { loadGame, saveGame, clearSave } from '../systems/save.js';
 
 const AUTO_WALK_MS = 4000;
@@ -68,6 +70,8 @@ export class GameScene extends Phaser.Scene {
     this.dayNight = new DayNight(save?.time);
     this.night = new Night(this);
     if (this.dayNight.isNight) this.night.start(this.dayNight.night, this.dayNight.t - CONFIG.dayNight.dayMs);
+    this.crumble = new Crumble(this, save?.crumble);
+    this.anchorRing = this.add.graphics().setDepth(-4000);
     this.objectives = new Objectives(this, this.flags.objectiveId ?? this.flags.objective ?? 0);
 
     const cam = this.cameras.main;
@@ -90,6 +94,8 @@ export class GameScene extends Phaser.Scene {
       'dusk': (n) => bus.emit('message', n === 1 ? TEXT.duskFirst : pick(TEXT.dusk), true),
       'night-start': (n) => this.onNightStart(n),
       'day-start': (d) => this.onDayStart(d),
+      'anchor-closed': () => this.showAnchorRing(null),
+      'anchor-upgrade': (a) => this.upgradeAnchor(a),
     };
     for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
     this.events.once('shutdown', () => {
@@ -147,6 +153,14 @@ export class GameScene extends Phaser.Scene {
     this.island.puff.explode(10, obj.sprite?.x ?? 0, obj.hitY ?? 0);
   }
 
+  // Bereik van een anker op de grond tekenen (null = weghalen)
+  showAnchorRing(anchor) {
+    const g = this.anchorRing;
+    g.clear();
+    if (!anchor) return;
+    drawAnchorRing(g, this, anchor, 0.9);
+  }
+
   countObjects(type) {
     return this.objects.filter((o) => o.type === type).length;
   }
@@ -190,7 +204,7 @@ export class GameScene extends Phaser.Scene {
       if (d <= CONFIG.combat.reach && d < bestDist) { best = e; bestDist = d; }
     }
     if (best) return best;
-    for (const o of this.objects) {
+    for (const o of [...this.objects, ...this.crumble.targets()]) {
       if (!o.label) continue;
       const d = this.distanceTo(o);
       if (d <= CONFIG.player.reach && d < bestDist) {
@@ -206,7 +220,7 @@ export class GameScene extends Phaser.Scene {
   objectAt(wx, wy) {
     let hit = null;
     let best = Infinity;
-    for (const o of [...this.objects, ...this.night.enemies.filter((e) => e.alive)]) {
+    for (const o of [...this.objects, ...this.crumble.targets(), ...this.night.enemies.filter((e) => e.alive)]) {
       const b = Phaser.Geom.Rectangle.Clone(o.hitArea || o.sprite.getBounds());
       Phaser.Geom.Rectangle.Inflate(b, 10, 10);
       if (!b.contains(wx, wy)) continue;
@@ -270,6 +284,7 @@ export class GameScene extends Phaser.Scene {
 
     this.dayNight.update(dt);
     this.night.update(time, dt);
+    this.crumble.update(time, dt);
     if (!this.dayNight.isNight && !this.dead && this.hp < this.maxHp) {
       this.hp = Math.min(this.maxHp, this.hp + CONFIG.combat.regenPerSec * dt / 1000);
       bus.emit('hp', this.hp, this.maxHp);
@@ -393,6 +408,11 @@ export class GameScene extends Phaser.Scene {
     if (result.openCraft) bus.emit('open-craft');
     if (result.attack) this.attackEnemy(result.attack);
     if (result.reclaim) this.reclaimGrave(target);
+    if (result.repair) this.crumble.repair(result.repair);
+    if (result.openAnchor) {
+      this.showAnchorRing(result.openAnchor);
+      bus.emit('open-anchor', result.openAnchor);
+    }
     if (result.message) bus.emit('message', result.message, true);
   }
 
@@ -502,6 +522,18 @@ export class GameScene extends Phaser.Scene {
     this.saveNow();
   }
 
+  upgradeAnchor(a) {
+    const cost = CONFIG.anchor.upgradeCost[a.tier + 1];
+    if (!cost || !Object.entries(cost).every(([k, n]) => this.inventory.has(k, n))) return;
+    for (const [k, n] of Object.entries(cost)) this.inventory.remove(k, n);
+    a.upgrade();
+    this.skills.gain('bouwen', CONFIG.skills.bouwen.xpObject);
+    this.showAnchorRing(a);
+    bus.emit('message', TEXT.anchorUpgraded, true);
+    this.objectives.check();
+    this.saveNow();
+  }
+
   onWood(amount) {
     this.stats.chops++;
     this.stats.wood += amount;
@@ -561,6 +593,7 @@ export class GameScene extends Phaser.Scene {
       tools: this.tools,
       skills: this.skills.toJSON(),
       time: this.dayNight.toJSON(),
+      crumble: this.crumble.serialize(),
       hp: this.dead ? this.maxHp : Math.round(this.hp * 10) / 10,
       stats: this.stats,
       flags: this.flags,

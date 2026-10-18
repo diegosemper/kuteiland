@@ -18,6 +18,7 @@ import { NightOverlay } from '../ui/NightOverlay.js';
 import { HeartsHud } from '../ui/HeartsHud.js';
 import { ClockHud } from '../ui/ClockHud.js';
 import { DeathScreen } from '../ui/DeathScreen.js';
+import { AnchorPanel } from '../ui/AnchorPanel.js';
 import { recipeName } from '../systems/Crafting.js';
 import { COLORS, textStyle, makeButton, roundedBox, shade } from '../ui/style.js';
 import { pick } from '../texts.js';
@@ -53,6 +54,7 @@ export class UIScene extends Phaser.Scene {
     this.craftPanel = new CraftPanel(this, game);
     this.buildBar = new BuildBar(this);
     this.skillsPanel = new SkillsPanel(this, game);
+    this.anchorPanel = new AnchorPanel(this, game);
     this.xpBar = new SkillXpBar(this);
 
     this.bagButton = makeButton(this, 0, 0, 104 * this.S, 40 * this.S, 'RUGZAK', () => this.togglePanel(), 12);
@@ -82,6 +84,7 @@ export class UIScene extends Phaser.Scene {
       'float': (f) => this.floatText(f),
       'open-chest': () => this.openPanel(this.chestPanel),
       'open-craft': () => this.openPanel(this.craftPanel),
+      'open-anchor': (a) => { this.anchorPanel.anchor = a; this.openPanel(this.anchorPanel); },
       'objective': (o) => this.objective.set(o),
       'build-changed': (state) => this.onBuildChanged(state),
       'crafted': (r) => this.onCrafted(r),
@@ -126,7 +129,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   anyPanelOpen() {
-    return this.panel.isOpen || this.chestPanel.isOpen || this.craftPanel.isOpen || this.skillsPanel.isOpen;
+    return this.panel.isOpen || this.chestPanel.isOpen || this.craftPanel.isOpen || this.skillsPanel.isOpen || this.anchorPanel.isOpen;
   }
 
   closeAll() {
@@ -134,6 +137,7 @@ export class UIScene extends Phaser.Scene {
     this.chestPanel.close();
     this.craftPanel.close();
     this.skillsPanel.close();
+    this.anchorPanel.close();
   }
 
   openPanel(p) {
@@ -168,7 +172,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   togglePanel() {
-    if (this.chestPanel.isOpen || this.craftPanel.isOpen || this.skillsPanel.isOpen) return;
+    if (this.chestPanel.isOpen || this.craftPanel.isOpen || this.skillsPanel.isOpen || this.anchorPanel.isOpen) return;
     if (this.buildBar.active) bus.emit('build-close');
     this.panel.toggle();
     this.joystick.release();

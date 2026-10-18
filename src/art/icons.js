@@ -302,7 +302,29 @@ function towerIcon(ctx) {
   ellipse(ctx, 32, 10, 3, 3, '#c9a6ff');
 }
 
+function anchorIcon(ctx) {
+  const glow = ctx.createRadialGradient(32, 34, 2, 32, 34, 22);
+  glow.addColorStop(0, 'rgba(155,107,255,0.45)');
+  glow.addColorStop(1, 'rgba(155,107,255,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, S, S);
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#5a2e18';
+  ctx.lineWidth = 7;
+  ctx.beginPath(); ctx.moveTo(32, 12); ctx.lineTo(32, 54); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(18, 20); ctx.lineTo(46, 20); ctx.stroke();
+  ctx.strokeStyle = '#a0583a';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(30, 14); ctx.lineTo(30, 52); ctx.stroke();
+  ctx.strokeStyle = '#8a4a2a';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.ellipse(32, 9, 5, 5, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = '#6e6862';
+  ctx.fillRect(16, 52, 32, 6);
+}
+
 export function generateIcons(scene) {
+  canvasTexture(scene, 'icon_anker', S, S, anchorIcon);
   for (const tier of [1, 2, 3, 4]) canvasTexture(scene, `icon_weapon${tier}`, S, S, (ctx) => weaponIcon(ctx, tier));
   canvasTexture(scene, 'icon_muur', S, S, wallIcon);
   canvasTexture(scene, 'icon_lantaarn', S, S, (ctx) => lampIcon(ctx, false));

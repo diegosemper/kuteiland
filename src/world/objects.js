@@ -5,6 +5,7 @@ import { Workbench } from './Workbench.js';
 import { Generator } from './Generator.js';
 import { Wall, Lamp, Tower } from './Defenses.js';
 import { Grave } from './Grave.js';
+import { Anchor } from './Anchor.js';
 
 // Welk object hoort bij welk plaatsbaar item
 export const ITEM_TO_OBJECT = {
@@ -14,7 +15,14 @@ export const ITEM_TO_OBJECT = {
   lantaarn: { type: 'lamp' },
   kristallamp: { type: 'lamp', crystal: true },
   wachttoren: { type: 'tower' },
+  anker: { type: 'anchor' },
 };
+
+// Omgekeerd: welk item krijg je terug van een object
+export function itemForObject(o) {
+  if (o.type === 'lamp') return o.crystal ? 'kristallamp' : 'lantaarn';
+  return Object.keys(ITEM_TO_OBJECT).find((k) => ITEM_TO_OBJECT[k].type === o.type) || null;
+}
 
 export function createObject(scene, data) {
   switch (data.type) {
@@ -26,6 +34,7 @@ export function createObject(scene, data) {
     case 'lamp': return new Lamp(scene, data.gx, data.gy, data);
     case 'tower': return new Tower(scene, data.gx, data.gy);
     case 'grave': return new Grave(scene, data.gx, data.gy, data);
+    case 'anchor': return new Anchor(scene, data.gx, data.gy, data);
     default: return null;
   }
 }

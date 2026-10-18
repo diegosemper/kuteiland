@@ -36,6 +36,26 @@ export const CONFIG = {
     radius: 0.34,
   },
 
+  // ---------- afbrokkelen en ankers ----------
+
+  crumble: {
+    startDay: 2,                    // vanaf deze dag brokkelen randen af
+    intervalMs: [30000, 50000],     // tijd tussen twee nieuwe barsten
+    nightFactor: 0.7,               // 's nachts sneller
+    crackMs: 30000,                 // barsten zichtbaar, nog rustig
+    shakeMs: 10000,                 // trillen en gruis: laatste kans
+    minTiles: 8,                    // kleiner wordt het eiland nooit
+    repairCost: [{ puin: 1 }, { wrakhout: 2 }],   // eerste die je kunt betalen
+    fallDamage: 2,                  // als je op een vallende tegel staat
+  },
+
+  anchor: {
+    radius: 0.3,
+    range: [0, 2.2, 3.2, 4.5],      // bereik in tegels per niveau
+    upgradeCost: [null, null, { roest: 6, leegtekristal: 1 }, { roest: 8, leegtekristal: 3 }],
+    buildBonus: 0.03,               // +3% bereik per level Bouwen
+  },
+
   chest: { radius: 0.3 },
   workbench: { radius: 0.34 },
 
@@ -149,6 +169,7 @@ export const CONFIG = {
     lantaarn:       { name: 'Lantaarn',       place: 'object' },
     kristallamp:    { name: 'Kristallamp',    place: 'object' },
     wachttoren:     { name: 'Wachttoren',     place: 'object' },
+    anker:          { name: 'Anker',          place: 'object' },
   },
 
   // at: 'hand' = in de rugzak, 'werkbank' = bij een werkbank
@@ -172,5 +193,6 @@ export const CONFIG = {
     { id: 'muur',           at: 'werkbank', cost: { puin: 4 },                       gives: { item: 'muur', amount: 1 } },
     { id: 'wachttoren',     at: 'werkbank', cost: { wrakhout: 6, puin: 6, roest: 4 }, gives: { item: 'wachttoren', amount: 1 } },
     { id: 'kristallamp',    at: 'werkbank', cost: { roest: 2, leegtekristal: 3 },    gives: { item: 'kristallamp', amount: 1 } },
+    { id: 'anker',          at: 'werkbank', cost: { roest: 5, puin: 3 },             gives: { item: 'anker', amount: 1 } },
   ],
 };

@@ -7,6 +7,17 @@ import { ITEM_TO_OBJECT } from '../world/objects.js';
 
 const { tileW: TW, tileH: TH } = CONFIG.iso;
 
+// Bereik van een anker: een cirkel in tegels is een platte ellips op het scherm
+export function drawAnchorRing(g, game, anchor, alpha = 0.5) {
+  const s = gridToScreen(anchor.gx, anchor.gy);
+  const r = anchor.range(game);
+  const w = r * TW * Math.SQRT2, h = r * TH * Math.SQRT2;
+  g.fillStyle(0x9b6bff, 0.08 * alpha);
+  g.fillEllipse(s.x, s.y, w, h);
+  g.lineStyle(3, 0xb48cff, 0.7 * alpha);
+  g.strokeEllipse(s.x, s.y, w, h);
+}
+
 export class BuildMode {
   constructor(game) {
     this.game = game;
@@ -61,6 +72,9 @@ export class BuildMode {
     const g = this.ghosts;
     g.clear();
     this.spots = this.computeSpots();
+    if (this.active) {
+      for (const a of this.game.objects.filter((o) => o.type === 'anchor')) drawAnchorRing(g, this.game, a, 0.6);
+    }
     for (const sp of this.spots) {
       const s = gridToScreen(sp.gx, sp.gy);
       const pts = [

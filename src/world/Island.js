@@ -118,6 +118,37 @@ export class Island {
     return true;
   }
 
+  // Tegel verwijderen (afgebrokkeld). De sprite valt al door Crumble; hier alleen opruimen.
+  removeTile(gx, gy, keepTexture = false) {
+    const t = this.get(gx, gy);
+    if (!t) return;
+    this.tiles.delete(key(gx, gy));
+    t.tufts?.forEach((s) => s.destroy());
+    const texKey = `tile_${gx}_${gy}`;
+    t.sprite?.destroy();
+    if (!keepTexture && this.scene.textures.exists(texKey)) this.scene.textures.remove(texKey);
+    this.center = this.computeCenter();
+    this.rebuildUnderside();
+  }
+
+  // Blijft het eiland één geheel als deze tegel weg is?
+  staysConnected(gx, gy) {
+    const rest = [...this.tiles.values()].filter((t) => t.gx !== gx || t.gy !== gy);
+    if (!rest.length) return false;
+    const seen = new Set([key(rest[0].gx, rest[0].gy)]);
+    const queue = [rest[0]];
+    while (queue.length) {
+      const c = queue.shift();
+      for (const [dx, dy] of NEIGHBOURS) {
+        const k = key(c.gx + dx, c.gy + dy);
+        if (seen.has(k) || !this.tiles.has(k) || (c.gx + dx === gx && c.gy + dy === gy)) continue;
+        seen.add(k);
+        queue.push(this.tiles.get(k));
+      }
+    }
+    return seen.size === rest.length;
+  }
+
   // Afstand tot de rand: 1 = randtegel, 2 = één stap naar binnen, enz.
   edgeDistances() {
     const dist = new Map();

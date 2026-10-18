@@ -9,6 +9,7 @@ import { generateStructures } from './structures.js';
 import { generateDrift } from './drift.js';
 import { generateCreatures } from './creatures.js';
 import { generateDefenses } from './defenses.js';
+import { generateAnchor } from './anchor.js';
 
 let noise = null;
 export function getNoise() {
@@ -23,6 +24,7 @@ export function generateTextures(scene) {
   generateDrift(scene);
   generateCreatures(scene);
   generateDefenses(scene);
+  generateAnchor(scene);
   generateCharacter(scene);
   generateIcons(scene);
 }
