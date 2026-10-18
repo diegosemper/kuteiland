@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0612">
+  <meta name="description" content="Een zwevend eiland boven het niets. Hak. Bouw. Overleef.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Kuteiland">
+  <title>Kuteiland</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <style>
+    :root {
+      --sat: env(safe-area-inset-top);
+      --sar: env(safe-area-inset-right);
+      --sab: env(safe-area-inset-bottom);
+      --sal: env(safe-area-inset-left);
+    }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #0b0612;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #game { position: fixed; inset: 0; }
+    #game canvas { display: block; }
+    #rotate {
+      display: none;
+      position: fixed; inset: 0; z-index: 10;
+      align-items: center; justify-content: center; text-align: center;
+      background: #0b0612; color: #d9cdea;
+      font: 16px/1.5 ui-monospace, Menlo, Consolas, monospace;
+      padding: 24px;
+    }
+    @media (orientation: landscape) and (max-height: 500px) {
+      #rotate { display: flex; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="rotate">Draai je telefoon rechtop.<br>Het eiland is al scheef genoeg.</div>
+  <noscript>Zonder JavaScript is er geen eiland. Alleen leegte.</noscript>
+  <script src="lib/phaser.min.js"></script>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

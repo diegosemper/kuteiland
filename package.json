@@ -1,0 +1,11 @@
+{
+  "name": "kuteiland",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Mobiel isometrisch overlevingsspel op een zwevend eiland.",
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "icons": "node tools/make-icons.mjs"
+  }
+}
