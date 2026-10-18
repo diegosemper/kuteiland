@@ -21,6 +21,15 @@ export function generateFx(scene, N) {
     ctx.fillStyle = '#9a7d5e'; ctx.fillRect(0, 0, 7, 1);
     ctx.fillStyle = '#3e2f22'; ctx.fillRect(0, 3, 7, 1);
   });
+  canvasTexture(scene, 'stonechip', 6, 5, (ctx) => {
+    ctx.fillStyle = '#7d766f'; ctx.fillRect(0, 0, 6, 5);
+    ctx.fillStyle = '#a39b93'; ctx.fillRect(0, 0, 6, 1);
+    ctx.fillStyle = '#3e3a37'; ctx.fillRect(0, 4, 6, 1);
+  });
+  canvasTexture(scene, 'puff', 24, 24, (ctx) => {
+    ctx.fillStyle = radial(ctx, 12, 12, 12, [[0, 'rgba(150,135,125,0.8)'], [1, 'rgba(150,135,125,0)']]);
+    ctx.fillRect(0, 0, 24, 24);
+  });
   canvasTexture(scene, 'leaf', 8, 5, (ctx) => ellipse(ctx, 4, 2.5, 3.6, 2, '#55602f', 0.3));
   canvasTexture(scene, 'dust', 8, 8, (ctx) => {
     ctx.fillStyle = radial(ctx, 4, 4, 4, [[0, 'rgba(70,58,52,1)'], [1, 'rgba(70,58,52,0)']]);

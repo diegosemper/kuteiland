@@ -4,11 +4,14 @@ import { TEXT, pick } from '../texts.js';
 import { bus } from '../bus.js';
 import { controls } from '../controls.js';
 import { gridToScreen } from '../iso.js';
-import { Island } from '../world/Island.js';
+import { Island, layoutFromConfig } from '../world/Island.js';
 import { Player } from '../world/Player.js';
-import { Tree } from '../world/Tree.js';
-import { Chest } from '../world/Chest.js';
+import { createObject } from '../world/objects.js';
 import { Inventory } from '../systems/Inventory.js';
+import { BuildMode } from '../systems/Building.js';
+import { Objectives } from '../systems/Objectives.js';
+import { craft } from '../systems/Crafting.js';
+import { findPath } from '../systems/Pathfinding.js';
 import { loadGame, saveGame, clearSave } from '../systems/save.js';
 
 const AUTO_WALK_MS = 4000;
@@ -21,25 +24,26 @@ export class GameScene extends Phaser.Scene {
   create() {
     const save = loadGame();
     this.flags = { ...save?.flags };
-    this.stats = { chops: 0, wood: 0, ...save?.stats };
+    this.stats = { chops: 0, wood: 0, puin: 0, tilesPlaced: 0, ...save?.stats };
+    this.stats.crafted = { ...save?.stats?.crafted };
+    this.tools = { axe: 0, pickaxe: 0, ...save?.tools };
     this.inventory = new Inventory(save?.inventory);
     this.chestStore = new Inventory(save?.chest);
 
-    this.island = new Island(this);
-    this.objects = [];
-    for (const m of this.island.markers) {
-      if (m.type === 'tree') {
-        this.tree = new Tree(this, m.gx, m.gy, save?.tree);
-        this.objects.push(this.tree);
-      } else if (m.type === 'chest') {
-        this.chest = new Chest(this, m.gx, m.gy);
-        this.objects.push(this.chest);
-      }
-    }
+    // Wereld: opgeslagen, of de startopstelling. Oude saves (fase 1) hebben alleen boom/kist-gegevens.
+    const start = layoutFromConfig();
+    const world = save?.world || {
+      tiles: start.tiles,
+      objects: start.objects.map((o) => (o.type === 'tree' ? { ...o, ...save?.tree } : o)),
+    };
 
-    let start = this.island.spawn;
-    if (save?.player && this.canStand(save.player.gx, save.player.gy)) start = save.player;
-    this.player = new Player(this, start.gx, start.gy);
+    this.island = new Island(this, world.tiles, world.objects);
+    this.objects = [];
+    for (const data of world.objects) this.addObject(data);
+
+    let pos = start.spawn;
+    if (save?.player && this.canStand(save.player.gx, save.player.gy)) pos = save.player;
+    this.player = new Player(this, pos.gx, pos.gy);
 
     this.marker = this.add.image(0, 0, 'marker').setOrigin(0.5, 1).setDepth(1e6).setVisible(false);
     this.target = null;
@@ -47,6 +51,10 @@ export class GameScene extends Phaser.Scene {
     this.autoUntil = 0;
     this.nextActionAt = 0;
     this.nextEdgeLineAt = 0;
+    this.nextObjectiveCheck = 0;
+
+    this.build = new BuildMode(this);
+    this.objectives = new Objectives(this, this.flags.objective || 0);
 
     const cam = this.cameras.main;
     cam.startFollow(this.player.sprite, false, 0.1, 0.1);
@@ -55,15 +63,19 @@ export class GameScene extends Phaser.Scene {
     this.scale.on('resize', this.layoutCamera, this);
 
     this.setupSaving();
-    const onTap = (obj) => this.onTapObject(obj);
-    const onChestClosed = () => this.chest?.setOpen(false);
-    bus.on('reset', this.resetGame, this);
-    bus.on('tap-object', onTap);
-    bus.on('chest-closed', onChestClosed);
+    const handlers = {
+      'reset': () => this.resetGame(),
+      'tap-object': (obj) => this.onTapObject(obj),
+      'chest-closed': () => this.chest?.setOpen(false),
+      'craft': (id) => this.onCraft(id),
+      'build-open': () => this.build.open(),
+      'build-close': () => this.build.close(),
+      'build-select': (key) => this.build.select(key),
+      'placed': () => this.onPlaced(),
+    };
+    for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
     this.events.once('shutdown', () => {
-      bus.off('reset', this.resetGame, this);
-      bus.off('tap-object', onTap);
-      bus.off('chest-closed', onChestClosed);
+      for (const [ev, fn] of Object.entries(handlers)) bus.off(ev, fn);
       this.scale.off('resize', this.layoutCamera, this);
     });
 
@@ -89,6 +101,28 @@ export class GameScene extends Phaser.Scene {
     } else if (hadSave) {
       bus.emit('message', TEXT.welcomeBack);
     }
+    this.objectives.check();
+  }
+
+  // ---------- objecten ----------
+
+  addObject(data, animate = false) {
+    const obj = createObject(this, data);
+    if (!obj) return null;
+    this.objects.push(obj);
+    if (obj.type === 'tree') this.tree = obj;
+    if (obj.type === 'chest') this.chest = obj;
+    if (animate) {
+      const y = obj.sprite.y;
+      obj.sprite.setY(y - 50).setAlpha(0);
+      this.tweens.add({ targets: obj.sprite, y, alpha: 1, duration: 300, ease: 'Bounce.easeOut' });
+      this.time.delayedCall(200, () => this.island.puff.explode(10, obj.sprite.x, y));
+    }
+    return obj;
+  }
+
+  countObjects(type) {
+    return this.objects.filter((o) => o.type === type).length;
   }
 
   // ---------- beweging en botsing ----------
@@ -134,12 +168,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   // Welk object staat op dit punt in de wereld? (voor tikken)
+  // Overlappen er meerdere? Dan wint het object waarvan het midden het dichtst bij de vinger is.
   objectAt(wx, wy) {
     let hit = null;
+    let best = Infinity;
     for (const o of this.objects) {
       const b = Phaser.Geom.Rectangle.Clone(o.hitArea || o.sprite.getBounds());
       Phaser.Geom.Rectangle.Inflate(b, 10, 10);
-      if (b.contains(wx, wy) && (!hit || o.sprite.depth > hit.sprite.depth)) hit = o;
+      if (!b.contains(wx, wy)) continue;
+      const d = Math.hypot(wx - o.sprite.x, wy - o.hitY);
+      if (d < best) { best = d; hit = o; }
     }
     return hit;
   }
@@ -148,10 +186,16 @@ export class GameScene extends Phaser.Scene {
     if (this.distanceTo(obj) <= CONFIG.player.reach) {
       this.target = obj;
       controls.actionQueued = true;
-    } else {
-      this.autoTarget = obj;
-      this.autoUntil = this.time.now + AUTO_WALK_MS;
+      return;
     }
+    const path = findPath(this, obj);
+    if (!path) {
+      bus.emit('message', TEXT.noPath, true);
+      return;
+    }
+    this.autoTarget = obj;
+    this.autoPath = path;
+    this.autoUntil = this.time.now + AUTO_WALK_MS + path.length * 500;
   }
 
   // ---------- spellus ----------
@@ -167,17 +211,22 @@ export class GameScene extends Phaser.Scene {
         this.autoTarget = null;
         controls.actionQueued = true;
       } else {
-        const v = gridToScreen(this.autoTarget.gx - this.player.gx, this.autoTarget.gy - this.player.gy);
+        // volg de route, tegel voor tegel; daarna recht op het doel af
+        const wp = this.autoPath[0];
+        if (wp && Math.hypot(wp.gx - this.player.gx, wp.gy - this.player.gy) < 0.12) this.autoPath.shift();
+        const aim = this.autoPath[0] || this.autoTarget;
+        const v = gridToScreen(aim.gx - this.player.gx, aim.gy - this.player.gy);
         const len = Math.hypot(v.x, v.y) || 1;
         move = { x: v.x / len, y: v.y / len };
       }
     }
 
     const hitEdge = this.player.update(dt, move, this);
-    if (hitEdge && !this.autoTarget && time >= this.nextEdgeLineAt) {
+    if (hitEdge && !this.autoTarget && !this.build.active && time >= this.nextEdgeLineAt) {
       this.nextEdgeLineAt = time + 15000;
       bus.emit('message', pick(TEXT.edge));
     }
+    this.build.update();
 
     // een getikt doel blijft gekozen tot de actie gedaan is
     const target = controls.actionQueued && this.target ? this.target : this.findTarget();
@@ -186,7 +235,7 @@ export class GameScene extends Phaser.Scene {
       bus.emit('target', target ? target.label : null);
     }
     this.target = target;
-    if (target) {
+    if (target && !this.build.active) {
       const bob = Math.sin(time / 220) * 4;
       this.marker.setVisible(true).setPosition(target.sprite.x, target.topY + bob);
     } else {
@@ -198,15 +247,20 @@ export class GameScene extends Phaser.Scene {
       this.nextActionAt = time + CONFIG.player.actionCooldownMs;
       this.doAction();
     }
+
+    if (time >= this.nextObjectiveCheck) {
+      this.nextObjectiveCheck = time + 300;
+      this.objectives.check();
+    }
   }
 
   doAction() {
     const target = this.target;
     if (target) this.player.faceTowards(target.sprite.x);
-    if (!target || target.type !== 'chest') this.player.swing();
+    if (!target || (target.type !== 'chest' && target.type !== 'workbench')) this.player.swing();
     if (!target) return;
 
-    const result = target.act();
+    const result = target.act(this);
     if (!result) return;
 
     if (result.item) {
@@ -219,12 +273,14 @@ export class GameScene extends Phaser.Scene {
         color: '#e8d6b8',
       });
       if (result.item === 'wrakhout') this.onWood(result.amount);
+      if (result.item === 'puin') this.stats.puin += result.amount;
     }
     if (result.openChest) {
       this.chest.setOpen(true);
       bus.emit('open-chest');
     }
-    if (result.message) bus.emit('message', result.message);
+    if (result.openCraft) bus.emit('open-craft');
+    if (result.message) bus.emit('message', result.message, true);
   }
 
   onWood(amount) {
@@ -233,10 +289,18 @@ export class GameScene extends Phaser.Scene {
     if (!this.flags.firstWood) {
       this.flags.firstWood = true;
       bus.emit('message', TEXT.firstWood, true);
-    } else if (!this.flags.tenWood && this.stats.wood >= 10) {
-      this.flags.tenWood = true;
-      bus.emit('message', TEXT.tenWood);
     }
+  }
+
+  onCraft(id) {
+    if (!craft(this, id)) return;
+    this.objectives.check();
+    this.saveNow();
+  }
+
+  onPlaced() {
+    this.objectives.check();
+    this.saveNow();
   }
 
   // ---------- opslaan ----------
@@ -257,13 +321,18 @@ export class GameScene extends Phaser.Scene {
 
   saveNow() {
     if (this.resetting) return;
+    this.flags.objective = this.objectives?.index ?? 0;
     saveGame({
       player: { gx: this.player.gx, gy: this.player.gy },
       inventory: this.inventory.toJSON(),
       chest: this.chestStore.toJSON(),
+      tools: this.tools,
       stats: this.stats,
       flags: this.flags,
-      tree: this.tree?.serialize(),
+      world: {
+        tiles: this.island.serialize(),
+        objects: this.objects.map((o) => o.serialize()),
+      },
     });
   }
 

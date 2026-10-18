@@ -39,6 +39,37 @@ export function createPanel(scene, { title, subtitle, height, onBackdrop, anchor
   return { c, px, py, pw, ph, pad, y };
 }
 
+// Een recept: icoon, naam, kosten (rood als je te weinig hebt) en een MAAK-knop. Geeft de hoogte terug.
+export function recipeRow(scene, panel, y, { icon, name, cost, inventory, state, onMake, makeButton, labels }) {
+  const S = scene.S;
+  const { c, px, pw, pad } = panel;
+  const cy = y + 22 * S;
+  const dim = state.owned ? 0.45 : 1;
+  c.add(scene.add.image(px + pad + 15 * S, cy, icon).setDisplaySize(32 * S, 32 * S).setAlpha(dim));
+  c.add(scene.add.text(px + pad + 40 * S, cy - 9 * S, name, textStyle(S, 15)).setOrigin(0, 0.5).setAlpha(dim));
+
+  // kosten als kleine iconen met aantallen
+  let x = px + pad + 40 * S;
+  for (const [k, n] of Object.entries(cost)) {
+    const enough = inventory.has(k, n);
+    c.add(scene.add.image(x + 8 * S, cy + 11 * S, `icon_${k}`).setDisplaySize(16 * S, 16 * S).setAlpha(dim));
+    const t = scene.add.text(x + 18 * S, cy + 11 * S, `${inventory.get(k)}/${n}`,
+      textStyle(S, 12, enough ? COLORS.dim : COLORS.warn)).setOrigin(0, 0.5).setAlpha(dim);
+    c.add(t);
+    x += 18 * S + t.width + 12 * S;
+  }
+
+  const bx = px + pw - pad - 42 * S;
+  if (state.owned) {
+    c.add(scene.add.text(bx, cy, labels.owned, textStyle(S, 11, COLORS.dim, { fontStyle: '700' })).setOrigin(0.5));
+  } else {
+    const b = makeButton(scene, bx, cy, 84 * S, 34 * S, labels.make, () => { if (state.canCraft) onMake(); }, 12);
+    b.setAlpha(state.canCraft ? 1 : 0.4);
+    c.add(b);
+  }
+  return 50 * S;
+}
+
 // Eén rij met icoon, naam en aantal. Geeft de hoogte terug.
 export function itemRow(scene, panel, key, count, y, button) {
   const S = scene.S;

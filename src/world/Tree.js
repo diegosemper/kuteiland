@@ -53,7 +53,8 @@ export class Tree {
   }
 
   // Wordt aangeroepen bij een slag. Geeft eventueel een opbrengst terug.
-  act() {
+  act(game) {
+    const tier = game.tools.axe;
     const { scene, sprite } = this;
     scene.tweens.add({
       targets: sprite,
@@ -69,14 +70,14 @@ export class Tree {
     }
 
     this.hits++;
-    if (this.hits >= CONFIG.tree.hitsPerYield) {
+    if (this.hits >= CONFIG.tree.hitsPerYield[tier]) {
       this.hits = 0;
-      return { item: 'wrakhout', amount: CONFIG.tree.woodPerYield };
+      return { item: 'wrakhout', amount: CONFIG.tree.woodPerYield[tier] };
     }
     return null;
   }
 
   serialize() {
-    return { hits: this.hits };
+    return { type: this.type, gx: this.gx, gy: this.gy, hits: this.hits };
   }
 }

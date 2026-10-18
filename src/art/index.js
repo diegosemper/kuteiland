@@ -5,6 +5,7 @@ import { generateProps } from './props.js';
 import { generateCharacter } from './character.js';
 import { generateFx } from './fx.js';
 import { generateIcons } from './icons.js';
+import { generateStructures } from './structures.js';
 
 let noise = null;
 export function getNoise() {
@@ -15,6 +16,7 @@ export function getNoise() {
 export function generateTextures(scene) {
   generateFx(scene, getNoise());
   generateProps(scene);
+  generateStructures(scene);
   generateCharacter(scene);
   generateIcons(scene);
 }

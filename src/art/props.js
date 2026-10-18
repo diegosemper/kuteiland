@@ -151,7 +151,7 @@ function P(u, v, h) {
   return { x: CHEST.ox + (u - v) * TW / 2, y: CHEST.oy + (u + v) * TH / 2 - h };
 }
 
-function woodFace(ctx, pts, base, grainRnd, planks) {
+export function woodFace(ctx, pts, base, grainRnd, planks) {
   poly(ctx, pts);
   ctx.fillStyle = base;
   ctx.fill();
@@ -189,7 +189,7 @@ function woodFace(ctx, pts, base, grainRnd, planks) {
   ctx.stroke();
 }
 
-function band(ctx, pts) {
+export function band(ctx, pts) {
   poly(ctx, pts);
   ctx.fillStyle = '#2b2a2f';
   ctx.fill();
@@ -198,7 +198,7 @@ function band(ctx, pts) {
   ctx.stroke();
 }
 
-function rivet(ctx, p) {
+export function rivet(ctx, p) {
   ellipse(ctx, p.x, p.y, 1.3, 1.3, '#5d5a63');
   ellipse(ctx, p.x - 0.4, p.y - 0.4, 0.5, 0.5, '#a9a4b0');
 }

@@ -29,6 +29,10 @@ export class Chest {
     return { openChest: true };
   }
 
+  serialize() {
+    return { type: this.type, gx: this.gx, gy: this.gy };
+  }
+
   setOpen(open) {
     this.sprite.setTexture(open ? 'chest_open' : 'chest');
     this.scene.tweens.add({ targets: this.sprite, scaleY: { from: SCALE * 0.94, to: SCALE }, duration: 140, ease: 'Back.easeOut' });

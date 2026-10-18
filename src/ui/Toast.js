@@ -15,7 +15,7 @@ export class Toast {
 
   layout(w, h, safe) {
     const S = this.scene.S;
-    this.text.setPosition(w / 2, safe.top + 74 * S);
+    this.text.setPosition(w / 2, safe.top + 118 * S);
     this.text.setWordWrapWidth(w - 56 * S);
   }
 

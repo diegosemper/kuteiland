@@ -29,9 +29,58 @@ export const TEXT = {
   chestNothingCarried: 'Je zakken zijn leeg.',
   chestEmpty: 'Leeg. Zoals je toekomst.',
 
+  noPath: 'Daar kom je niet bij. Nog niet.',
+
+  noPickaxe: [
+    'Met je blote handen? Moedig. Dom, maar moedig.',
+    'Steen tegen knokkels. Raad eens wie wint.',
+    'Een houweel zou helpen. Die maak je bij de werkbank.',
+  ],
+
+  // bouwen
+  build: 'BOUW',
+  buildDone: 'KLAAR',
+  buildNothing: 'Niks om te bouwen. Maak eerst iets bij de werkbank.',
+  buildHint: 'Tik op een oplichtende plek.',
+  buildNoSpot: 'Daar niet.',
+
+  // craften
+  craftTitle: 'WERKBANK',
+  craftSubtitle: 'Hout, puin en goede moed.',
+  craftMake: 'MAAK',
+  craftOwned: 'IN BEZIT',
+  handTitle: 'MAKEN',
+  moreAtBench: 'Meer recepten bij een werkbank.',
+  toolsTitle: 'GEREEDSCHAP',
+
+  // doelen
+  objectiveLabel: 'DOEL',
+  objectives: {
+    hout: 'Hak wrakhout van de boom',
+    werkbank: 'Maak een werkbank in je RUGZAK',
+    werkbank_zetten: 'Zet de werkbank neer met BOUW',
+    houweel: 'Maak een houten houweel bij de werkbank',
+    blok: 'Maak een vlonder en maak het eiland groter',
+    generator: 'Maak een steengenerator en zet hem neer',
+    puin: 'Delf puin uit de steengenerator',
+    steen: 'Maak stenen gereedschap',
+    groter: 'Maak het eiland groter',
+  },
+  objectiveDone: {
+    hout: 'Genoeg om iets mee te doen. Bijna.',
+    werkbank: 'Een werkbank. Je eerste meubel in het niets.',
+    werkbank_zetten: 'Hij staat. Scheef, maar hij staat.',
+    houweel: 'Een houweel. Nu nog iets om op te slaan.',
+    blok: 'Het eiland is groter. Een beetje. Het begint ergens op te lijken.',
+    generator: 'Leegte erin, steen eruit. Vraag niet hoe.',
+    puin: 'Puin. De wereld in kleine stukjes. Handig.',
+    steen: 'Stenen gereedschap. De vooruitgang is niet te stoppen.',
+    groter: 'Een echt eiland. Jammer dat het straks donker wordt.',
+  },
+  objectivesDone: 'Meer volgt. Net als de nacht.',
+
   bagTitle: 'RUGZAK',
   bagEmpty: 'Leeg. Zelfs je zakken zijn eenzaam.',
-  bagCraftHint: 'Craften vraagt een werkbank. Die heb je niet.',
   close: 'SLUIT',
   reset: 'WIS VOORTGANG',
   resetConfirm: 'ZEKER? TIK NOG EENS',

@@ -1,6 +1,6 @@
 // Grond en rots. Alle patronen gebruiken wereldcoördinaten, zodat tegels naadloos op elkaar aansluiten.
 import { CONFIG } from '../config.js';
-import { gridToScreen } from '../iso.js';
+import { gridToScreen, screenToGrid } from '../iso.js';
 import { canvasTexture, hex, mix, mul, smooth, css, putPx, ellipse, mulberry32 } from './util.js';
 
 const { tileW: TW, tileH: TH, blockDepth: BD } = CONFIG.iso;
@@ -24,6 +24,93 @@ const C = {
   voidTint: hex('#170d2b'), rim: hex('#6f4fb0'),
   root: '#22170f',
 };
+
+// Vast willekeurig getal 0..1 per geheel coördinatenpaar
+export function hash2(i, j) {
+  let h = Math.imul(i | 0, 374761393) ^ Math.imul(j | 0, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+const frac = (x) => x - Math.floor(x);
+
+// ---------- vlonder (planken) ----------
+
+const WOOD = {
+  dark: hex('#3d2b1c'), light: hex('#7a5a3c'), grey: hex('#5f574d'),
+  gap: hex('#140d08'), nail: hex('#8d8a86'),
+};
+
+function plankTop(N, wx, wy) {
+  const g = screenToGrid(wx, wy);
+  const across = g.gy * 4;                 // vier planken per tegel, liggend langs gx
+  const row = Math.floor(across);
+  const f = across - row;
+  const along = g.gx + (row & 1) * 0.5;    // naden verspringen per rij
+  const seg = Math.floor(along);
+  const segF = along - seg;
+  const h = hash2(row, seg);
+  let col = mix(WOOD.dark, WOOD.light, 0.25 + 0.55 * h);
+  col = mix(col, WOOD.grey, 0.35 * N.noise(g.gx * 1.5 + row * 3.1, row));   // verweerd
+  const grain = N.noise(g.gx * 9 + h * 40, across * 6);
+  col = mul(col, 0.82 + 0.3 * grain);
+  if (f < 0.07 || f > 0.95 || segF < 0.015) return WOOD.gap;
+  if (f < 0.16) col = mul(col, 1.12);       // lichte bovenrand van de plank
+  if (f > 0.84) col = mul(col, 0.8);
+  if (segF > 0.04 && segF < 0.075 && (Math.abs(f - 0.3) < 0.07 || Math.abs(f - 0.7) < 0.07)) return WOOD.nail;
+  return col;
+}
+
+function plankSide(N, wx, wy, depth, left) {
+  const t = depth / BD;
+  const beam = Math.floor(depth / (BD / 2));
+  const bf = (depth % (BD / 2)) / (BD / 2);
+  let col = mix(WOOD.dark, WOOD.light, 0.3 + 0.4 * hash2(beam, Math.floor(wx / 40)));
+  col = mul(col, 0.8 + 0.3 * N.noise(wx * 0.15, depth * 0.6 + beam * 9));
+  if (bf < 0.08) col = WOOD.gap;
+  return mul(col, (left ? 0.95 : 0.6) * (1 - 0.25 * t));
+}
+
+// ---------- puinblok (kasseien) ----------
+
+const STONE = { a: hex('#4f4a46'), b: hex('#8a827a'), mortar: hex('#1c1917'), warm: hex('#6e5f50') };
+
+function cobble(u, v) {
+  const iu = Math.floor(u), iv = Math.floor(v);
+  let d1 = 9, d2 = 9, id = 0, px = 0, py = 0;
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const cx = iu + dx, cy = iv + dy;
+    const sx = cx + 0.15 + 0.7 * hash2(cx, cy), sy = cy + 0.15 + 0.7 * hash2(cy + 17, cx + 31);
+    const d = Math.hypot(sx - u, sy - v);
+    if (d < d1) { d2 = d1; d1 = d; id = hash2(cx * 7, cy * 13); px = sx; py = sy; }
+    else if (d < d2) d2 = d;
+  }
+  return { d1, d2, id, px, py };
+}
+
+function stoneTop(N, wx, wy) {
+  const g = screenToGrid(wx, wy);
+  const c = cobble(g.gx * 3.2, g.gy * 3.2);
+  if (c.d2 - c.d1 < 0.1) return mul(STONE.mortar, 0.9 + 0.3 * N.noise(wx * 0.5, wy));
+  let col = mix(STONE.a, STONE.b, 0.2 + 0.6 * c.id);
+  col = mix(col, STONE.warm, 0.25 * N.noise(g.gx * 4, g.gy * 4));
+  // bolling: licht linksboven op elke steen
+  const lx = (g.gx * 3.2 - c.px) + (g.gy * 3.2 - c.py);
+  col = mul(col, 1.05 - 0.45 * c.d1 - 0.25 * lx + (N.noise(wx * 0.6, wy * 1.2) - 0.5) * 0.12);
+  // rand van de steen iets donkerder
+  return mul(col, smooth(0.1, 0.22, c.d2 - c.d1) * 0.25 + 0.75);
+}
+
+function stoneSide(N, wx, wy, depth, left) {
+  const t = depth / BD;
+  const course = Math.floor(depth / 10);
+  const cf = (depth % 10) / 10;
+  const brick = Math.floor((wx + course * 13) / 26);
+  const bf = frac((wx + course * 13) / 26);
+  let col = mix(STONE.a, STONE.b, 0.15 + 0.5 * hash2(brick, course));
+  col = mul(col, 0.85 + 0.25 * N.noise(wx * 0.3, depth * 0.3));
+  if (cf < 0.12 || bf < 0.05) col = STONE.mortar;
+  return mul(col, (left ? 0.95 : 0.6) * (1 - 0.3 * t));
+}
 
 export function grassAmount(N, wx, wy) {
   return smooth(0.42, 0.58, N.fbm(wx * 0.011, wy * 0.022, 4));
@@ -107,8 +194,15 @@ function decorateTop(ctx, s, N, rnd) {
   ctx.restore();
 }
 
-// Eén grondblok op positie (gx, gy)
-export function tileTexture(scene, key, gx, gy, N) {
+const KINDS = {
+  dirt:  { top: topColor, side: sideColor, jag: true },
+  plank: { top: plankTop, side: plankSide, jag: false },
+  stone: { top: stoneTop, side: stoneSide, jag: false },
+};
+
+// Eén blok op positie (gx, gy). kind: 'dirt', 'plank' of 'stone'.
+export function tileTexture(scene, key, gx, gy, N, kind = 'dirt') {
+  const K = KINDS[kind] || KINDS.dirt;
   const s = gridToScreen(gx, gy);
   const { w, h, cx, cy } = TILE_TEX;
   canvasTexture(scene, key, w, h, (ctx) => {
@@ -120,22 +214,23 @@ export function tileTexture(scene, key, gx, gy, N) {
         const wx = s.x + lx, wy = s.y + ly;
         let col = null;
         if (Math.abs(lx) / (TW / 2) + Math.abs(ly) / (TH / 2) <= 1 + 2.5 / (TH / 2)) {
-          col = topColor(N, wx, wy);
+          col = K.top(N, wx, wy);
         } else if (ly > 0 && Math.abs(lx) <= TW / 2 + 1) {
           const edge = lx < 0 ? (lx + TW / 2) * SLOPE : (TW / 2 - lx) * SLOPE;
           const depth = ly - edge;
-          const jag = (N.noise(wx * 0.15, 3.7) - 0.5) * 8 + (N.noise(wx * 0.6, 9.1) - 0.5) * 3;
-          if (depth > 0 && depth <= BD + jag) col = sideColor(N, wx, wy, depth, lx < 0);
+          const jag = K.jag ? (N.noise(wx * 0.15, 3.7) - 0.5) * 8 + (N.noise(wx * 0.6, 9.1) - 0.5) * 3 : 0;
+          if (depth > 0 && depth <= BD + jag) col = K.side(N, wx, wy, depth, lx < 0);
         }
         if (col) putPx(d, (py * w + px) * 4, col);
       }
     }
     ctx.putImageData(img, 0, 0);
-    decorateTop(ctx, s, N, mulberry32((gx * 73856093) ^ (gy * 19349663)));
+    if (kind === 'dirt') decorateTop(ctx, s, N, mulberry32((gx * 73856093) ^ (gy * 19349663)));
   });
 }
 
 // De rotsklomp onder het hele eiland, als één texture op halve resolutie.
+// Alleen aarde heeft een diepe klomp; gebouwde blokken hangen er dun onder.
 export function undersideTexture(scene, key, tiles, dist, N, rnd) {
   const R = 0.5;
   let minX = Infinity, maxX = -Infinity, minY = Infinity, sumX = 0;
@@ -146,7 +241,8 @@ export function undersideTexture(scene, key, tiles, dist, N, rnd) {
     minY = Math.min(minY, s.y);
     sumX += s.x;
     const d = dist.get(`${t.gx},${t.gy}`) || 1;
-    return { s, depth: 20 + (d - 1) * 60 + rnd() * 35 };
+    const r = hash2(t.gx + 1000, t.gy + 1000);
+    return { s, depth: (t.kind || 'dirt') === 'dirt' ? 20 + (d - 1) * 60 + r * 35 : 4 + r * 6 };
   });
   const centerX = sumX / tiles.length;
   const halfW = (maxX - minX) / 2;

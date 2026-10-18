@@ -107,7 +107,121 @@ function stardust(ctx) {
   star(46, 18, 4, 0.6);
 }
 
+// Klein isometrisch blokje voor bouwmateriaal
+function isoCube(ctx, top, left, right, detail) {
+  const c = { x: 32, y: 18 }, w = 22, h = 11, d = 20;
+  const T = [{ x: c.x, y: c.y }, { x: c.x + w, y: c.y + h }, { x: c.x, y: c.y + 2 * h }, { x: c.x - w, y: c.y + h }];
+  const L = [T[3], T[2], { x: T[2].x, y: T[2].y + d }, { x: T[3].x, y: T[3].y + d }];
+  const R = [T[2], T[1], { x: T[1].x, y: T[1].y + d }, { x: T[2].x, y: T[2].y + d }];
+  for (const [pts, col] of [[L, left], [R, right], [T, top]]) {
+    poly(ctx, pts);
+    ctx.fillStyle = col;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  }
+  detail?.(T, L, R);
+}
+
+function plankIcon(ctx) {
+  isoCube(ctx, '#7a5a3c', '#5a4029', '#3e2b1c', (T, L, R) => {
+    ctx.strokeStyle = 'rgba(20,12,6,0.7)';
+    ctx.lineWidth = 1;
+    for (const t of [0.25, 0.5, 0.75]) {
+      ctx.beginPath();
+      ctx.moveTo(T[0].x + (T[3].x - T[0].x) * t, T[0].y + (T[3].y - T[0].y) * t);
+      ctx.lineTo(T[1].x + (T[2].x - T[1].x) * t, T[1].y + (T[2].y - T[1].y) * t);
+      ctx.stroke();
+    }
+    for (const pts of [L, R]) {
+      ctx.beginPath();
+      ctx.moveTo((pts[0].x + pts[3].x) / 2, (pts[0].y + pts[3].y) / 2);
+      ctx.lineTo((pts[1].x + pts[2].x) / 2, (pts[1].y + pts[2].y) / 2);
+      ctx.stroke();
+    }
+  });
+}
+
+function stoneBlockIcon(ctx) {
+  isoCube(ctx, '#827a72', '#5c5650', '#423d39', (T) => {
+    ctx.strokeStyle = 'rgba(20,18,16,0.8)';
+    ctx.lineWidth = 1;
+    const m = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+    for (const [a, b] of [[m(T[0], T[3], 0.5), m(T[1], T[2], 0.5)], [m(T[0], T[1], 0.5), m(T[3], T[2], 0.5)]]) {
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+  });
+}
+
+function benchIcon(ctx) {
+  ctx.fillStyle = '#3e2b1c';
+  for (const x of [16, 44]) ctx.fillRect(x, 32, 5, 22);
+  poly(ctx, [{ x: 8, y: 24 }, { x: 56, y: 24 }, { x: 56, y: 33 }, { x: 8, y: 33 }]);
+  ctx.fillStyle = '#86643f';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.fillStyle = '#5a4029';
+  ctx.fillRect(8, 30, 48, 3);
+  // hamer erop
+  ctx.strokeStyle = '#6b4a2e';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(22, 21); ctx.lineTo(40, 12); ctx.stroke();
+  ctx.fillStyle = '#4a4950';
+  ctx.fillRect(36, 6, 10, 7);
+}
+
+function generatorIcon(ctx) {
+  isoCube(ctx, '#1b1719', '#5b5550', '#3e3a37', (T) => {
+    ctx.strokeStyle = 'rgba(155,107,255,0.95)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(T[0].x - 8, T[0].y + 6); ctx.lineTo(T[0].x + 8, T[0].y + 6); ctx.stroke();
+    poly(ctx, [{ x: 26, y: 26 }, { x: 38, y: 26 }, { x: 38, y: 34 }, { x: 26, y: 34 }]);
+    ctx.fillStyle = '#8f8780';
+    ctx.fill();
+  });
+}
+
+function toolIcon(ctx, kind, tier) {
+  // steel
+  ctx.strokeStyle = '#3a2618';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(18, 54); ctx.lineTo(42, 16); ctx.stroke();
+  ctx.strokeStyle = '#7a5434';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath(); ctx.moveTo(18, 54); ctx.lineTo(42, 16); ctx.stroke();
+  const head = tier === 2 ? ['#8f8780', '#5c5650'] : ['#8a6a46', '#5a4029'];
+  ctx.fillStyle = head[0];
+  ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+  ctx.lineWidth = 1.2;
+  if (kind === 'axe') {
+    poly(ctx, [{ x: 36, y: 12 }, { x: 52, y: 10 }, { x: 56, y: 26 }, { x: 44, y: 28 }, { x: 38, y: 22 }]);
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(22, 14);
+    ctx.quadraticCurveTo(40, 4, 58, 20);
+    ctx.lineTo(54, 22);
+    ctx.quadraticCurveTo(40, 12, 26, 20);
+    ctx.closePath();
+  }
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = head[1];
+  ctx.fillRect(38, 14, 6, 6);
+}
+
 export function generateIcons(scene) {
+  canvasTexture(scene, 'icon_vlonder', S, S, plankIcon);
+  canvasTexture(scene, 'icon_puinblok', S, S, stoneBlockIcon);
+  canvasTexture(scene, 'icon_werkbank', S, S, benchIcon);
+  canvasTexture(scene, 'icon_steengenerator', S, S, generatorIcon);
+  for (const kind of ['axe', 'pickaxe']) {
+    for (const tier of [1, 2]) canvasTexture(scene, `icon_${kind}${tier}`, S, S, (ctx) => toolIcon(ctx, kind, tier));
+  }
   canvasTexture(scene, 'icon_wrakhout', S, S, wood);
   canvasTexture(scene, 'icon_puin', S, S, rubble);
   canvasTexture(scene, 'icon_roest', S, S, rust);

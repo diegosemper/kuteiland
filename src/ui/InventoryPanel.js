@@ -1,14 +1,16 @@
-// Rugzak: overzicht van wat je bij je hebt. Wordt bij elke keer openen opnieuw opgebouwd.
+// Rugzak: wat je bij je hebt, je gereedschap, en wat je met de hand kunt maken.
 import { CONFIG } from '../config.js';
 import { TEXT } from '../texts.js';
 import { bus } from '../bus.js';
 import { COLORS, textStyle, makeButton } from './style.js';
-import { createPanel, itemRow } from './Panel.js';
+import { createPanel, itemRow, recipeRow } from './Panel.js';
+import { recipesAt, recipeName, recipeIcon, recipeState } from '../systems/Crafting.js';
 
 export class InventoryPanel {
-  constructor(scene, inventory) {
+  constructor(scene, game) {
     this.scene = scene;
-    this.inventory = inventory;
+    this.game = game;
+    this.inventory = game.inventory;
     this.container = null;
   }
 
@@ -20,20 +22,36 @@ export class InventoryPanel {
     if (this.isOpen) this.close(); else this.open();
   }
 
+  rebuild() {
+    if (!this.isOpen) return;
+    const old = this.container;
+    this.container = null;
+    this.open();
+    this.scene.time.delayedCall(0, () => old.destroy());
+  }
+
   open() {
     if (this.isOpen) return;
     const sc = this.scene;
     const S = sc.S;
+    const game = this.game;
     const owned = Object.keys(CONFIG.items).filter((k) => this.inventory.get(k) > 0);
-    const rows = Math.max(1, owned.length);
+    const tools = Object.keys(CONFIG.tools).filter((k) => game.tools[k] > 0);
+    const hand = recipesAt('hand');
+    const hasBench = game.countObjects('workbench') > 0;
 
-    const panel = createPanel(sc, {
-      title: TEXT.bagTitle,
-      height: rows * 40 * S + 230 * S,
-      onBackdrop: () => this.close(),
-    });
+    const height = Math.max(1, owned.length) * 40 * S
+      + (tools.length ? 36 * S + tools.length * 40 * S : 0)
+      + 36 * S + hand.length * 50 * S + (hasBench ? 0 : 24 * S)
+      + 150 * S;
+    const panel = createPanel(sc, { title: TEXT.bagTitle, height, onBackdrop: () => this.close() });
     const { c, px, py, pw, ph, pad } = panel;
     let y = panel.y;
+
+    const label = (text) => {
+      c.add(sc.add.text(px + pad, y, text, textStyle(S, 11, COLORS.dim, { fontStyle: '700', letterSpacing: 1.5 * S })));
+      y += 20 * S;
+    };
 
     if (!owned.length) {
       c.add(sc.add.text(px + pad, y + 8 * S, TEXT.bagEmpty, textStyle(S, 14, COLORS.dim, { wordWrap: { width: pw - pad * 2 } })));
@@ -41,16 +59,43 @@ export class InventoryPanel {
     }
     for (const k of owned) y += itemRow(sc, panel, k, this.inventory.get(k), y);
 
-    y += 14 * S;
-    c.add(sc.add.text(px + pad, y, TEXT.bagCraftHint, textStyle(S, 13, COLORS.dim, { wordWrap: { width: pw - pad * 2 } })));
+    if (tools.length) {
+      y += 16 * S;
+      label(TEXT.toolsTitle);
+      for (const k of tools) {
+        const tier = game.tools[k];
+        const cy = y + 16 * S;
+        c.add(sc.add.image(px + pad + 13 * S, cy, `icon_${k}${tier}`).setDisplaySize(28 * S, 28 * S));
+        c.add(sc.add.text(px + pad + 36 * S, cy, CONFIG.tools[k][tier], textStyle(S, 15)).setOrigin(0, 0.5));
+        y += 40 * S;
+      }
+    }
+
+    y += 16 * S;
+    label(TEXT.handTitle);
+    for (const r of hand) {
+      y += recipeRow(sc, panel, y, {
+        icon: recipeIcon(r),
+        name: recipeName(r),
+        cost: r.cost,
+        inventory: this.inventory,
+        state: recipeState(game, r),
+        onMake: () => { bus.emit('craft', r.id); this.rebuild(); },
+        makeButton,
+        labels: { make: TEXT.craftMake, owned: TEXT.craftOwned },
+      });
+    }
+    if (!hasBench) {
+      c.add(sc.add.text(px + pad, y + 4 * S, TEXT.moreAtBench, textStyle(S, 12, COLORS.dim)));
+    }
 
     const bw = (pw - pad * 3) / 2;
     const by = py + ph - pad - 22 * S;
     let confirmReset = false;
-    c.add(makeButton(sc, px + pad + bw / 2, by, bw, 44 * S, TEXT.reset, (label) => {
+    c.add(makeButton(sc, px + pad + bw / 2, by, bw, 44 * S, TEXT.reset, (lbl) => {
       if (!confirmReset) {
         confirmReset = true;
-        label.setText(TEXT.resetConfirm).setColor(COLORS.warn);
+        lbl.setText(TEXT.resetConfirm).setColor(COLORS.warn);
       } else {
         bus.emit('reset');
       }

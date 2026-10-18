@@ -51,7 +51,14 @@ export class Joystick {
     this.setActive(true);
   }
 
+  // Onzichtbaar (bv. tijdens bouwen) maar slepen blijft werken
+  setVisible(v) {
+    this.hidden = !v;
+    for (const o of [this.base, this.ring, this.thumb]) o.setVisible(v || this.pointerId !== null);
+  }
+
   setActive(active) {
+    if (this.hidden) for (const o of [this.base, this.ring, this.thumb]) o.setVisible(active);
     this.base.setFillStyle(0x000000, active ? 0.4 : 0.25);
     this.thumb.setFillStyle(COLORS.accent, active ? 0.5 : 0.28);
   }
