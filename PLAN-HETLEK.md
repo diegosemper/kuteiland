@@ -7,7 +7,7 @@ Elke fase wordt los gebouwd, getest en online gezet; daarna eerst zelf spelen.
 Vaste regels blijven: geen wachttimers (alles groeit door te spelen, niet door te wachten), Nederlandse droge humor,
 alle balansgetallen in `config.js`, soepel op een telefoon in portretstand.
 
-## Fase A: deel 2 van Het Lek (bronnen en bazen) ✅ deel 1 klaar (v15)
+## Fase A: deel 2 van Het Lek (bronnen en bazen) ✅ klaar (v16)
 - **Zwavelketel** (zwavel): minigame *Koken*, temperatuur in een zone houden terwijl er dingen in de ketel vallen.
 - **Sterrenantenne** (sterrenstof): minigame *Sterrenvangst*, vallende sterren vangen in een schaal die je draait.
 - **Zielenlantaarn** (zielenkristal): minigame *Arena* (stap 7 uit het minigameplan).
