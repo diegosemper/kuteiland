@@ -3,7 +3,11 @@ import { CONFIG } from '../config.js';
 import { TEXT } from '../texts.js';
 import { bus } from '../bus.js';
 import { gridToScreen, screenToGrid } from '../iso.js';
-import { ITEM_TO_OBJECT } from '../world/objects.js';
+import { ITEM_TO_OBJECT, itemForObject } from '../world/objects.js';
+
+// 'weg' is geen item maar de sloopstand van het bouwmenu
+export const REMOVE = 'weg';
+const KEEP = ['tree', 'chest', 'castaway', 'grave', 'note'];
 
 const { tileW: TW, tileH: TH } = CONFIG.iso;
 
@@ -45,8 +49,35 @@ export class BuildMode {
   open() {
     this.active = true;
     const list = this.placeables();
-    this.select(list.includes(this.item) ? this.item : list[0] || null);
-    if (!list.length) bus.emit('message', TEXT.buildNothing, true);
+    // niks om te bouwen? Dan meteen de weghaal-stand
+    this.select(list.includes(this.item) ? this.item : list[0] || REMOVE);
+  }
+
+  // Wat mag je weghalen (en terug in je rugzak stoppen)?
+  removable(o) {
+    const g = this.game;
+    if (KEEP.includes(o.type)) return false;
+    if (o.type === 'bed' && g.objects.some((r) => r.type === 'castaway' && r.bed[0] === o.gx && r.bed[1] === o.gy)) return false;
+    if ((o.type === 'kern' || o.type === 'altar') && g.boss?.alive) return false;
+    if (o.type === 'portal' && g.depth.active) return false;
+    return !!itemForObject(o);
+  }
+
+  removeAt(gx, gy) {
+    const g = this.game;
+    const o = g.objects.find((x) => x.gx === gx && x.gy === gy && this.removable(x));
+    if (!o) return false;
+    const item = itemForObject(o);
+    // een machine geeft eerst zijn voorraad af
+    if (o.type === 'machine' && o.stored) g.collectMachine(o);
+    g.removeObject(o);
+    g.inventory.add(item, 1);
+    bus.emit('sfx', 'place');
+    bus.emit('float', { wx: o.sprite.x, wy: o.topY ?? o.sprite.y - 60, text: `+1 ${CONFIG.items[item].name.toLowerCase()}`, color: '#e8d6b8' });
+    g.saveNow();
+    this.redraw();
+    this.emit();
+    return true;
   }
 
   close() {
@@ -68,6 +99,7 @@ export class BuildMode {
 
   computeSpots() {
     if (!this.active || !this.item) return [];
+    if (this.item === REMOVE) return this.game.objects.filter((o) => this.removable(o)).map((o) => ({ gx: o.gx, gy: o.gy }));
     const def = CONFIG.items[this.item];
     const { island, player, objects } = this.game;
     if (def.place === 'tile') return island.freeEdgeSpots().filter((s) => island.canAddTile(s.gx, s.gy, def.tile));
@@ -91,16 +123,17 @@ export class BuildMode {
         { x: s.x, y: s.y - TH / 2 }, { x: s.x + TW / 2, y: s.y },
         { x: s.x, y: s.y + TH / 2 }, { x: s.x - TW / 2, y: s.y },
       ];
-      g.fillStyle(0xe6dcf2, 0.1);
+      const col = this.item === REMOVE ? 0xe07a6a : 0xe6dcf2;
+      g.fillStyle(col, this.item === REMOVE ? 0.18 : 0.1);
       g.fillPoints(pts, true);
-      g.lineStyle(2, 0xe6dcf2, 0.6);
+      g.lineStyle(2, col, 0.6);
       g.strokePoints(pts, true);
     }
   }
 
   // Elke frame: plekken verschuiven als de speler loopt (voor objecten)
   update() {
-    if (!this.active || !this.item || CONFIG.items[this.item].place !== 'object') return;
+    if (!this.active || !this.item || CONFIG.items[this.item]?.place !== 'object') return;
     const key = this.spots.map((s) => `${s.gx},${s.gy}`).join();
     const next = this.computeSpots().map((s) => `${s.gx},${s.gy}`).join();
     if (key !== next) this.redraw();
@@ -112,6 +145,7 @@ export class BuildMode {
     const g = screenToGrid(wx, wy);
     const gx = Math.round(g.gx), gy = Math.round(g.gy);
     if (!this.spots.some((s) => s.gx === gx && s.gy === gy)) return false;
+    if (this.item === REMOVE) return this.removeAt(gx, gy);
     this.place(gx, gy);
     return true;
   }

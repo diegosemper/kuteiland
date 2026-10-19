@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 20,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 21,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
@@ -357,10 +357,11 @@ export const CONFIG = {
   // ---------- de nacht als spel ----------
   siege: {
     prepMs: 15000,            // bouwfase: de klok staat stil
-    waves: [2, 2],            // golven: 2 + 1 per 2 nachten
-    maxWaves: 6,
-    perWave: [3, 1],          // kruipers per golf: basis + per nacht (+1 per golf)
-    brutesFrom: 3,            // vanaf deze nacht ook brutes
+    waves: [1, 2],            // golven: 1 + 1 per 2 nachten
+    maxWaves: 5,
+    perWave: [2, 0.7],        // kruipers per golf: basis + per nacht (+1 per golf)
+    brutesFrom: 5,            // vanaf deze nacht ook brutes
+    healBetween: 0.4,         // tussen golven krijg je dit deel van je levens terug
     spreadMs: 5000,           // een golf kruipt binnen deze tijd omhoog
     breakMs: 3500,            // adempauze tussen golven
     // wat je in de bouwfase kunt neerzetten, betaald met grondstoffen (of gratis uit je rugzak)

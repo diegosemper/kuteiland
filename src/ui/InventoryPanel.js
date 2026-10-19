@@ -46,7 +46,7 @@ export class InventoryPanel {
       + (tools.length ? 36 * S + tools.length * 40 * S : 0)
       + 36 * S + hand.length * 50 * S + (hasBench ? 0 : 24 * S)
       + 210 * S;
-    const panel = createPanel(sc, { title: TEXT.bagTitle, height, onBackdrop: () => this.close(), footer: 140 });
+    const panel = createPanel(sc, { title: TEXT.bagTitle, height: height + 50 * S, onBackdrop: () => this.close(), footer: 190 });
     const { c, px, py, pw, ph, pad } = panel;
     const list = panel.list;
     let y = panel.y;
@@ -109,6 +109,12 @@ export class InventoryPanel {
       audio.setSfx(!audio.settings.sfx);
       lbl.setText(onOff(TEXT.soundSfx, audio.settings.sfx));
     }, 10));
+    // nachten: spannend (wezens) of rustig (niemand komt)
+    c.add(makeButton(sc, px + pw / 2, by - 104 * S, pw - pad * 2, 40 * S, `${TEXT.nightsToggle}: ${game.flags.peaceful ? TEXT.nightsCalm : TEXT.nightsWild}`, (lbl) => {
+      game.flags.peaceful = !game.flags.peaceful;
+      lbl.setText(`${TEXT.nightsToggle}: ${game.flags.peaceful ? TEXT.nightsCalm : TEXT.nightsWild}`);
+      game.saveNow();
+    }, 11));
     const voiceOn = () => audio.settings.voice !== false;
     c.add(makeButton(sc, px + pad * 3 + b3 * 2.5, by - 54 * S, b3, 40 * S, onOff(TEXT.voiceToggle, voiceOn()), (lbl) => {
       audio.settings.voice = !voiceOn();

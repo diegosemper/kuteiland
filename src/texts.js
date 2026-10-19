@@ -42,6 +42,18 @@ export const TEXT = {
   buildDone: 'KLAAR',
   buildNothing: 'Niks om te bouwen. Maak eerst iets bij de werkbank.',
   buildHint: 'Tik op een oplichtende plek.',
+  buildRemove: 'WEG-\nHALEN',
+  buildRemoveHint: 'Tik op iets roods om het weg te halen. Het gaat terug in je rugzak.',
+  nightsToggle: 'NACHTEN',
+  nightsWild: 'SPANNEND',
+  nightsCalm: 'RUSTIG',
+  peacefulNight: [
+    'Een rustige nacht. Niemand komt. Ze hebben het druk. Met iemand anders.',
+    'De nacht glijdt voorbij. Iets keek even. Het ging weer weg.',
+    'Stil. Verdacht stil. Maar goed, je slaapt toch.',
+  ],
+  faintTitle: 'Flauwgevallen.',
+  fainted: 'Je viel flauw. Ze hebben je laten liggen. Je spullen ook. De nacht is voorbij, alleen zonder beloning.',
   buildNoSpot: 'Daar niet.',
 
   // craften

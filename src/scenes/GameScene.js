@@ -779,6 +779,21 @@ export class GameScene extends Phaser.Scene {
   }
 
   die() {
+    // in de nacht: flauwvallen in plaats van doodgaan; je houdt je spullen
+    if (this.siege.fighting) {
+      this.dead = true;
+      this.autoTarget = null;
+      this.autoGrab = null;
+      const p = this.player;
+      this.tweens.add({ targets: p.sprite, alpha: 0, angle: p.sprite.flipX ? -80 : 80, duration: 600 });
+      this.siege.lose();
+      this.stats.faints = (this.stats.faints || 0) + 1;
+      bus.emit('player-died', { lost: '', lostOld: false, fainted: true });
+      bus.emit('sfx', 'death');
+      this.saveNow();
+      this.time.delayedCall(CONFIG.combat.respawnMs, () => this.respawn());
+      return;
+    }
     this.dead = true;
     if (this.depth.active) this.depth.stop('dood');
     this.autoTarget = null;

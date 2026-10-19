@@ -30,6 +30,14 @@ export class Siege {
   // ---------- begin van de nacht ----------
 
   startNight(n) {
+    // rustige nachten: niemand komt, de nacht glijdt voorbij
+    if (this.game.flags.peaceful) {
+      this.state = 'idle';
+      bus.emit('message', pick(TEXT.peacefulNight), true);
+      const D = CONFIG.dayNight;
+      this.game.time.delayedCall(2500, () => { this.game.dayNight.t = Math.max(this.game.dayNight.t, D.dayMs + D.nightMs - 1200); });
+      return;
+    }
     this.n = n;
     this.state = 'prep';
     this.prepLeft = C().prepMs;
@@ -47,6 +55,7 @@ export class Siege {
 
   // halverwege de nacht geladen: meteen vechten
   resume(n) {
+    if (this.game.flags.peaceful) { this.startNight(n); return; }
     this.n = n;
     this.waves = Math.min(C().maxWaves, C().waves[0] + Math.floor((n - 1) / C().waves[1]));
     this.wave = 0;
@@ -194,6 +203,18 @@ export class Siege {
     g.saveNow();
   }
 
+  // Flauwgevallen tijdens de nacht: geen spullen kwijt, maar ook geen beloning. Het wordt ochtend.
+  lose() {
+    const g = this.game;
+    this.state = 'idle';
+    this.queue = [];
+    for (const e of g.night.enemies) if (e.siege && e.alive) e.vanish(g.night.fx);
+    g.night.enemies = g.night.enemies.filter((e) => !e.siege);
+    bus.emit('siege', this.status());
+    const D = CONFIG.dayNight;
+    g.dayNight.t = Math.max(g.dayNight.t, D.dayMs + D.nightMs - 1200);
+  }
+
   // Hoeveel tijd mag de dag/nacht-klok deze frame verder? (bouwfase: niks; gevecht: niet voorbij de nacht)
   clockStep(dt) {
     if (this.prep) return 0;
@@ -221,6 +242,9 @@ export class Siege {
       if (!this.breakUntil) {
         this.breakUntil = time + C().breakMs;
         bus.emit('message', TEXT.siegeWaveCleared, true);
+        // even op adem komen
+        const g = this.game;
+        if (!g.dead) { g.hp = Math.min(g.maxHp, g.hp + g.maxHp * C().healBetween); bus.emit('hp', g.hp, g.maxHp); }
       } else if (time >= this.breakUntil) this.nextWave();
     }
     bus.emit('siege-tick', this.status());
