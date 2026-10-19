@@ -26,13 +26,15 @@ export class Crumble {
       scale: { min: 0.6, max: 1.4 },
       alpha: { start: 1, end: 0 },
     }).setDepth(-9000);
+    // staat afbrokkelen uit, dan ook geen oude barsten terughalen
+    if (C.enabled === false) return;
     for (const c of saved.cracks || []) {
       if (game.island.get(c.gx, c.gy)) this.startCrack(c.gx, c.gy, c.t, true);
     }
   }
 
   get active() {
-    return this.game.dayNight.day >= C.startDay;
+    return C.enabled !== false && this.game.dayNight.day >= C.startDay;
   }
 
   anchors() {

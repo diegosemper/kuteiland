@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 21,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 22,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
@@ -41,6 +41,7 @@ export const CONFIG = {
   // ---------- afbrokkelen en ankers ----------
 
   crumble: {
+    enabled: false,                 // afbrokkelen staat uit (de speler vond het niet leuk)
     startDay: 2,                    // vanaf deze dag brokkelen randen af
     intervalMs: [30000, 50000],     // tijd tussen twee nieuwe barsten
     nightFactor: 0.7,               // 's nachts sneller
@@ -227,7 +228,6 @@ export const CONFIG = {
 
   cycleMods: [
     { id: 'woest',  name: 'Woeste nachten',   text: '50% meer nachtwezens, +15% schade', mod: { 'enemy.count': 0.5, damage: 0.15 } },
-    { id: 'honger', name: 'Hongerige leegte', text: 'Randen brokkelen sneller af, ankers reiken verder', mod: { 'crumble.speed': 0.6, anchor: 0.25 } },
     { id: 'rijk',   name: 'Rijk wrak',        text: 'Veel meer drijvend wrak en buit', mod: { 'drift.rate': 0.6, 'drift.loot': 0.5 } },
     { id: 'gul',    name: 'Gulle bomen',      text: '+1 wrakhout per opbrengst, één hartje minder', mod: { 'yield.wrakhout': 1, hp: -2 } },
     { id: 'dun',    name: 'Dunne lucht',      text: 'Twee hartjes minder, +35% schade', mod: { hp: -4, damage: 0.35 } },
@@ -241,7 +241,6 @@ export const CONFIG = {
     bonuses: [
       { id: 'hakken', name: 'Zware armen',     text: '+20% hakkracht',            value: 0.2 },
       { id: 'delven', name: 'Stenen vuisten',  text: '+20% delfkracht',           value: 0.2 },
-      { id: 'anker',  name: 'Diepe wortels',   text: '+25% ankerbereik',          value: 0.25 },
       { id: 'hart',   name: 'Taai vel',        text: '+2 levens',                 value: 2 },
       { id: 'schade', name: 'Wrok',            text: '+20% wapenschade',          value: 0.2 },
       { id: 'buit',   name: 'Aaseter',         text: '+1 buit van drijvend wrak', value: 1 },
@@ -754,7 +753,7 @@ export const CONFIG = {
         { mod: { 'yield.zwavel': 0.5 }, text: '50% kans op extra zwavel' },
         { mod: { damage: 0.1 }, text: '+10% schade' },
         { mod: { 'yield.zwavel': 1 }, text: '+1 zwavel per opbrengst' },
-        { mod: { 'crumble.speed': -0.2 }, text: 'Randen brokkelen 20% trager af' },
+        { mod: { 'yield.zwavel': 0.75 }, text: '75% kans op extra zwavel' },
         { mod: { 'yield.zwavel': 1, 'yield.puin': 1 }, text: '+1 zwavel en puin per opbrengst' },
       ],
       zielenkristal: [
@@ -902,7 +901,6 @@ export const CONFIG = {
     { id: 'zwavelmijn',     at: 'werkbank', cost: { zwavel: 3, puin: 2 },            gives: { item: 'zwavelmijn', amount: 2 } },
     { id: 'wachttoren',     at: 'werkbank', cost: { wrakhout: 12, puin: 12, roest: 8 }, gives: { item: 'wachttoren', amount: 1 } },
     { id: 'kristallamp',    at: 'werkbank', cost: { roest: 2, leegtekristal: 3 },    gives: { item: 'kristallamp', amount: 1 } },
-    { id: 'anker',          at: 'werkbank', cost: { roest: 8, puin: 6 },             gives: { item: 'anker', amount: 1 } },
     { id: 'zwavelketel',    at: 'werkbank', cost: { puin: 20, roest: 12, wrakhout: 10 },          gives: { item: 'zwavelketel', amount: 1 } },
     { id: 'sterrenantenne', at: 'werkbank', cost: { roest: 20, leegtekristal: 10, puin: 10 },     gives: { item: 'sterrenantenne', amount: 1 } },
     { id: 'zielenlantaarn', at: 'werkbank', cost: { leegtekristal: 20, sterrenstof: 10, zwavel: 10 }, gives: { item: 'zielenlantaarn', amount: 1 } },
