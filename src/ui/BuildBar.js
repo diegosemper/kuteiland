@@ -15,6 +15,9 @@ export class BuildBar {
 
     // vegen en tikken op de strook
     const S = scene.S;
+    scene.input.on('wheel', (p, objs, dx, dy) => {
+      if (this.active && this.strip) this.setScroll(this.scrollX + (dx || dy));
+    });
     scene.input.on('pointerdown', (p) => {
       if (!this.active || !this.strip || !this.inStrip(p)) return;
       this.drag = { x: p.x, start: this.scrollX, moved: false };
@@ -26,6 +29,14 @@ export class BuildBar {
       if (this.drag.moved) this.setScroll(this.drag.start - dx);
     });
     scene.input.on('pointerup', (p) => {
+      // pijlknoppen: een stuk opschuiven
+      const a = this.arrowHit(p);
+      if (a && this.active) {
+        this.drag = null;
+        const v = this.view;
+        this.setScroll(this.scrollX + a * (v.right - v.left) * 0.75);
+        return;
+      }
       const d = this.drag;
       this.drag = null;
       if (!d || d.moved || !this.active) return;
@@ -39,6 +50,15 @@ export class BuildBar {
     return this.state.active;
   }
 
+  // -1 = linkerpijl, 1 = rechterpijl, 0 = geen
+  arrowHit(p) {
+    const v = this.view;
+    if (!v || Math.abs(p.y - v.y) > v.h / 2) return 0;
+    if (p.x >= v.left - v.arrowW && p.x < v.left) return -1;
+    if (p.x > v.right && p.x <= v.right + v.arrowW) return 1;
+    return 0;
+  }
+
   inStrip(p) {
     const v = this.view;
     return v && p.x >= v.left && p.x <= v.right && Math.abs(p.y - v.y) <= v.h / 2;
@@ -49,8 +69,8 @@ export class BuildBar {
     if (!v) return;
     this.scrollX = Math.max(0, Math.min(x, Math.max(0, v.content - (v.right - v.left))));
     this.strip.x = -this.scrollX;
-    this.arrows?.left.setVisible(this.scrollX > 2);
-    this.arrows?.right.setVisible(this.scrollX < v.content - (v.right - v.left) - 2);
+    this.arrows?.left.setAlpha(this.scrollX > 2 ? 1 : 0.25);
+    this.arrows?.right.setAlpha(this.scrollX < v.content - (v.right - v.left) - 2 ? 1 : 0.25);
   }
 
   update(state) {
@@ -92,11 +112,13 @@ export class BuildBar {
     c.add(makeButton(sc, doneX, y, bw, 48 * S, TEXT.buildDone, () => bus.emit('build-close'), 13));
 
     // de strook met keuzes; de eerste is altijd 'weghalen'
-    const left = 24 * S;
-    const right = doneX - bw / 2 - 10 * S;
-    const slot = 64 * S;
+    // ruimte voor pijlknoppen aan beide kanten van de strook
+    const arrowW = 28 * S;
+    const left = 20 * S + arrowW;
+    const right = doneX - bw / 2 - 8 * S - arrowW;
+    const slot = 54 * S;
     const strip = sc.add.container(0, 0);
-    let x = left + slot / 2 + 6 * S;
+    let x = left + slot / 2 + 4 * S;
     const keys = ['weg', ...this.state.options];
     for (const key of keys) {
       const selected = key === this.state.item;
@@ -109,13 +131,13 @@ export class BuildBar {
           fill: selected ? 0x2a1f3a : 0x1a1323, alpha: 0.95, edgeAlpha: selected ? 0.9 : 0.25, radius: 12,
         });
         box.setPosition(x, y);
-        const icon = sc.add.image(x, y - 6 * S, `icon_${key}`).setDisplaySize(40 * S, 40 * S);
+        const icon = sc.add.image(x, y - 5 * S, `icon_${key}`).setDisplaySize(34 * S, 34 * S);
         const count = shade(sc.add.text(x + slot / 2 - 6 * S, y + slot / 2 - 4 * S, String(sc.inventory.get(key)),
           textStyle(S, 13, COLORS.text, { fontStyle: '700' })).setOrigin(1, 1), S);
         strip.add([box, icon, count]);
       }
       this.slots.push({ key, x, w: slot });
-      x += slot + 10 * S;
+      x += slot + 6 * S;
     }
     const content = x - left - 4 * S;
     // alleen zichtbaar binnen de strook
@@ -124,14 +146,19 @@ export class BuildBar {
     strip.setMask(maskG.createGeometryMask());
     c.add(strip);
     this.strip = strip;
-    this.view = { left, right, y, h: barH, content };
+    this.view = { left, right, y, h: barH, content, arrowW };
 
-    // pijltjes als er meer is dan je ziet
-    const arrowStyle = textStyle(S, 16, COLORS.text, { fontStyle: '900' });
-    this.arrows = {
-      left: shade(sc.add.text(left + 2 * S, y, '◂', arrowStyle).setOrigin(0, 0.5), S),
-      right: shade(sc.add.text(right - 2 * S, y, '▸', arrowStyle).setOrigin(1, 0.5), S),
+    // pijlknoppen: tik om de strook op te schuiven (vegen kan ook)
+    const scrollable = content > right - left;
+    const arrowStyle = textStyle(S, 22, COLORS.text, { fontStyle: '900' });
+    const mk = (x, ch) => {
+      const g = sc.add.container(x, y);
+      g.add(roundedBox(sc, arrowW - 4 * S, 64 * S, { fill: 0x2a1f3a, alpha: 0.95, edgeAlpha: 0.5, radius: 10 }));
+      g.add(shade(sc.add.text(0, 0, ch, arrowStyle).setOrigin(0.5), S));
+      g.setVisible(scrollable);
+      return g;
     };
+    this.arrows = { left: mk(left - arrowW / 2, '◀'), right: mk(right + arrowW / 2, '▶') };
     c.add([this.arrows.left, this.arrows.right]);
     this.setScroll(this.scrollX);
 
