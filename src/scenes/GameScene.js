@@ -29,6 +29,7 @@ import { toolPerks } from '../systems/Perks.js';
 import { Siege } from '../systems/Siege.js';
 import { Voice } from '../systems/Voice.js';
 import { Pet, petPerks, petLevel } from '../world/Pet.js';
+import { IslandLevel } from '../systems/IslandLevel.js';
 import { loadGame, saveGame, clearSave } from '../systems/save.js';
 
 const AUTO_WALK_MS = 4000;
@@ -123,6 +124,7 @@ export class GameScene extends Phaser.Scene {
     this.night = new Night(this);
     this.siege = new Siege(this);
     this.voice = new Voice(this);
+    this.islandLevel = new IslandLevel(this);
     this.pet = this.flags.pet ? new Pet(this, this.flags.pet) : null;
     this.nextResidentCheck = 0;
     // halverwege de nacht geladen: meteen weer vechten
@@ -158,6 +160,10 @@ export class GameScene extends Phaser.Scene {
       'machine-upgrade': (m) => this.upgradeMachine(m),
       'gear-upgrade': (slot) => this.upgradeGear(slot),
       'castaway-job': (r) => this.changeJob(r),
+      'siege-won': (n) => this.islandXp('night', CONFIG.islandLevel.xp.nightPer * n),
+      'skill-up': () => this.islandXp('skillUp'),
+      'objective': (o) => { if (o?.advanced) this.islandXp('objective'); },
+      'discovery': () => this.islandXp('discovery'),
       'pet-feed': (item) => this.feedPet(item),
     };
     for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
@@ -529,6 +535,11 @@ export class GameScene extends Phaser.Scene {
     if (result.message) bus.emit('message', result.message, true);
   }
 
+  // xp voor het eilandniveau (extra = bovenop het vaste bedrag)
+  islandXp(why, extra = 0) {
+    this.islandLevel.gain((CONFIG.islandLevel.xp[why] || 0) + extra, why);
+  }
+
   // Grondstof erbij (uit een minigame): inventaris, collectie en statistieken
   gainItem(item, amount) {
     if (!amount) return;
@@ -578,8 +589,17 @@ export class GameScene extends Phaser.Scene {
       id, item, rate, per, tool, tier, perks: toolPerks(tool, tier), toolMult: this.upgradeMult(tool),
       skill, art, name: name || M.name[id], effects, discoveries: found, fresh,
       pet: this.pet ? petPerks(this.pet.level) : {},
+      ...this.islandBonus(id),
       canRescue: this.countObjects('castaway') + (this.stats.castawaysWaiting || 0) < CONFIG.castaways.max,
     };
+  }
+
+  // Eilandniveau: misschien een speciale ronde, plus blijvende extra buit en levens
+  islandBonus(id) {
+    const p = this.islandLevel.perks;
+    const sp = CONFIG.islandLevel.specials[id];
+    const special = sp && Math.random() < p.specialChance ? { ...sp, mult: p.specialMult } : null;
+    return { special, islandYield: p.yield, islandLives: p.lives };
   }
 
   // Welke ontdekkingen gelden voor deze bron? (tegels of objecten direct ernaast)
@@ -657,6 +677,8 @@ export class GameScene extends Phaser.Scene {
       if (this.minigame) this.minigame.gained[item] = (this.minigame.gained[item] || 0) + n;
     }
     if (res.xp) this.skills.gain(spec.skill, res.xp * CONFIG.skills[spec.skill].xp);
+    const X = CONFIG.islandLevel.xp;
+    this.islandXp('minigame', Math.min(X.minigameMax, Math.round((res.score || 0) / X.scoreDiv)));
     // bewoners werken mee
     for (const o of this.objects) {
       if (o.type !== 'castaway') continue;
@@ -939,6 +961,7 @@ export class GameScene extends Phaser.Scene {
       bus.emit('message', TEXT.heartDrop, true);
     }
     this.skills.gain('vechten', 80);
+    this.islandXp('guardian');
     if (first) bus.emit('message', `${TEXT.sealGained} ${this.sealCount}/${CONFIG.kernSeals}.`, true);
     this.objectives.check();
     this.saveNow();
@@ -998,6 +1021,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.flash(900, 220, 200, 255);
     for (const [k, n] of Object.entries(CONFIG.boss.reward)) { this.inventory.add(k, n); this.collect(k, n); }
     this.skills.gain('vechten', 200);
+    this.islandXp('hoeder');
     this.saveNow();
     this.time.delayedCall(1800, () => {
       bus.emit('open-story', { title: TEXT.notes[5].title, text: TEXT.notes[5].text, after: 'prestige' });
@@ -1045,6 +1069,7 @@ export class GameScene extends Phaser.Scene {
       residents.push(r);
       waiting--;
       bus.emit('message', `${name} ${TEXT.newResident} ${C.jobs[job].name.toLowerCase()}.`, true);
+      this.islandXp('resident');
       bus.emit('sfx', 'levelUp');
     }
     this.stats.castawaysWaiting = waiting;
@@ -1093,6 +1118,7 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: s, scaleY: { from: base * 1.2, to: base }, duration: 200, ease: 'Back.easeOut' });
     if (after > before) {
       this.pet.applyLook();
+      this.islandXp('petLevel');
       bus.emit('sfx', 'levelUp');
       bus.emit('message', `${data.name} ${TEXT.petUp} ${after}. ${P.perks[after]?.short || ''}`, true);
       this.objectives.check();
@@ -1188,6 +1214,7 @@ export class GameScene extends Phaser.Scene {
   onCraft(id) {
     const r = craft(this, id);
     if (!r) return;
+    this.islandXp('craft');
     bus.emit('sfx', 'craft');
     const B = CONFIG.skills.bouwen;
     this.skills.gain('bouwen', B.xpCraft);
@@ -1203,6 +1230,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   onPlaced(info) {
+    this.islandXp('place');
     if (info.item === 'bed') this.time.delayedCall(400, () => this.checkResidents());
     bus.emit('sfx', 'place');
     const B = CONFIG.skills.bouwen;

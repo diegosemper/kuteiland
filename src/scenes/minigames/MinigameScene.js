@@ -15,7 +15,8 @@ export class MinigameScene extends Phaser.Scene {
   init(data) {
     this.gs = data.gs;          // de GameScene
     this.spec = data.spec;      // { id, item, rate, skill, tool, art, name }
-    this.cfg = CONFIG.minigames[this.mgId] || {};
+    // speciale ronde: andere instellingen voor deze ene ronde
+    this.cfg = { ...(CONFIG.minigames[this.mgId] || {}), ...(this.spec.special?.cfg || {}) };
     this.started = false;
     this.ended = false;
   }
@@ -26,7 +27,7 @@ export class MinigameScene extends Phaser.Scene {
 
   // extra levens van het leegtebeest
   get petLives() {
-    return this.spec.pet?.lives || 0;
+    return (this.spec.pet?.lives || 0) + (this.spec.islandLives || 0);
   }
 
   get maxLives() {
@@ -91,7 +92,9 @@ export class MinigameScene extends Phaser.Scene {
   makeHud({ lives = 0 } = {}) {
     const { S, W } = this;
     const top = this.safe.top + 14 * S;
-    this.hudTitle = shade(this.add.text(16 * S, top, this.title, textStyle(S, 13, COLORS.dim, { fontStyle: '700' })), S).setDepth(50);
+    const special = this.spec.special;
+    this.hudTitle = shade(this.add.text(16 * S, top, special ? `★ ${special.name.toUpperCase()}` : this.title,
+      textStyle(S, 13, special ? '#ffd98a' : COLORS.dim, { fontStyle: '700' })), S).setDepth(50);
     this.scoreText = shade(this.add.text(W / 2, top + 16 * S, '0', textStyle(S, 40, COLORS.text, { fontStyle: '800' })).setOrigin(0.5, 0), S).setDepth(50);
     this.comboText = shade(this.add.text(W / 2, top + 66 * S, '', textStyle(S, 15, '#ffd98a', { fontStyle: '700' })).setOrigin(0.5, 0), S).setDepth(50);
     this.hearts = [];
@@ -193,6 +196,13 @@ export class MinigameScene extends Phaser.Scene {
         })).setOrigin(0.5, 0), 18]);
       } else parts[parts.length - 1][1] = 18;
     }
+    if (this.spec.special) {
+      const sp = this.spec.special;
+      const t = shade(this.add.text(W / 2, 0, `★ ${TEXT.specialRound}: ${sp.name.toUpperCase()} ★\n${sp.text} · ${sp.mult}${TEXT.specialMore}`,
+        textStyle(S, 13, '#ffd98a', { align: 'center', fontStyle: '800', wordWrap: { width: pw - 30 * S } })).setOrigin(0.5, 0), S);
+      this.tweens.add({ targets: t, scale: { from: 1, to: 1.06 }, duration: 600, yoyo: true, repeat: -1 });
+      parts.push([t, 14]);
+    }
     for (const d of this.spec.discoveries || []) {
       const fresh = (this.spec.fresh || []).includes(d);
       parts.push([this.add.text(W / 2, 0, `${fresh ? TEXT.discoveryNew : '◆'} ${d.name}: ${d.text}`, textStyle(S, 12, fresh ? '#ffd98a' : '#d9c2ff', {
@@ -242,9 +252,10 @@ export class MinigameScene extends Phaser.Scene {
     this.ended = true;
     this.sfx('craft');
     const res = this.reward();
-    // het leegtebeest graait mee
-    const more = this.spec.pet?.yield || 0;
-    if (more) for (const k of Object.keys(res.items)) res.items[k] = Math.round(res.items[k] * (1 + more));
+    // het leegtebeest en het eilandniveau graaien mee; een speciale ronde vermenigvuldigt
+    const more = (this.spec.pet?.yield || 0) + (this.spec.islandYield || 0);
+    const mult = (1 + more) * (this.spec.special?.mult || 1);
+    if (mult !== 1) for (const k of Object.keys(res.items)) res.items[k] = Math.round(res.items[k] * mult);
     const best = this.gs.stats.highscores?.[this.scoreKey] || 0;
     const record = res.score > best && res.score > 0;
     res.good = res.score >= best * 0.6;

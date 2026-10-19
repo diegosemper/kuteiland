@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 26,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 27,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
@@ -302,6 +302,43 @@ export const CONFIG = {
     tower:  { hp: 30, radius: 0.36, range: 3.6, damage: 2, cooldownMs: 1500, light: 1.2 },
     spikes: { charges: 12, range: 0.5, damage: 3, everyMs: 700 },    // spijkerval: prikt wat erop staat
     mine:   { trigger: 0.45, blast: 1.6, damage: 30 },               // zwavelmijn: ontploft één keer
+  },
+
+  // ---------- eilandniveau ----------
+  // Eén balk voor alles. xp nodig voor niveau n -> n+1: base + grow * (n-1)^exp
+  islandLevel: {
+    base: 60, grow: 38, exp: 1.35, max: 60,
+    xp: {
+      minigame: 10,           // per ronde, plus score / scoreDiv (max minigameMax)
+      scoreDiv: 8,
+      minigameMax: 40,
+      craft: 4, place: 2, discovery: 40, resident: 40, petLevel: 15,
+      night: 30, nightPer: 5, guardian: 80, hoeder: 200, objective: 20, skillUp: 5,
+    },
+    // blijvende beloningen op bepaalde niveaus (elk niveau geeft ook een grondstoffenpakket)
+    milestones: {
+      3: { specialChance: 0.2, text: 'Speciale rondes: af en toe een minigame met een twist en dubbele buit' },
+      5: { yield: 0.1, text: '+10% buit uit alle minigames' },
+      7: { lives: 1, text: '+1 leven in alle minigames' },
+      10: { specialChance: 0.3, text: 'Speciale rondes komen vaker (30%)' },
+      13: { yield: 0.1, text: 'Nog eens +10% buit uit minigames' },
+      16: { specialMult: 3, text: 'Speciale rondes geven driedubbele buit' },
+      20: { lives: 1, text: 'Nog een extra leven in alle minigames' },
+      25: { yield: 0.15, text: '+15% buit uit minigames' },
+      30: { specialChance: 0.4, text: 'Speciale rondes nog vaker (40%)' },
+      40: { yield: 0.2, text: '+20% buit uit minigames' },
+      50: { specialMult: 4, text: 'Speciale rondes geven vier keer zoveel' },
+    },
+    // speciale rondes: andere instellingen voor één ronde, en meer buit
+    specials: {
+      hakken:        { name: 'Gouden stam',  text: 'snellere pijl', cfg: { speed: 0.85, speedPerCombo: 0.07 } },
+      delven:        { name: 'Goudader',     text: 'veel meer aders, maar ook meer barsten', cfg: { ore: 0.26, unstable: 0.12 } },
+      grijphaak:     { name: 'Storm',        text: 'wrakken razen in drommen voorbij', cfg: { spawnMs: [380, 700] } },
+      afdaling:      { name: 'Kristalregen', text: 'overal kristallen, je valt sneller', cfg: { crystal: 0.9, fallSpeed: 0.42 } },
+      koken:         { name: 'Hete ketel',   text: 'kleinere zone, sneller brouwen', cfg: { zone: 0.15, brewMs: 1700 } },
+      sterrenvangst: { name: 'Sterrenregen', text: 'sterren in stromen, meer goud', cfg: { spawnMs: [380, 620], gold: 0.22 } },
+      arena:         { name: 'Bloedmaan',    text: 'veel grotere golven', cfg: { perWave: [5, 3] } },
+    },
   },
 
   // ---------- bewoners ----------

@@ -1,7 +1,7 @@
 // Service worker: zorgt dat het spel installeerbaar is en offline blijft werken.
 // Strategie: eerst het netwerk (zodat updates meteen binnenkomen), bij geen verbinding de cache.
 // Verhoog CACHE bij grote wijzigingen om oude bestanden op te ruimen.
-const CACHE = 'kuteiland-v26';
+const CACHE = 'kuteiland-v27';
 
 const CORE = [
   './',
@@ -51,6 +51,7 @@ const CORE = [
   './src/systems/Depth.js',
   './src/systems/Drift.js',
   './src/systems/Inventory.js',
+  './src/systems/IslandLevel.js',
   './src/systems/Meta.js',
   './src/systems/Mods.js',
   './src/systems/Night.js',
@@ -73,6 +74,7 @@ const CORE = [
   './src/ui/DeathScreen.js',
   './src/ui/HeartsHud.js',
   './src/ui/InventoryPanel.js',
+  './src/ui/IslandHud.js',
   './src/ui/Joystick.js',
   './src/ui/MachinePanel.js',
   './src/ui/MapPanel.js',

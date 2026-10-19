@@ -28,6 +28,7 @@ import { AnvilPanel } from '../ui/AnvilPanel.js';
 import { SiegeHud } from '../ui/SiegeHud.js';
 import { VoiceHud } from '../ui/VoiceHud.js';
 import { CastawayPanel, PetPanel } from '../ui/ResidentPanels.js';
+import { IslandHud, IslandPanel } from '../ui/IslandHud.js';
 import { recipeName } from '../systems/Crafting.js';
 import { COLORS, textStyle, makeButton, roundedBox, shade } from '../ui/style.js';
 import { pick } from '../texts.js';
@@ -74,6 +75,8 @@ export class UIScene extends Phaser.Scene {
     this.voiceHud = new VoiceHud(this);
     this.castawayPanel = new CastawayPanel(this, game);
     this.petPanel = new PetPanel(this, game);
+    this.islandHud = new IslandHud(this, game);
+    this.islandPanel = new IslandPanel(this, game);
     this.mapButton = this.makeRoundButton(TEXT.mapButton, () => this.openPanel(this.mapPanel));
     this.mapButton.setVisible(!!CONFIG.remoteIslands);
     this.xpBar = new SkillXpBar(this);
@@ -136,6 +139,8 @@ export class UIScene extends Phaser.Scene {
       'voice': (line) => this.voiceHud.show(line),
       'open-castaway': (r) => { this.castawayPanel.resident = r; this.openPanel(this.castawayPanel); },
       'open-pet': () => this.openPanel(this.petPanel),
+      'island-xp': (e) => this.islandHud.gained(e),
+      'island-level': (e) => this.islandHud.levelUp(e),
       'siege-tick': (st) => this.siegeHud.tick(st),
     };
     for (const [ev, fn] of Object.entries(handlers)) bus.on(ev, fn);
@@ -186,7 +191,7 @@ export class UIScene extends Phaser.Scene {
 
   panels() {
     return [this.panel, this.chestPanel, this.craftPanel, this.skillsPanel, this.anchorPanel,
-      this.storyPanel, this.mapPanel, this.prestigePanel, this.machinePanel, this.anvilPanel, this.castawayPanel, this.petPanel];
+      this.storyPanel, this.mapPanel, this.prestigePanel, this.machinePanel, this.anvilPanel, this.castawayPanel, this.petPanel, this.islandPanel];
   }
 
   closeAll() {
@@ -201,6 +206,7 @@ export class UIScene extends Phaser.Scene {
     this.anvilPanel.close();
     this.castawayPanel.close();
     this.petPanel.close();
+    this.islandPanel.close();
   }
 
   openPanel(p) {
@@ -226,6 +232,7 @@ export class UIScene extends Phaser.Scene {
     this.clock.layout(w, h, this.safe);
     this.siegeHud.layout(w, h, this.safe);
     this.voiceHud.layout(w, h, this.safe);
+    this.islandHud.layout(w, h, this.safe);
     // bouwknop schuin boven de actieknop
     const ax = this.action.circle.x, ay = this.action.circle.y;
     this.buildButton.setPosition(ax - this.action.R * 1.05, ay - this.action.R * 1.75);
