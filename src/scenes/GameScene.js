@@ -1085,8 +1085,12 @@ export class GameScene extends Phaser.Scene {
     data.xp += P.foodXp[item] * P.feedAmount * (item === data.fav ? P.favMult : 1);
     const after = petLevel(data.xp);
     bus.emit('sfx', 'pickup');
+    // sprongetje, altijd terug naar de vaste grootte (ook als je snel achter elkaar voert)
     const s = this.pet.sprite;
-    this.tweens.add({ targets: s, scaleY: s.scaleY * 1.2, duration: 120, yoyo: true });
+    this.tweens.killTweensOf(s);
+    this.pet.applyLook();
+    const base = s.scaleX;
+    this.tweens.add({ targets: s, scaleY: { from: base * 1.2, to: base }, duration: 200, ease: 'Back.easeOut' });
     if (after > before) {
       this.pet.applyLook();
       bus.emit('sfx', 'levelUp');
