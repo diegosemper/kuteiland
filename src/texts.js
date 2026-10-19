@@ -43,7 +43,7 @@ export const TEXT = {
   buildNothing: 'Niks om te bouwen. Maak eerst iets bij de werkbank.',
   buildHint: 'Tik op een oplichtende plek.',
   buildRemove: 'WEG-\nHALEN',
-  buildRemoveHint: 'Tik op iets roods om het weg te halen. Het gaat terug in je rugzak.',
+  buildRemoveHint: 'Tik op iets roods (voorwerp) of oranjes (blok) om het weg te halen. Het gaat terug in je rugzak.',
   nightsToggle: 'NACHTEN',
   nightsWild: 'SPANNEND',
   nightsCalm: 'RUSTIG',

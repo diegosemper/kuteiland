@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 22,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 23,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
@@ -39,6 +39,10 @@ export const CONFIG = {
   },
 
   // ---------- afbrokkelen en ankers ----------
+
+  build: {
+    minTiles: 6,                    // kleiner kan je eiland niet worden door blokken weg te halen
+  },
 
   crumble: {
     enabled: false,                 // afbrokkelen staat uit (de speler vond het niet leuk)

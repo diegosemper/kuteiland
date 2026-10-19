@@ -63,10 +63,52 @@ export class BuildMode {
     return !!itemForObject(o);
   }
 
+  // Welk item hoort bij een blok? (gras en aarde van het begin geven niks terug)
+  tileItem(kind) {
+    return Object.keys(CONFIG.items).find((k) => CONFIG.items[k].place === 'tile' && CONFIG.items[k].tile === kind) || null;
+  }
+
+  // Mag dit blok weg? Niet onder iets, niet onder jou, en het eiland moet één geheel blijven.
+  removableTile(t) {
+    const g = this.game;
+    const home = g.island.home;
+    if (!home.get(t.gx, t.gy) || home.size <= CONFIG.build.minTiles) return false;
+    if (g.objects.some((o) => o.type !== 'castaway' && o.gx === t.gx && o.gy === t.gy)) return false;
+    if (Math.round(g.player.gx) === t.gx && Math.round(g.player.gy) === t.gy) return false;
+    return home.staysConnected(t.gx, t.gy);
+  }
+
+  removeTileAt(gx, gy) {
+    const g = this.game;
+    const t = g.island.home.get(gx, gy);
+    if (!t || !this.removableTile(t)) return false;
+    const item = this.tileItem(t.kind);
+    const s = gridToScreen(gx, gy);
+    g.island.removeTile(gx, gy);
+    g.island.puff.explode(14, s.x, s.y);
+    bus.emit('sfx', 'place');
+    if (item) {
+      g.inventory.add(item, 1);
+      bus.emit('float', { wx: s.x, wy: s.y - 40, text: `+1 ${CONFIG.items[item].name.toLowerCase()}`, color: '#e8d6b8' });
+    }
+    // bewoners die daar stonden, gaan terug naar hun bed
+    for (const o of g.objects) {
+      if (o.type === 'castaway' && Math.round(o.gx) === gx && Math.round(o.gy) === gy) {
+        [o.gx, o.gy] = o.bed;
+        o.goal = null;
+        o.sync();
+      }
+    }
+    g.saveNow();
+    this.redraw();
+    this.emit();
+    return true;
+  }
+
   removeAt(gx, gy) {
     const g = this.game;
     const o = g.objects.find((x) => x.gx === gx && x.gy === gy && this.removable(x));
-    if (!o) return false;
+    if (!o) return this.removeTileAt(gx, gy);
     const item = itemForObject(o);
     // een machine geeft eerst zijn voorraad af
     if (o.type === 'machine' && o.stored) g.collectMachine(o);
@@ -99,7 +141,11 @@ export class BuildMode {
 
   computeSpots() {
     if (!this.active || !this.item) return [];
-    if (this.item === REMOVE) return this.game.objects.filter((o) => this.removable(o)).map((o) => ({ gx: o.gx, gy: o.gy }));
+    if (this.item === REMOVE) {
+      const objs = this.game.objects.filter((o) => this.removable(o)).map((o) => ({ gx: o.gx, gy: o.gy }));
+      const tiles = this.game.island.home.sortedTiles().filter((t) => this.removableTile(t)).map((t) => ({ gx: t.gx, gy: t.gy, tile: true }));
+      return [...objs, ...tiles];
+    }
     const def = CONFIG.items[this.item];
     const { island, player, objects } = this.game;
     if (def.place === 'tile') return island.freeEdgeSpots().filter((s) => island.canAddTile(s.gx, s.gy, def.tile));
@@ -123,7 +169,7 @@ export class BuildMode {
         { x: s.x, y: s.y - TH / 2 }, { x: s.x + TW / 2, y: s.y },
         { x: s.x, y: s.y + TH / 2 }, { x: s.x - TW / 2, y: s.y },
       ];
-      const col = this.item === REMOVE ? 0xe07a6a : 0xe6dcf2;
+      const col = this.item === REMOVE ? (sp.tile ? 0xffb070 : 0xe07a6a) : 0xe6dcf2;
       g.fillStyle(col, this.item === REMOVE ? 0.18 : 0.1);
       g.fillPoints(pts, true);
       g.lineStyle(2, col, 0.6);
