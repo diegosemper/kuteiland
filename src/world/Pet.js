@@ -59,9 +59,10 @@ export class Pet {
     return new Phaser.Geom.Rectangle(this.sprite.x - w / 2, this.sprite.y - h + 10, w, h);
   }
 
+  // ander uiterlijk per groeistadium, maar altijd even groot
   applyLook() {
     this.sprite.setTexture(this.textureKey);
-    this.sprite.setScale(1 + (this.level - 1) * 0.06);
+    this.sprite.setScale(CONFIG.pet.height / this.sprite.height);
   }
 
   sync() {

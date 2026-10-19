@@ -87,7 +87,8 @@ export class PetPanel extends BasePanel {
     const list = panel.list;
     let y = panel.y;
     const key = level >= 8 ? 'pet_l' : level >= 4 ? 'pet_m' : 'pet_s';
-    list.add(sc.add.image(px + pad + 30 * S, y + 28 * S, key).setScale(S * 0.9));
+    const petImg = sc.add.image(px + pad + 30 * S, y + 28 * S, key);
+    list.add(petImg.setScale((44 * S) / petImg.height));
     list.add(sc.add.text(px + pad + 74 * S, y + 4 * S, `${TEXT.petLevel} ${level}`, textStyle(S, 18, COLORS.text, { fontStyle: '800' })));
     // xp-balk
     const cur = P.xpFor[level] || 0, next = P.xpFor[level + 1];

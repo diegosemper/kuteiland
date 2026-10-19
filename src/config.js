@@ -2,7 +2,7 @@
 // Pas hier iets aan en herlaad de pagina; de rest van de code leest alleen uit CONFIG.
 
 export const CONFIG = {
-  version: 23,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
+  version: 24,   // ophogen bij elke nieuwe versie; staat onderin de rugzak
 
   render: {
     maxDpr: 2,          // hogere pixeldichtheid ziet er scherper uit maar kost prestaties
@@ -347,6 +347,7 @@ export const CONFIG = {
       9: { bite: 8, short: 'bijt hard' },
       10: { yield: 0.35, shield: 2, short: '+35% buit, vangt twee klappen op' },
     },
+    height: 36,               // altijd even groot in beeld (pixels), welk niveau ook
     biteRange: 1.2,
     biteEveryMs: 1000,
   },
